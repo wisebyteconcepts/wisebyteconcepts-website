@@ -1,0 +1,66 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isAdminEmail() {
+      return request.auth.token.email in ['wisebyteconcepts@gmail.com', 'contact@wisebyteconcepts.com'];
+    }
+    
+    // Master System Admin Bypass
+    match /{document=**} {
+      allow read, write: if isSignedIn() && isAdminEmail();
+    }
+    
+    // Global helpers
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+    function isSignedIn() { return request.auth != null; }
+    function isEmailVerified() { return request.auth.token.email_verified == true; }
+    function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
+    
+    // System Admin Bootstrap - Hardcoded for developer access
+    function isSystemAdmin() {
+      return isSignedIn() && isAdminEmail();
+    }
+
+    function isAdmin() { 
+      return isSignedIn() && (
+        isAdminEmail() || (
+          exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
+        )
+      );
+    }
+    
+    // User profile rules
+    match /users/{userId} {
+      function isValidUser(data) {
+        return data.email is string && data.email.size() <= 256 &&
+               data.role in ['user', 'admin'] &&
+               data.keys().hasAll(['email', 'role', 'createdAt']) &&
+               data.keys().size() >= 3;
+      }
+
+      allow get: if isOwner(userId) || isAdmin();
+      allow create: if isSignedIn() && isOwner(userId) && isValidUser(request.resource.data);
+      allow update: if (isOwner(userId) || isAdmin()) && isValidUser(request.resource.data) &&
+                    (isAdmin() || request.resource.data.role == resource.data.role);
+    }
+
+    // Services collection
+    match /services/{serviceId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Products collection
+    match /products/{productId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Skills collection
+    match /skills/{skillId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+  }
+}

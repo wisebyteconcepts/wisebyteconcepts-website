@@ -1,0 +1,83 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "User account information",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string", "format": "email" },
+        "displayName": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "role": { "type": "string", "enum": ["user", "admin"] }
+      },
+      "required": ["email", "role"]
+    },
+    "Service": {
+      "title": "Service",
+      "description": "Technical service offering",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "slug": { "type": "string" },
+        "category": { "type": "string" },
+        "caption": { "type": "string" },
+        "header": { "type": "string" },
+        "shortDescription": { "type": "string" },
+        "fullDescription": { "type": "string" },
+        "thumbnail": { "type": "string" },
+        "features": { "type": "array", "items": { "type": "string" } },
+        "isActive": { "type": "boolean" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      }
+    },
+    "Product": {
+      "title": "Product",
+      "description": "Portfolio item or product",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "serviceId": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "repoUrl": { "type": "string" },
+        "demoUrl": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      }
+    },
+    "Skill": {
+      "title": "Skill",
+      "description": "Technical capability",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "category": { "type": "string" },
+        "level": { "type": "number" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      }
+    }
+  },
+  "firestore": {
+    "users/{userId}": {
+      "schema": "User",
+      "description": "Store user profile information"
+    },
+    "services/{serviceId}": {
+      "schema": "Service",
+      "description": "Service definitions"
+    },
+    "products/{productId}": {
+      "schema": "Product",
+      "description": "Portfolio projects"
+    },
+    "skills/{skillId}": {
+      "schema": "Skill",
+      "description": "Skill matrix items"
+    }
+  }
+}
