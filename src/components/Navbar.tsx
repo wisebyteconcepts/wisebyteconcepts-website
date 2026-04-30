@@ -67,17 +67,16 @@ export const Navbar = ({
   return (
     <header 
       className={cn(
-        'fixed top-0 left-0 right-0 z-50 transition-all duration-300',
+        'fixed top-0 left-0 right-0 z-50 transition-all duration-300 py-3',
         isScrolled 
-          ? 'bg-background/80 backdrop-blur-md py-2' 
-          : 'bg-transparent py-4'
+          ? 'bg-background/80 backdrop-blur-md' 
+          : 'bg-transparent'
       )}
     >
       <div className="container mx-auto px-6 flex items-center justify-between">
         {/* Left Section: Logo & Title */}
         <Link to="/" className="flex items-center gap-3 group shrink-0">
           <motion.div 
-            whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             className="w-10 h-10 bg-[#3b82f6] flex items-center justify-center rounded-lg"
           >
@@ -139,7 +138,7 @@ export const Navbar = ({
             rel="noopener noreferrer"
             className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors group"
           >
-            <Github className="w-5 h-5 transition-transform group-hover:scale-110" />
+            <Github className="w-5 h-5" />
             <span>GitHub</span>
           </a>
 

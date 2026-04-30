@@ -14,7 +14,6 @@ export const GlassCard = ({ children, className, hoverGlow = true, ...props }: G
       initial={{ opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
-      whileHover={hoverGlow ? { scale: 1.02, y: -5 } : {}}
       className={cn(
         'glass rounded-2xl p-6 transition-all duration-300',
         hoverGlow && 'glass-hover',

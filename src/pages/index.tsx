@@ -58,7 +58,7 @@ export const HomePage = () => {
   return (
     <div className="flex flex-col">
       {/* Hero Section */}
-      <section className="relative min-h-[85vh] flex items-center justify-center overflow-hidden pt-20">
+      <section className="relative min-h-[65vh] md:min-h-[70vh] lg:min-h-[85vh] flex items-center justify-center overflow-hidden pt-12 md:pt-16 lg:pt-20">
         {/* Animated Background decorative elements */}
         <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-primary/20 rounded-full blur-[120px] animate-pulse" />
         <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-[140px] animate-pulse" style={{ animationDelay: '2s' }} />
@@ -98,10 +98,10 @@ export const HomePage = () => {
             className="flex flex-col sm:flex-row items-center justify-center gap-4"
           >
             <Button size="lg" className="rounded-full px-10" onClick={() => navigate('/contact')}>
-              Get Started • contact_us()
+              Start Your Project
             </Button>
             <Button variant="glass" size="lg" className="rounded-full px-10" onClick={() => navigate('/products')}>
-              View Portfolio
+              View Our Work
             </Button>
           </motion.div>
         </div>
@@ -193,7 +193,7 @@ export const HomePage = () => {
       <section className="py-24 border-y border-white/5">
         <div className="container mx-auto px-6">
           <div className="max-w-4xl mx-auto text-center">
-            <h2 className="text-sm font-mono text-primary uppercase tracking-[0.4em] mb-8">About Us // The_Mission</h2>
+            <h2 className="section-caption mb-8">About Us // The Mission</h2>
             <p className="text-2xl md:text-4xl font-bold leading-tight tracking-tight mb-12">
               Wise Byte Concepts delivers practical, scalable, and visually strong digital solutions.
             </p>
@@ -219,7 +219,7 @@ export const HomePage = () => {
                     <img 
                       src={p.imageUrl} 
                       alt={p.name} 
-                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" 
+                      className="w-full h-full object-cover" 
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
@@ -263,7 +263,6 @@ export const HomePage = () => {
           {['React', 'TypeScript', 'Blazor', 'ASP.NET Core', 'Node.js', 'PostgreSQL', 'Docker', 'Azure'].map((skill) => (
             <motion.div
               key={skill}
-              whileHover={{ y: -5 }}
               className="px-6 py-3 rounded-full glass border-white/5 text-sm font-bold tracking-tight hover:border-primary/50 transition-colors"
             >
               {skill}
@@ -396,7 +395,7 @@ export const ProductsPage = () => {
             <GlassCard key={p.id} className="p-0 overflow-hidden group">
                <div className="aspect-video relative overflow-hidden bg-muted">
                 {p.imageUrl ? (
-                  <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                  <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
                     <ShoppingBag className="w-12 h-12 text-white/5" />
@@ -463,7 +462,7 @@ export const SkillsPage = () => {
           {Object.entries(skillGroups).map(([category, items]) => (
             <div key={category}>
               <div className="flex items-center gap-4 mb-8">
-                <h2 className="text-xs font-bold text-primary uppercase tracking-[0.3em] font-mono whitespace-nowrap">
+                <h2 className="text-xs font-bold text-primary uppercase tracking-[0.3em] whitespace-nowrap">
                   {category}
                 </h2>
                 <div className="h-px w-full bg-gradient-to-r from-primary/30 to-transparent" />
@@ -562,12 +561,12 @@ export const AdminLoginPage = () => {
             <Lock className="w-8 h-8 text-white" />
           </div>
           <h1 className="text-3xl font-bold mb-2">Portal Access</h1>
-          <p className="text-xs text-muted-foreground uppercase tracking-[0.3em] font-mono">Identity Verification Required</p>
+          <p className="text-xs text-muted-foreground uppercase tracking-[0.3em]">Identity Verification Required</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="text-left space-y-2">
-            <label className="text-[10px] font-bold uppercase tracking-widest text-primary ml-1 font-mono">Email Address</label>
+            <label className="text-[10px] font-bold uppercase tracking-widest text-primary ml-1">Email Address</label>
             <Input 
               type="email" 
               value={email} 
@@ -580,7 +579,7 @@ export const AdminLoginPage = () => {
           </div>
           <div className="text-left space-y-2">
             <div className="flex justify-between items-center mr-1">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-primary ml-1 font-mono">Safe-Key</label>
+              <label className="text-[10px] font-bold uppercase tracking-widest text-primary ml-1">Safe-Key</label>
               <button 
                 type="button"
                 onClick={handleForgotPassword}
@@ -648,7 +647,7 @@ export const AdminDashboardPage = () => {
             <div className={`w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center mb-6 group-hover:bg-primary/10 transition-colors`}>
               <stat.icon className={`w-5 h-5 ${stat.color}`} />
             </div>
-            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] mb-1 font-mono">{stat.label}</p>
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] mb-1">{stat.label}</p>
             <p className="text-5xl font-bold tracking-tighter">{stat.count}</p>
             <div className="mt-6 flex justify-end">
                <span className="text-[10px] uppercase font-bold text-primary group-hover:translate-x-1 transition-transform">Manage →</span>
@@ -1238,7 +1237,7 @@ export const ServiceDetailPage = () => {
                 <GlassCard key={p.id} className="p-0 overflow-hidden group border-white/5 hover:border-white/10">
                    <div className="aspect-video relative overflow-hidden bg-muted">
                     {p.imageUrl ? (
-                      <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                      <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
                         <ShoppingBag className="w-12 h-12 text-white/5" />
