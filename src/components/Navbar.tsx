@@ -47,21 +47,15 @@ export const Navbar = ({
   const isActive = (path: string) => location.pathname === path;
 
   const cycleTheme = () => {
-    if (theme === 'system') setTheme('light');
-    else if (theme === 'light') setTheme('dark');
-    else setTheme('system');
+    setTheme(theme === 'light' ? 'dark' : 'light');
   };
 
   const getThemeIcon = () => {
-    if (theme === 'system') return <Monitor className="w-4 h-4" />;
-    if (theme === 'light') return <Sun className="w-4 h-4" />;
-    return <Moon className="w-4 h-4" />;
+    return theme === 'light' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />;
   };
 
   const getThemeLabel = () => {
-    if (theme === 'system') return 'System';
-    if (theme === 'light') return 'Light';
-    return 'Dark';
+    return theme === 'light' ? 'Light' : 'Dark';
   };
 
   return (
