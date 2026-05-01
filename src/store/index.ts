@@ -12,26 +12,39 @@ interface AppState {
   addService: (service: Service) => Promise<void>;
   updateService: (service: Service) => Promise<void>;
   deleteService: (id: string) => Promise<void>;
+  reorderServices: (items: Service[]) => Promise<void>;
 
   // Actions for Products
   addProduct: (product: Product) => Promise<void>;
   updateProduct: (product: Product) => Promise<void>;
   deleteProduct: (id: string) => Promise<void>;
+  reorderProducts: (items: Product[]) => Promise<void>;
 
   // Actions for Skills
   addSkill: (skill: Skill) => Promise<void>;
   updateSkill: (skill: Skill) => Promise<void>;
   deleteSkill: (id: string) => Promise<void>;
+  reorderSkills: (items: Skill[]) => Promise<void>;
+
+  // Reset functionality
+  resetToDefaults: () => Promise<void>;
 
   // Initialization
   init: () => Promise<void>;
 }
 
-export const useAppStore = create<AppState>((set) => ({
+export const useAppStore = create<AppState>((set, get) => ({
   services: [],
   products: [],
   skills: [],
   isLoaded: false,
+
+  resetToDefaults: async () => {
+    // In a real app this would call a seed API. 
+    // Here we'll just clear and re-init (which might need a backend seed check)
+    // For now, let's just refresh state.
+    await get().init();
+  },
 
   addService: async (service) => {
     const newService = await api.data.createService(service);
@@ -50,6 +63,12 @@ export const useAppStore = create<AppState>((set) => ({
     set((state) => ({
       services: state.services.filter((s) => s.id !== id),
     }));
+  },
+
+  reorderServices: async (items) => {
+    const updates = items.map((item, index) => ({ ...item, order: index }));
+    set({ services: updates });
+    await api.data.batchUpdate('services', updates);
   },
 
   addProduct: async (product) => {
@@ -71,6 +90,12 @@ export const useAppStore = create<AppState>((set) => ({
     }));
   },
 
+  reorderProducts: async (items) => {
+    const updates = items.map((item, index) => ({ ...item, order: index }));
+    set({ products: updates });
+    await api.data.batchUpdate('products', updates);
+  },
+
   addSkill: async (skill) => {
     const newSkill = await api.data.createSkill(skill);
     set((state) => ({ skills: [...state.skills, newSkill] }));
@@ -88,6 +113,12 @@ export const useAppStore = create<AppState>((set) => ({
     set((state) => ({
       skills: state.skills.filter((s) => s.id !== id),
     }));
+  },
+
+  reorderSkills: async (items) => {
+    const updates = items.map((item, index) => ({ ...item, order: index }));
+    set({ skills: updates });
+    await api.data.batchUpdate('skills', updates);
   },
 
   init: async () => {

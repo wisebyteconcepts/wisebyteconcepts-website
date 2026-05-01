@@ -107,6 +107,22 @@ export class LocalStorageAdapter implements StorageService {
     const filtered = skills.filter(s => s.id !== id);
     this.setItem(KEYS.SKILLS, filtered);
   }
+
+  async batchUpdate(collectionName: string, updates: any[]): Promise<void> {
+    const key = collectionName === 'services' ? KEYS.SERVICES : 
+                collectionName === 'products' ? KEYS.PRODUCTS : 
+                collectionName === 'skills' ? KEYS.SKILLS : null;
+    
+    if (!key) return;
+
+    const data = this.getItem<any>(key);
+    const newData = data.map((item: any) => {
+      const update = updates.find(u => u.id === item.id);
+      return update ? { ...item, ...update } : item;
+    });
+
+    this.setItem(key, newData);
+  }
 }
 
 export const storage = new LocalStorageAdapter();

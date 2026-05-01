@@ -22,6 +22,7 @@ export interface Service {
   fullDescription: string;
 
   // Media
+  icon?: string;
   thumbnail: string;
   bannerImage?: string;
   gallery?: string[];
@@ -83,6 +84,7 @@ export interface Product {
 
   // Relationship
   serviceId: string; // FK → Service.id
+  icon?: string;
 
   // Media
   imageUrl?: string;
@@ -93,6 +95,7 @@ export interface Product {
   tags?: string[];
 
   // System
+  order?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -111,6 +114,7 @@ export interface Skill {
   category: SkillCategory;
   level: number; // 0–100
   icon?: string;
+  order?: number;
   createdAt: string;
   updatedAt: string;
 }

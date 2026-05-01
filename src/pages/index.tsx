@@ -4,11 +4,6 @@ import { useAppStore } from '@/store';
 import { useAuthStore } from '@/store/authStore';
 import { useToastStore } from '@/store/toastStore';
 import { 
-  Modal, 
-  ServiceForm, 
-  ProductForm, 
-  SkillForm, 
-  Input, 
   EmptyState,
   Button,
   Section,
@@ -16,8 +11,44 @@ import {
   GlowOrb
 } from '@/components';
 import { 
-  Plus, 
-  Edit2, 
+  Card 
+} from '@/components/ui/Card';
+import { cn } from '@/lib/utils';
+import {
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/Table';
+import { Badge } from '@/components/ui/Badge';
+import { Input } from '@/components/ui/Input';
+import { Label } from '@/components/ui/Label';
+import { Switch } from '@/components/ui/Switch';
+import { Textarea } from '@/components/ui/Textarea';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/Select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/Tabs';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/Dialog';
+import { CrudPageShell } from '@/components/admin/CrudPageShell';
+import { ListInput } from '@/components/admin/ListInput';
+import { ImageInput } from '@/components/admin/ImageInput';
+import { ImagesInput } from '@/components/admin/ImagesInput';
+import { IconPicker } from '@/components/admin/IconPicker';
+import { SortableList, SortableRow } from '@/components/admin/SortableTable';
+import * as LucideIcons from 'lucide-react';
+import { 
   Trash2, 
   Shield, 
   Lock, 
@@ -33,6 +64,9 @@ import {
   Github,
   Globe,
   Layers,
+  Layout,
+  Server,
+  Smartphone,
   Cpu,
   CheckCircle2,
   Clock,
@@ -42,11 +76,40 @@ import {
   MapPin,
   Zap,
   Sparkles,
-  Monitor
+  Monitor,
+  Settings,
+  Star,
+  EyeOff,
+  Pencil,
+  LucideIcon
 } from 'lucide-react';
-import { Service, Product, Skill } from '@/types';
+import { 
+  Service, 
+  Product, 
+  Skill,
+  ServiceCategory,
+  SkillCategory,
+  PricingType,
+  PricingUnit,
+  CtaAction
+} from '@/types';
 import { useParams } from 'react-router-dom';
 import { motion } from 'motion/react';
+
+const DynamicIcon = ({ name, className, fallback: Fallback }: { name?: string; className?: string; fallback: LucideIcon }) => {
+  if (!name) return <Fallback className={className} />;
+  
+  // Check if it's a URL
+  const isUrl = name.startsWith('http') || name.startsWith('data:') || name.includes('/');
+  
+  if (isUrl) {
+    return <img src={name} alt="icon" className={cn("object-contain", className)} referrerPolicy="no-referrer" />;
+  }
+
+  const Icon = (LucideIcons as any)[name] as LucideIcon;
+  if (!Icon) return <Fallback className={className} />;
+  return <Icon className={className} />;
+};
 
 // Animation variants for pages
 // ... (omitting unused pageVariants)
@@ -58,19 +121,19 @@ export const HomePage = () => {
   return (
     <div className="flex flex-col">
       {/* Hero Section */}
-      <section className="relative min-h-[65vh] md:min-h-[70vh] lg:min-h-[85vh] flex items-center justify-center overflow-hidden pt-12 md:pt-16 lg:pt-20">
+      <section className="relative min-h-[75vh] flex items-center justify-center overflow-hidden pt-16">
         {/* Animated Background decorative elements */}
         <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-primary/20 rounded-full blur-[120px] animate-pulse" />
         <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-[140px] animate-pulse" style={{ animationDelay: '2s' }} />
         
         <div className="container mx-auto px-6 relative z-10 text-center">
           <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
             transition={{ duration: 0.8 }}
-            className="mb-6 inline-block py-2 px-4 bg-white/5 backdrop-blur-md rounded-full border border-white/10"
+            className="mb-8 inline-flex items-center py-2 px-4 bg-primary/5 dark:bg-primary/10 rounded-full border border-primary/20"
           >
-            <span className="text-xs font-bold uppercase tracking-[0.3em] text-primary">Precision Digital Engineering</span>
+            <span className="text-[11px] font-bold uppercase tracking-[0.4em] text-primary">Precision Digital Engineering</span>
           </motion.div>
           
           <motion.h1
@@ -98,10 +161,10 @@ export const HomePage = () => {
             className="flex flex-col sm:flex-row items-center justify-center gap-4"
           >
             <Button size="lg" className="rounded-full px-10" onClick={() => navigate('/contact')}>
-              Start Your Project
+              Get Started
             </Button>
             <Button variant="glass" size="lg" className="rounded-full px-10" onClick={() => navigate('/products')}>
-              View Our Work
+              View Portfolio
             </Button>
           </motion.div>
         </div>
@@ -112,22 +175,45 @@ export const HomePage = () => {
         title="Core Services" 
         description="Our specialized technical services are engineered to scale your operations and deliver measurable results."
       >
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {services.map((s) => (
-            <GlassCard key={s.id} className="flex flex-col h-full group">
-              <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center mb-6 group-hover:bg-primary/20 transition-colors">
-                <Code className="w-6 h-6 text-primary" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          {[...services].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)).map((s) => (
+            <GlassCard key={s.id} className="p-0 overflow-hidden group flex flex-col h-full border-white/5 hover:border-primary/20">
+              <div className="relative">
+                <div className="aspect-video relative overflow-hidden bg-muted">
+                  {s.thumbnail ? (
+                    <img 
+                      src={s.thumbnail} 
+                      alt={s.name} 
+                      className="w-full h-full object-cover transition-transform duration-700" 
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/5 to-transparent">
+                      <DynamicIcon name={s.icon} className="w-12 h-12 text-primary/20" fallback={Code} />
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent opacity-60" />
+                </div>
+                <div className="absolute -bottom-6 right-6 z-20">
+                  <div className="w-12 h-12 rounded-2xl bg-primary shadow-glow flex items-center justify-center transform transition-all duration-500 group-hover:scale-110 group-hover:-translate-y-1">
+                    <DynamicIcon name={s.icon} className="w-6 h-6 text-white" fallback={Code} />
+                  </div>
+                </div>
               </div>
-              <h3 className="text-2xl font-bold mb-4">{s.name}</h3>
-              <p className="text-muted-foreground mb-8 flex-grow leading-relaxed">{s.shortDescription}</p>
-              <div className="flex flex-wrap gap-2 mb-8">
-                {s.features?.slice(0, 3).map(f => (
-                  <span key={f} className="text-[10px] font-mono bg-white/5 px-2 py-1 rounded-md text-muted-foreground">{f}</span>
-                ))}
+              <div className="p-8 pt-10 flex-grow flex flex-col">
+                <h3 className="text-2xl font-display font-bold mb-3 group-hover:text-primary transition-colors">{s.name}</h3>
+                <p className="text-muted-foreground text-sm leading-relaxed mb-6 line-clamp-3">{s.shortDescription}</p>
+                <div className="flex flex-wrap gap-2 mt-auto mb-8">
+                  {s.features?.slice(0, 3).map(f => (
+                    <span key={f} className="text-[9px] font-sans font-medium border border-primary/20 bg-primary/5 dark:bg-primary/10 px-2.5 py-1 rounded-md text-primary dark:text-primary-foreground/80 uppercase tracking-widest">{f}</span>
+                  ))}
+                </div>
+                <Link to={`/services/${s.id}`} className="w-fit">
+                  <Button variant="ghost" className="justify-start px-0 hover:bg-transparent hover:text-primary gap-2 transition-all group/btn text-xs uppercase tracking-widest font-bold">
+                    Engineering Details
+                    <ArrowRight className="w-4 h-4 transition-transform group-hover/btn:translate-x-1" />
+                  </Button>
+                </Link>
               </div>
-              <Link to={`/services/${s.id}`} className="inline-flex items-center text-sm font-bold text-primary group/link">
-                Review Full Scope <span className="ml-2 group-hover/link:translate-x-1 transition-transform">→</span>
-              </Link>
             </GlassCard>
           ))}
           {services.length === 0 && (
@@ -135,6 +221,9 @@ export const HomePage = () => {
                <EmptyState icon={Briefcase} title="Registry Offline" description="Service nodes are currently being synchronized." />
             </div>
           )}
+        </div>
+        <div className="mt-12 text-center">
+          <Button variant="glass" onClick={() => navigate('/services')}>Access All Services</Button>
         </div>
       </Section>
 
@@ -190,10 +279,10 @@ export const HomePage = () => {
       </Section>
 
       {/* About Us Section */}
-      <section className="py-24 border-y border-white/5">
+      <section className="py-16 md:py-24 border-y border-white/5">
         <div className="container mx-auto px-6">
           <div className="max-w-4xl mx-auto text-center">
-            <h2 className="section-caption mb-8">About Us // The Mission</h2>
+            <h2 className="text-[11px] font-bold text-primary uppercase tracking-[0.4em] mb-8 inline-flex items-center px-4 py-1.5 bg-primary/5 dark:bg-primary/10 border border-primary/20 rounded-full">Our Mission</h2>
             <p className="text-2xl md:text-4xl font-bold leading-tight tracking-tight mb-12">
               Wise Byte Concepts delivers practical, scalable, and visually strong digital solutions.
             </p>
@@ -209,36 +298,46 @@ export const HomePage = () => {
         title="Project Showcase" 
         description="Demonstrating our ability to deliver robust digital solutions across various domains."
       >
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {products.slice(0, 3).map((p) => {
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
+          {[...products].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)).slice(0, 4).map((p) => {
             const service = services.find(s => s.id === p.serviceId);
             return (
-              <GlassCard key={p.id} className="p-0 overflow-hidden group border-white/5 hover:border-primary/30">
-                <div className="aspect-video relative overflow-hidden bg-muted">
+              <GlassCard key={p.id} className="p-0 overflow-hidden group border-white/5 hover:border-primary/20 h-full flex flex-col">
+                <div className="aspect-[16/10] relative overflow-hidden bg-muted">
                   {p.imageUrl ? (
                     <img 
                       src={p.imageUrl} 
                       alt={p.name} 
-                      className="w-full h-full object-cover" 
+                      loading="lazy"
+                      className="absolute inset-0 h-full w-full object-cover transition-transform duration-700" 
                     />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <ShoppingBag className="w-12 h-12 text-white/5" />
+                    <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-blue-500/5">
+                      <div className="w-12 h-12 rounded-xl bg-background/80 backdrop-blur flex items-center justify-center shadow-soft transition-transform duration-500">
+                        <DynamicIcon name={p.icon} className="w-6 h-6 text-primary/40" fallback={ShoppingBag} />
+                      </div>
                     </div>
                   )}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-6">
-                    <div className="flex gap-4">
-                      {p.demoUrl && <a href={p.demoUrl} target="_blank" className="text-xs font-bold text-white hover:text-primary transition-colors flex items-center gap-1"><Search className="w-3 h-3" /> Live Instance</a>}
-                      {p.repoUrl && <a href={p.repoUrl} target="_blank" className="text-xs font-bold text-white hover:text-primary transition-colors flex items-center gap-1"><Code className="w-3 h-3" /> Technical Specs</a>}
-                    </div>
+                  <div className="absolute top-3 left-3">
+                    <span className="text-[9px] font-sans font-medium border border-primary/20 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm px-2.5 py-1 rounded-md text-primary dark:text-primary-foreground uppercase tracking-widest shadow-sm">
+                      {service?.name || 'Project'}
+                    </span>
                   </div>
                 </div>
-                <div className="p-6">
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-[10px] font-mono text-primary uppercase tracking-widest">{service?.name || 'Technical Project'}</span>
+                <div className="p-6 flex-grow flex flex-col">
+                  <h3 className="text-2xl font-display font-bold mb-3 group-hover:text-primary transition-colors">
+                    {p.name}
+                  </h3>
+                  <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed mb-6">{p.description}</p>
+                  
+                  <div className="mt-auto">
+                    <Link to={`/products/${p.id}`} className="w-fit">
+                      <Button variant="ghost" className="justify-start px-0 hover:bg-transparent hover:text-primary gap-2 transition-all group/btn text-xs uppercase tracking-widest font-bold">
+                        Project Insight
+                        <ArrowRight className="w-4 h-4 transition-transform group-hover/btn:translate-x-1" />
+                      </Button>
+                    </Link>
                   </div>
-                  <h3 className="text-xl font-bold mb-3">{p.name}</h3>
-                  <p className="text-muted-foreground text-sm line-clamp-2 leading-relaxed">{p.description}</p>
                 </div>
               </GlassCard>
             );
@@ -249,36 +348,108 @@ export const HomePage = () => {
             </div>
           )}
         </div>
-        <div className="mt-16 text-center">
+        <div className="mt-12 text-center">
           <Button variant="glass" onClick={() => navigate('/products')}>Explore Full Registry</Button>
         </div>
       </Section>
 
       {/* Skills / Tech Stack Section */}
       <Section 
-        title="Technical Stack" 
-        description="The modern, high-performance technologies we leverage to build resilient digital systems."
+        title="Engineering Stack" 
+        description="Our specialized technical arsenal is composed of industry-leading technologies optimized for performance, scalability, and long-term maintainability."
       >
-        <div className="flex flex-wrap justify-center gap-4 max-w-4xl mx-auto">
-          {['React', 'TypeScript', 'Blazor', 'ASP.NET Core', 'Node.js', 'PostgreSQL', 'Docker', 'Azure'].map((skill) => (
+        <motion.div 
+          initial="hidden"
+          whileInView="show"
+          viewport={{ once: true, margin: "-100px" }}
+          variants={{
+            hidden: { opacity: 0 },
+            show: {
+              opacity: 1,
+              transition: {
+                staggerChildren: 0.1
+              }
+            }
+          }}
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8"
+        >
+          {[
+            {
+              category: 'Frontend & UI',
+              icon: <Layout className="w-6 h-6 text-[#61DAFB]" />,
+              skills: [
+                { name: 'React', desc: 'Atomic design & state mgmt' },
+                { name: 'TypeScript', desc: 'Enterprise-grade safety' },
+                { name: 'Tailwind', desc: 'High-speed fluid UI' },
+                { name: 'Blazor', desc: 'C# robustness on Web' }
+              ]
+            },
+            {
+              category: 'Backend & APIs',
+              icon: <Server className="w-6 h-6 text-[#512BD4]" />,
+              skills: [
+                { name: 'Node.js', desc: 'Real-time event driven' },
+                { name: '.NET 8', desc: 'High-concurrency systems' },
+                { name: 'PostgreSQL', desc: 'Relational data integrity' },
+                { name: 'Next.js', desc: 'Edge-ready serverless' }
+              ]
+            },
+            {
+              category: 'Mobile & Desktop',
+              icon: <Smartphone className="w-6 h-6 text-[#3b82f6]" />,
+              skills: [
+                { name: 'React Native', desc: 'Native mobile performance' },
+                { name: '.NET MAUI', desc: 'Cross-platform mobility' },
+                { name: 'WinUI 3', desc: 'Standard desktop UX' },
+                { name: 'WPF', desc: 'Legacy systems' }
+              ]
+            },
+            {
+              category: 'Architecture',
+              icon: <Cpu className="w-6 h-6 text-[#F29111]" />,
+              skills: [
+                { name: 'Docker', desc: 'Containerized portability' },
+                { name: 'Azure', desc: 'Hyperscale cloud infra' },
+                { name: 'GitHub', desc: 'DevOps & CI/CD pipeline' },
+                { name: 'WordPress', desc: 'Content modules' }
+              ]
+            }
+          ].map((group, idx) => (
             <motion.div
-              key={skill}
-              className="px-6 py-3 rounded-full glass border-white/5 text-sm font-bold tracking-tight hover:border-primary/50 transition-colors"
+              key={idx}
+              variants={{
+                hidden: { opacity: 0, y: 20 },
+                show: { opacity: 1, y: 0 }
+              }}
             >
-              {skill}
+              <GlassCard className="flex flex-col h-full border-white/5 hover:border-primary/20 transition-all group overflow-hidden">
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center group-hover:scale-110 transition-transform duration-500">
+                    {group.icon}
+                  </div>
+                  <h3 className="font-bold text-[11px] uppercase tracking-[0.4em] text-primary">{group.category}</h3>
+                </div>
+                <div className="space-y-4 flex-grow">
+                  {group.skills.map((skill, sIdx) => (
+                    <div key={sIdx} className="relative pl-4 border-l border-white/10 group/item">
+                      <div className="absolute left-[-1px] top-0 bottom-0 w-0.5 bg-primary scale-y-0 group-hover/item:scale-y-100 transition-transform origin-top" />
+                      <h4 className="text-sm font-bold mb-0.5">{skill.name}</h4>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{skill.desc}</p>
+                    </div>
+                  ))}
+                </div>
+              </GlassCard>
             </motion.div>
           ))}
-        </div>
+        </motion.div>
         <div className="mt-12 text-center">
-          <Link to="/skills" className="text-xs font-bold text-muted-foreground hover:text-white uppercase tracking-widest transition-colors">
-            View Expanded Skill Matrix →
-          </Link>
+          <Button variant="glass" onClick={() => navigate('/skills')}>View Expanded Skill Matrix</Button>
         </div>
       </Section>
 
       {/* CTA Section */}
-      <section className="py-32 relative overflow-hidden" id="contact">
-        <div className="absolute inset-0 bg-primary/5 -skew-y-3" />
+      <section className="py-16 md:py-24 relative overflow-hidden" id="contact">
+        <div className="absolute inset-0 bg-primary/5" />
         <div className="container mx-auto px-6 relative z-10">
           <GlassCard className="max-w-4xl mx-auto p-12 text-center" hoverGlow={false}>
             <h2 className="text-3xl md:text-5xl font-bold mb-6">Commence Your Technical Project</h2>
@@ -299,11 +470,12 @@ export const HomePage = () => {
 };
 
 export const ServicesPage = () => {
-  const services = useAppStore((state) => state.services);
+  const servicesData = useAppStore((state) => state.services);
+  const services = [...servicesData].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
   return (
     <Section 
       title="Our Services" 
-      description="technical.capabilities.registry — Explore our full range of engineering and design solutions."
+      description="Explore our full range of engineering and design solutions."
     >
       {services.length === 0 ? (
         <EmptyState 
@@ -312,33 +484,50 @@ export const ServicesPage = () => {
           description="Our technical service registry is currently being synchronized. Check back shortly for our full capability map."
         />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {services.map(s => (
-            <GlassCard key={s.id} className="group">
-              <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center mb-6 group-hover:bg-primary/20 transition-colors">
-                <Briefcase className="w-6 h-6 text-primary" />
-              </div>
-              <h3 className="text-2xl font-bold mb-4">{s.name}</h3>
-              <p className="text-muted-foreground leading-relaxed mb-6">{s.shortDescription}</p>
-              
-              {s.features && s.features.length > 0 && (
-                <div className="space-y-2 mb-8">
-                  {s.features.slice(0, 3).map((feature, i) => (
-                    <div key={i} className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <div className="w-1 h-1 rounded-full bg-primary" />
-                      <span>{feature}</span>
+            <GlassCard key={s.id} className="p-0 overflow-hidden group flex flex-col h-full border-white/5 hover:border-primary/20">
+              <div className="relative">
+                <div className="aspect-video relative overflow-hidden bg-muted">
+                  {s.thumbnail ? (
+                    <img 
+                      src={s.thumbnail} 
+                      alt={s.name} 
+                      className="w-full h-full object-cover transition-transform duration-700" 
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/5 to-transparent">
+                      <DynamicIcon name={s.icon} className="w-12 h-12 text-primary/20" fallback={Briefcase} />
                     </div>
-                  ))}
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent opacity-60" />
                 </div>
-              )}
+                <div className="absolute -bottom-6 right-6 z-20">
+                  <div className="w-12 h-12 rounded-2xl bg-primary shadow-glow flex items-center justify-center transform transition-all duration-500 group-hover:scale-110 group-hover:-translate-y-1">
+                    <DynamicIcon name={s.icon} className="w-6 h-6 text-white" fallback={Briefcase} />
+                  </div>
+                </div>
+              </div>
+              <div className="p-8 pt-10 flex-grow flex flex-col">
+                <h3 className="text-2xl font-display font-bold mb-3 group-hover:text-primary transition-colors">{s.name}</h3>
+                <p className="text-muted-foreground text-sm leading-relaxed mb-6 line-clamp-3">{s.shortDescription}</p>
+                
+                {s.features && s.features.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mb-8">
+                    {s.features.slice(0, 3).map((feature, i) => (
+                      <span key={i} className="text-[9px] font-sans font-medium border border-primary/20 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm px-2.5 py-1 rounded-md text-primary dark:text-primary-foreground uppercase tracking-widest shadow-sm">{feature}</span>
+                    ))}
+                  </div>
+                )}
 
-              <div className="pt-6 border-t border-white/5 flex justify-between items-center">
-                <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">{s.category}</span>
-                <Link to={`/services/${s.id}`}>
-                  <Button variant="ghost" size="sm" className="group-hover:text-primary">
-                    Details <span className="ml-1 group-hover:translate-x-1 transition-transform">→</span>
-                  </Button>
-                </Link>
+                <div className="mt-auto pt-6 border-t border-white/5 flex justify-between items-center">
+                  <span className="text-[10px] text-primary/70 font-bold uppercase tracking-[0.2em]">{s.category}</span>
+                  <Link to={`/services/${s.id}`}>
+                    <Button variant="ghost" size="sm" className="px-0 hover:bg-transparent hover:text-primary gap-2 transition-all">
+                      Full Capability Map <ArrowRight className="w-3 h-3" />
+                    </Button>
+                  </Link>
+                </div>
               </div>
             </GlassCard>
           ))}
@@ -353,14 +542,14 @@ export const ProductsPage = () => {
   const [filter, setFilter] = useState('all');
 
   const filteredProducts = useMemo(() => {
-    if (filter === 'all') return products;
-    return products.filter((p: Product) => p.serviceId === filter);
+    const list = filter === 'all' ? products : products.filter((p: Product) => p.serviceId === filter);
+    return [...list].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
   }, [products, filter]);
 
   return (
     <Section 
       title="Product Showcase" 
-      description="engineering.output.showcase — Explore our portfolio of high-performance digital products and tools."
+      description="Explore our portfolio of high-performance digital products and tools."
     >
       <div className="flex items-center gap-2 overflow-x-auto pb-8 hide-scrollbar">
         <Button 
@@ -390,44 +579,50 @@ export const ProductsPage = () => {
           description={filter === 'all' ? "The engineering showcase is currently empty." : "No products currently associated with this service category."}
         />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {filteredProducts.map(p => (
-            <GlassCard key={p.id} className="p-0 overflow-hidden group">
-               <div className="aspect-video relative overflow-hidden bg-muted">
-                {p.imageUrl ? (
-                  <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <ShoppingBag className="w-12 h-12 text-white/5" />
-                  </div>
-                )}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent flex items-end p-6 opacity-0 group-hover:opacity-100 transition-opacity">
-                   <div className="flex gap-4">
-                     {p.demoUrl && <a href={p.demoUrl} target="_blank" className="text-xs font-bold text-white hover:text-primary transition-colors flex items-center gap-1"><Search className="w-3 h-3" /> Demo</a>}
-                     {p.repoUrl && <a href={p.repoUrl} target="_blank" className="text-xs font-bold text-white hover:text-primary transition-colors flex items-center gap-1"><Code className="w-3 h-3" /> Repo</a>}
-                   </div>
-                </div>
-              </div>
-              <div className="p-6">
-                <div className="flex justify-between items-start mb-4">
-                  <h3 className="text-xl font-bold group-hover:text-primary transition-colors line-clamp-1">{p.name}</h3>
-                  <Link to={`/products/${p.id}`}>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
-                      <ArrowRight className="w-4 h-4" />
-                    </Button>
-                  </Link>
-                </div>
-                <p className="text-muted-foreground text-sm line-clamp-3 mb-6 leading-relaxed">{p.description}</p>
-                <div className="flex items-center gap-2 flex-wrap">
-                  {services.find(s => s.id === p.serviceId) && (
-                    <span className="text-[10px] font-mono bg-primary/10 text-primary px-2 py-1 rounded-full uppercase tracking-widest">
-                      {services.find(s => s.id === p.serviceId)?.name}
-                    </span>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
+          {filteredProducts.map(p => {
+            const service = services.find(s => s.id === p.serviceId);
+            return (
+              <GlassCard key={p.id} className="p-0 overflow-hidden group border-white/5 hover:border-primary/20 h-full flex flex-col">
+                <div className="aspect-[16/10] relative overflow-hidden bg-muted">
+                  {p.imageUrl ? (
+                    <img 
+                      src={p.imageUrl} 
+                      alt={p.name} 
+                      loading="lazy"
+                      className="absolute inset-0 h-full w-full object-cover transition-transform duration-700" 
+                    />
+                  ) : (
+                    <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-blue-500/5">
+                      <div className="w-12 h-12 rounded-xl bg-background/80 backdrop-blur flex items-center justify-center shadow-soft transition-transform duration-500">
+                        <DynamicIcon name={p.icon} className="w-6 h-6 text-primary/40" fallback={ShoppingBag} />
+                      </div>
+                    </div>
                   )}
+                  <div className="absolute top-3 left-3">
+                    <span className="text-[9px] font-sans font-medium border border-primary/20 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm px-2.5 py-1 rounded-md text-primary dark:text-primary-foreground uppercase tracking-widest shadow-sm">
+                      {service?.name || 'Project'}
+                    </span>
+                  </div>
                 </div>
-              </div>
-            </GlassCard>
-          ))}
+                <div className="p-6 flex-grow flex flex-col">
+                  <h3 className="text-2xl font-display font-bold mb-3 group-hover:text-primary transition-colors">
+                    {p.name}
+                  </h3>
+                  <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed mb-6">{p.description}</p>
+                  
+                  <div className="mt-auto">
+                    <Link to={`/products/${p.id}`} className="w-fit">
+                      <Button variant="ghost" className="justify-start px-0 hover:bg-transparent hover:text-primary gap-2 transition-all group/btn text-xs uppercase tracking-widest font-bold">
+                        Project Insight
+                        <ArrowRight className="w-4 h-4 transition-transform group-hover/btn:translate-x-1" />
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+              </GlassCard>
+            );
+          })}
         </div>
       )}
     </Section>
@@ -449,7 +644,7 @@ export const SkillsPage = () => {
   return (
     <Section 
       title="Technical Stack" 
-      description="core.competencies.matrix — The foundation of our precision engineering and digital craftsmanship."
+      description="The foundation of our precision engineering and digital craftsmanship."
     >
       {skills.length === 0 ? (
         <EmptyState 
@@ -462,16 +657,21 @@ export const SkillsPage = () => {
           {Object.entries(skillGroups).map(([category, items]) => (
             <div key={category}>
               <div className="flex items-center gap-4 mb-8">
-                <h2 className="text-xs font-bold text-primary uppercase tracking-[0.3em] whitespace-nowrap">
+                <h2 className="text-[11px] font-bold text-primary uppercase tracking-[0.4em] whitespace-nowrap px-4 py-1.5 bg-primary/5 dark:bg-primary/10 border border-primary/20 rounded-full">
                   {category}
                 </h2>
                 <div className="h-px w-full bg-gradient-to-r from-primary/30 to-transparent" />
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-                {(items as Skill[]).sort((a, b) => b.level - a.level).map(skill => (
+                {(items as Skill[]).sort((a, b) => {
+                  const orderA = a.order ?? 999;
+                  const orderB = b.order ?? 999;
+                  if (orderA !== orderB) return orderA - orderB;
+                  return b.level - a.level;
+                }).map(skill => (
                   <GlassCard key={skill.id} className="p-6 text-center group py-8">
                     <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:bg-primary/10 transition-colors">
-                      <Code className="w-6 h-6 text-muted-foreground group-hover:text-primary transition-colors" />
+                      <DynamicIcon name={skill.icon} className="w-6 h-6 text-muted-foreground group-hover:text-primary transition-colors" fallback={Code} />
                     </div>
                     <h3 className="font-bold text-lg mb-2">{skill.name}</h3>
                     <div className="space-y-2">
@@ -560,13 +760,15 @@ export const AdminLoginPage = () => {
           <div className="w-16 h-16 bg-gradient-brand rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-glow">
             <Lock className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-3xl font-bold mb-2">Portal Access</h1>
-          <p className="text-xs text-muted-foreground uppercase tracking-[0.3em]">Identity Verification Required</p>
+          <h1 className="text-3xl font-bold mb-6">Admin Login</h1>
+          <div className="mb-6 inline-flex items-center px-4 py-1.5 bg-primary/5 dark:bg-primary/10 border border-primary/20 rounded-full">
+            <span className="text-[11px] text-primary uppercase tracking-[0.4em] font-bold">Secure Access</span>
+          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="text-left space-y-2">
-            <label className="text-[10px] font-bold uppercase tracking-widest text-primary ml-1">Email Address</label>
+            <label className="text-[10px] font-bold uppercase tracking-widest text-primary ml-1 font-mono">Email Address</label>
             <Input 
               type="email" 
               value={email} 
@@ -579,14 +781,14 @@ export const AdminLoginPage = () => {
           </div>
           <div className="text-left space-y-2">
             <div className="flex justify-between items-center mr-1">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-primary ml-1">Safe-Key</label>
+              <label className="text-[10px] font-bold uppercase tracking-widest text-primary ml-1">Password</label>
               <button 
                 type="button"
                 onClick={handleForgotPassword}
                 disabled={resetLoading}
                 className="text-[10px] uppercase font-bold text-muted-foreground hover:text-primary transition-colors disabled:opacity-50"
               >
-                {resetLoading ? 'Inverting...' : 'Recover Node'}
+                {resetLoading ? 'Sending...' : 'Reset Password'}
               </button>
             </div>
             <Input 
@@ -603,7 +805,7 @@ export const AdminLoginPage = () => {
             isLoading={loading}
             className="w-full py-4 text-base font-bold"
           >
-            {loading ? 'Authenticating...' : 'Access Command Module'}
+            {loading ? 'Logging in...' : 'Login'}
           </Button>
         </form>
         
@@ -619,426 +821,1159 @@ export const AdminLoginPage = () => {
 };
 
 export const AdminDashboardPage = () => {
-  const { services, products, skills } = useAppStore();
-  const navigate = useNavigate();
-  
-  const stats = [
-    { label: 'Core Services', count: services.length, icon: Briefcase, color: 'text-primary', path: '/admin/services' },
-    { label: 'Active Products', count: products.length, icon: ShoppingBag, color: 'text-blue-400', path: '/admin/products' },
-    { label: 'Expertise Nodes', count: skills.length, icon: Code, color: 'text-purple-400', path: '/admin/skills' },
-  ];
+  const { services, products, skills, resetToDefaults } = useAppStore();
+  const { user } = useAuthStore();
+  const [showReset, setShowReset] = useState(false);
 
-  return (
-    <div className="space-y-10">
-      <div className="flex justify-between items-end">
-        <div>
-          <h1 className="text-4xl font-bold mb-2">System Analytics</h1>
-          <p className="text-muted-foreground font-mono text-xs uppercase tracking-widest">operational.status.normal</p>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {stats.map((stat) => (
-          <GlassCard 
-            key={stat.label} 
-            className="p-8 cursor-pointer group"
-            onClick={() => navigate(stat.path)}
-          >
-            <div className={`w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center mb-6 group-hover:bg-primary/10 transition-colors`}>
-              <stat.icon className={`w-5 h-5 ${stat.color}`} />
-            </div>
-            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] mb-1">{stat.label}</p>
-            <p className="text-5xl font-bold tracking-tighter">{stat.count}</p>
-            <div className="mt-6 flex justify-end">
-               <span className="text-[10px] uppercase font-bold text-primary group-hover:translate-x-1 transition-transform">Manage →</span>
-            </div>
-          </GlassCard>
-        ))}
-      </div>
-      
-      <GlassCard className="p-10 flex flex-col md:flex-row items-center gap-8 bg-gradient-to-r from-primary/10 to-transparent border-primary/20" hoverGlow={false}>
-        <div className="w-16 h-16 rounded-2xl bg-primary/20 flex items-center justify-center shrink-0">
-          <Shield className="w-8 h-8 text-primary" />
-        </div>
-        <div>
-          <h3 className="text-2xl font-bold mb-2">Command Console Terminal</h3>
-          <p className="text-muted-foreground leading-relaxed">
-            All system nodes are operational. Manage core architectural services, deployed product registries, and expert capability matrices through the sidebar interface. All data updates are securely synchronized.
-          </p>
-        </div>
-      </GlassCard>
-    </div>
-  );
-};
-
-export const AdminServicesPage = () => {
-  const { services, addService, updateService, deleteService } = useAppStore();
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingService, setEditingService] = useState<Service | undefined>();
-  const addToast = useToastStore((state) => state.addToast);
-  const [search, setSearch] = useState('');
-
-  const filtered = useMemo(() => {
-    return services.filter(s => s.name.toLowerCase().includes(search.toLowerCase()));
-  }, [services, search]);
-
-  const handleCreate = () => {
-    setEditingService(undefined);
-    setIsModalOpen(true);
-  };
-
-  const handleEdit = (service: Service) => {
-    setEditingService(service);
-    setIsModalOpen(true);
-  };
-
-  const handleDelete = async (id: string) => {
-    if (confirm('Decommission this service? This action is irreversible.')) {
-      try {
-        await deleteService(id);
-        addToast('Service node purged', 'info');
-      } catch (error: any) {
-        let message = error.message;
-        try {
-          const parsed = JSON.parse(error.message);
-          message = `Service delete failed: ${parsed.error}`;
-        } catch {}
-        addToast(message || 'Failed to purge service node', 'error');
-      }
-    }
-  };
-
-  const handleSubmit = async (data: any) => {
-    if (editingService) {
-      await updateService({ ...editingService, ...data, updatedAt: new Date().toISOString() });
-      addToast('Service architecture refactored', 'success');
-    } else {
-      const newService: Service = {
-        ...data,
-        id: Math.random().toString(36).substring(7),
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-      await addService(newService);
-      addToast('New service node initialized', 'success');
-    }
-    setIsModalOpen(false);
+  const handleReset = async () => {
+    await resetToDefaults();
+    setShowReset(false);
   };
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div>
-          <h1 className="text-4xl font-bold mb-2">Service Architecture</h1>
-          <p className="text-xs font-mono text-muted-foreground uppercase tracking-widest">registry.services.map</p>
-        </div>
-        <div className="flex items-center gap-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input 
-              placeholder="Search registry..." 
-              value={search} 
-              onChange={(e: any) => setSearch(e.target.value)}
-              className="pl-10 glass border-white/5 focus:border-primary/50 w-64" 
-            />
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+      <div className="flex flex-col gap-1">
+        <h2 className="text-4xl font-bold tracking-tighter">Overview</h2>
+        <p className="text-muted-foreground font-mono text-xs uppercase tracking-widest">
+          Welcome back{user?.email ? `, ${user.email}` : ""}. All systems normal.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <Card className="p-6 group hover:border-primary/50 transition-all">
+          <div className="flex justify-between items-start mb-4">
+            <h3 className="text-[10px] font-mono font-bold text-muted-foreground uppercase tracking-widest">
+              Total services
+            </h3>
+            <Briefcase className="w-4 h-4 text-primary opacity-50" />
           </div>
-          <Button onClick={handleCreate}>
-            <Plus className="w-4 h-4 mr-2" /> Initialize Service
+          <p className="text-4xl font-bold tracking-tighter">{services.length}</p>
+        </Card>
+        
+        <Card className="p-6 group hover:border-blue-400/50 transition-all">
+          <div className="flex justify-between items-start mb-4">
+            <h3 className="text-[10px] font-mono font-bold text-muted-foreground uppercase tracking-widest">
+              Total products
+            </h3>
+            <ShoppingBag className="w-4 h-4 text-blue-400 opacity-50" />
+          </div>
+          <p className="text-4xl font-bold tracking-tighter">{products.length}</p>
+        </Card>
+
+        <Card className="p-6 group hover:border-purple-400/50 transition-all">
+          <div className="flex justify-between items-start mb-4">
+            <h3 className="text-[10px] font-mono font-bold text-muted-foreground uppercase tracking-widest">
+              Total skills
+            </h3>
+            <Code className="w-4 h-4 text-purple-400 opacity-50" />
+          </div>
+          <p className="text-4xl font-bold tracking-tighter">{skills.length}</p>
+        </Card>
+
+        <Card className="p-6 group hover:border-emerald-400/50 transition-all">
+          <div className="flex justify-between items-start mb-4">
+            <h3 className="text-[10px] font-mono font-bold text-muted-foreground uppercase tracking-widest">
+              Your role
+            </h3>
+            <Shield className="w-4 h-4 text-emerald-400 opacity-50" />
+          </div>
+          <p className="text-xl font-bold uppercase tracking-widest font-mono text-emerald-400">
+            {user?.role || "—"}
+          </p>
+        </Card>
+      </div>
+
+      <Card className="p-8 bg-gradient-to-br from-white/[0.02] to-transparent">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center text-muted-foreground">
+              <Settings className="h-6 w-6" />
+            </div>
+            <div>
+              <h3 className="text-xl font-bold">System Maintenance</h3>
+              <p className="text-sm text-muted-foreground font-mono uppercase tracking-tight">
+                Danger Zone: Reset all application data to defaults.
+              </p>
+            </div>
+          </div>
+          <Button
+            variant="destructive"
+            onClick={() => setShowReset((prev) => !prev)}
+            className="rounded-full px-8"
+          >
+            Reset System Data
           </Button>
         </div>
-      </div>
 
-      <div className="grid grid-cols-1 gap-4">
-        {filtered.length === 0 ? (
-          <EmptyState 
-            icon={Briefcase}
-            title={search ? "No Matches Found" : "No Services Registered"}
-            description={search ? `Refine your query or check for typo in registry search.` : "Start by registering your first core architectural service node."}
-            action={!search && <Button onClick={handleCreate}>Add First Service</Button>}
-          />
-        ) : (
-          filtered.map(s => (
-            <GlassCard key={s.id} className="p-6 flex items-center justify-between group hover:border-primary/40" hoverGlow={false}>
-              <div className="flex items-center gap-6">
-                <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${s.isActive ? 'bg-primary/10' : 'bg-destructive/10'}`}>
-                  <Briefcase className={`w-6 h-6 ${s.isActive ? 'text-primary' : 'text-destructive'}`} />
-                </div>
-                <div>
-                  <h3 className="text-xl font-bold flex items-center gap-3">
-                    {s.name} 
-                    {!s.isActive && <span className="text-[10px] px-2 py-1 bg-destructive/10 text-destructive rounded-full font-mono uppercase tracking-widest border border-destructive/20">Inactive</span>}
-                  </h3>
-                  <div className="flex items-center gap-4 mt-1 text-xs font-mono text-muted-foreground uppercase tracking-tight">
-                    <span>{s.category}</span>
-                    <span className="w-1 h-1 rounded-full bg-white/20" />
-                    <span>{s.slug}</span>
-                  </div>
-                </div>
+        {showReset && (
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mt-8 rounded-2xl border border-destructive/20 bg-destructive/5 p-6"
+          >
+            <div className="flex items-start gap-4 mb-6">
+              <div className="w-10 h-10 rounded-full bg-destructive/10 flex items-center justify-center shrink-0">
+                <Trash2 className="h-5 w-5 text-destructive" />
               </div>
-              <div className="flex gap-3">
-                <Link to={`/services/${s.id}`}>
-                  <Button variant="ghost" size="icon" title="View Public Node">
-                    <ExternalLink className="w-4 h-4 text-muted-foreground hover:text-primary transition-colors" />
-                  </Button>
-                </Link>
-                <Button variant="ghost" size="icon" onClick={() => handleEdit(s)}>
-                  <Edit2 className="w-4 h-4 text-primary" />
-                </Button>
-                <Button variant="ghost" size="icon" onClick={() => handleDelete(s.id)}>
-                  <Trash2 className="w-4 h-4 text-destructive" />
-                </Button>
+              <div className="space-y-1">
+                <p className="font-bold text-destructive">Crucial Warning</p>
+                <p className="text-sm text-muted-foreground">
+                  This operation will purge all custom service nodes and product inventories, reverting the repository to its initial state. This action is terminal and cannot be rolled back.
+                </p>
               </div>
-            </GlassCard>
-          ))
+            </div>
+            <div className="flex gap-3">
+              <Button size="sm" variant="destructive" onClick={handleReset} className="rounded-lg">
+                Confirm Purge
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setShowReset(false)}
+                className="rounded-lg"
+              >
+                Cancel
+              </Button>
+            </div>
+          </motion.div>
         )}
-      </div>
-
-      <Modal 
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
-        title={editingService ? 'Refactor Service Definition' : 'Initialize Service Node'}
-      >
-        <ServiceForm initialData={editingService} onSubmit={handleSubmit} />
-      </Modal>
+      </Card>
     </div>
   );
 };
 
-export const AdminProductsPage = () => {
-  const { products, services, addProduct, updateProduct, deleteProduct } = useAppStore();
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<Product | undefined>();
+const slugify = (s: string) =>
+  s
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+
+const emptyService = (): Service => ({
+  id: "",
+  slug: "",
+  name: "",
+  icon: "Briefcase",
+  caption: "",
+  header: "",
+  shortDescription: "",
+  fullDescription: "",
+  thumbnail: "",
+  bannerImage: "",
+  gallery: [],
+  category: ServiceCategory.DEVELOPMENT,
+  tags: [],
+  features: [],
+  deliverables: [],
+  pricing: { type: 'custom', note: 'Contact for quote' } as any,
+  estimatedDuration: "",
+  technologies: [],
+  relatedProjects: [],
+  cta: { label: "Schedule a consultation", action: 'contact' },
+  seo: {},
+  isActive: true,
+  isFeatured: false,
+  order: 0,
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
+});
+
+export const AdminServicesPage = () => {
+  const { services, products, addService, updateService, deleteService, reorderServices } = useAppStore();
   const addToast = useToastStore((state) => state.addToast);
+  const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState<Service | null>(null);
+  const [form, setForm] = useState<Service>(emptyService());
 
-  const handleCreate = () => {
-    setEditingProduct(undefined);
-    setIsModalOpen(true);
+  const update = <K extends keyof Service>(key: K, val: Service[K]) =>
+    setForm((prev) => ({ ...prev, [key]: val }));
+
+  const openAdd = () => {
+    setEditing(null);
+    setForm(emptyService());
+    setOpen(true);
   };
 
-  const handleEdit = (product: Product) => {
-    setEditingProduct(product);
-    setIsModalOpen(true);
+  const openEdit = (s: Service) => {
+    setEditing(s);
+    setForm({ ...s });
+    setOpen(true);
   };
 
-  const handleDelete = async (id: string) => {
-    if (confirm('Remove this product node from the registry?')) {
-      try {
-        await deleteProduct(id);
-        addToast('Product entry purged', 'info');
-      } catch (error: any) {
-        let message = error.message;
-        try {
-          const parsed = JSON.parse(error.message);
-          message = `Product delete failed: ${parsed.error}`;
-        } catch {}
-        addToast(message || 'Failed to purge product node', 'error');
+  const handleSave = async () => {
+    if (!form.name.trim()) {
+      addToast("Name is required", "error");
+      return;
+    }
+    const slug = (form.slug || slugify(form.name)).trim();
+    const id = editing?.id || form.id || slug;
+    const payload: Service = {
+      ...form,
+      id,
+      slug,
+      header: form.header || form.name,
+      caption: form.caption || form.shortDescription,
+      updatedAt: new Date().toISOString(),
+    };
+
+    try {
+      if (editing) {
+        await updateService(payload);
+        addToast("Service updated", "success");
+      } else {
+        if (services.some((s) => s.id === id)) {
+          addToast("A service with this ID already exists", "error");
+          return;
+        }
+        await addService(payload);
+        addToast("Service added", "success");
       }
+      setOpen(false);
+    } catch (error: any) {
+      addToast(error.message || "Operation failed", "error");
     }
   };
 
-  const handleSubmit = async (data: any) => {
-    if (editingProduct) {
-      await updateProduct({ ...editingProduct, ...data, updatedAt: new Date().toISOString() });
-      addToast('Product metadata updated', 'success');
-    } else {
-      const newProduct: Product = {
-        ...data,
-        id: Math.random().toString(36).substring(7),
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-      await addProduct(newProduct);
-      addToast('Product node registered', 'success');
+  const handleDelete = async (s: Service) => {
+    if (!confirm(`Delete service "${s.name}"?`)) return;
+    try {
+      await deleteService(s.id);
+      addToast("Service deleted", "success");
+    } catch (error: any) {
+      addToast("Delete failed", "error");
     }
-    setIsModalOpen(false);
   };
+
+  const ordered = [...services].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 
   return (
-    <div className="space-y-8">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-4xl font-bold mb-2">Product Registry</h1>
-          <p className="text-xs font-mono text-muted-foreground uppercase tracking-widest">inventory.products.list</p>
-        </div>
-        <Button onClick={handleCreate}>
-          <Plus className="w-4 h-4 mr-2" /> Register Product
-        </Button>
-      </div>
-
-      <div className="grid grid-cols-1 gap-6">
-        {products.length === 0 ? (
-          <EmptyState 
-            icon={ShoppingBag}
-            title="Registry Offline"
-            description="No product nodes have been registered in the system yet."
-            action={<Button onClick={handleCreate}>Deploy First Product</Button>}
-          />
-        ) : (
-          products.map(p => {
-            const service = services.find(s => s.id === p.serviceId);
-            return (
-              <GlassCard key={p.id} className="p-6 flex items-center justify-between" hoverGlow={false}>
-                <div className="flex items-center gap-6">
-                  <div className="w-20 h-20 rounded-xl bg-white/5 overflow-hidden flex items-center justify-center border border-white/10 shrink-0">
-                    {p.imageUrl ? <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover" /> : <ShoppingBag className="w-8 h-8 text-white/10" />}
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-bold mb-1">{p.name}</h3>
-                    <p className="text-sm font-mono text-primary flex items-center gap-2">
-                       <Terminal className="w-3 h-3" /> {service?.name || 'Unmapped Environment'}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-2 line-clamp-1 max-w-sm">{p.description}</p>
-                  </div>
-                </div>
-                <div className="flex gap-3">
-                  <Link to={`/products/${p.id}`}>
-                    <Button variant="ghost" size="icon" title="View Product Node">
-                      <ExternalLink className="w-4 h-4 text-muted-foreground hover:text-primary transition-colors" />
-                    </Button>
-                  </Link>
-                  <Button variant="ghost" size="icon" onClick={() => handleEdit(p)}>
-                    <Edit2 className="w-4 h-4 text-primary" />
-                  </Button>
-                  <Button variant="ghost" size="icon" onClick={() => handleDelete(p.id)}>
-                    <Trash2 className="w-4 h-4 text-destructive" />
-                  </Button>
-                </div>
-              </GlassCard>
-            );
-          })
-        )}
-      </div>
-
-      <Modal 
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
-        title={editingProduct ? 'Configure Product metadata' : 'Register New Product Node'}
+    <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
+      <CrudPageShell
+        title="Services"
+        description="Manage what your studio offers"
+        onAdd={openAdd}
+        addLabel="Add service"
+        count={services.length}
       >
-        <ProductForm initialData={editingProduct} services={services} onSubmit={handleSubmit} />
-      </Modal>
-    </div>
-  );
-};
+        <SortableList items={ordered} onReorder={reorderServices}>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-10 pl-4"></TableHead>
+              <TableHead className="w-12">#</TableHead>
+              <TableHead>Name</TableHead>
+              <TableHead className="hidden md:table-cell">Category</TableHead>
+              <TableHead className="hidden lg:table-cell">Tags</TableHead>
+              <TableHead className="hidden md:table-cell">Status</TableHead>
+              <TableHead className="w-[120px] text-right pr-4">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {ordered.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={7} className="py-20 text-center text-sm text-muted-foreground uppercase tracking-widest bg-white/[0.01]">
+                   No Services Found
+                </TableCell>
+              </TableRow>
+            )}
+            {ordered.map((s, index) => (
+              <SortableRow key={s.id} id={s.id}>
+                {() => (
+                  <>
+                    <TableCell className="text-muted-foreground font-mono text-xs">{index + 1}</TableCell>
+                    <TableCell>
+                      <div className="font-bold flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center">
+                           <DynamicIcon name={s.icon} className="w-4 h-4 text-primary opacity-50" fallback={Zap} />
+                        </div>
+                        {s.name}
+                        {s.isFeatured && <Star className="h-3.5 w-3.5 fill-primary text-primary" />}
+                      </div>
+                      <div className="text-[10px] text-muted-foreground font-mono uppercase tracking-tighter opacity-50">/{s.slug}</div>
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      <Badge variant="secondary" className="capitalize font-mono text-[10px]">{s.category}</Badge>
+                    </TableCell>
+                    <TableCell className="hidden lg:table-cell">
+                      <div className="flex flex-wrap gap-1">
+                        {(s.tags ?? []).slice(0, 2).map((t) => (
+                          <span key={t} className="text-[10px] bg-white/5 border border-white/5 px-2 py-0.5 rounded text-muted-foreground">#{t}</span>
+                        ))}
+                        {(s.tags?.length ?? 0) > 2 && (
+                          <span className="text-[10px] text-muted-foreground">+{s.tags!.length - 2}</span>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      {s.isActive ? (
+                        <div className="flex items-center gap-2">
+                          <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                          <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-primary">Active</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2 opacity-30">
+                          <EyeOff className="h-3 w-3" />
+                          <span className="text-[10px] font-mono font-bold uppercase tracking-widest">Hidden</span>
+                        </div>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right pr-4">
+                      <div className="flex justify-end gap-1">
+                        <Button size="icon" variant="ghost" onClick={() => openEdit(s)} className="rounded-lg hover:bg-primary/10 hover:text-primary">
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button size="icon" variant="ghost" onClick={() => handleDelete(s)} className="rounded-lg hover:bg-destructive/10 hover:text-destructive">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </>
+                )}
+              </SortableRow>
+            ))}
+          </TableBody>
+        </SortableList>
+      </CrudPageShell>
 
-export const AdminSkillsPage = () => {
-  const { skills, addSkill, updateSkill, deleteSkill } = useAppStore();
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingSkill, setEditingSkill] = useState<Skill | undefined>();
-  const addToast = useToastStore((state) => state.addToast);
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-4xl" onOpenChange={setOpen}>
+          <DialogHeader>
+            <DialogTitle>{editing ? "Edit Service Module" : "Initialize Service Node"}</DialogTitle>
+          </DialogHeader>
 
-  const handleCreate = () => {
-    setEditingSkill(undefined);
-    setIsModalOpen(true);
-  };
+          <Tabs defaultValue="content" className="w-full">
+            <TabsList className="w-full justify-start h-auto flex-wrap gap-1 bg-transparent p-0 mb-8 border-b border-white/5 rounded-none">
+              <TabsTrigger value="content" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 py-4">Content</TabsTrigger>
+              <TabsTrigger value="media" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 py-4">Media</TabsTrigger>
+              <TabsTrigger value="organize" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 py-4">Organize</TabsTrigger>
+              <TabsTrigger value="value" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 py-4">Value</TabsTrigger>
+              <TabsTrigger value="commercial" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 py-4">Commercial</TabsTrigger>
+              <TabsTrigger value="tech" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 py-4">Stack</TabsTrigger>
+              <TabsTrigger value="seo" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 py-4">SEO</TabsTrigger>
+              <TabsTrigger value="control" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 py-4">System</TabsTrigger>
+            </TabsList>
 
-  const handleEdit = (skill: Skill) => {
-    setEditingSkill(skill);
-    setIsModalOpen(true);
-  };
-
-  const handleDelete = async (id: string) => {
-    if (confirm('Decommission this capability from the matrix?')) {
-      try {
-        await deleteSkill(id);
-        addToast('Skill profile purged', 'info');
-      } catch (error: any) {
-        let message = error.message;
-        try {
-          const parsed = JSON.parse(error.message);
-          message = `Skill delete failed: ${parsed.error}`;
-        } catch {}
-        addToast(message || 'Failed to purge skill profile', 'error');
-      }
-    }
-  };
-
-  const handleSubmit = async (data: any) => {
-    if (editingSkill) {
-      await updateSkill({ ...editingSkill, ...data, updatedAt: new Date().toISOString() });
-      addToast('Skill profile recalibrated', 'success');
-    } else {
-      const newSkill: Skill = {
-        ...data,
-        id: Math.random().toString(36).substring(7),
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-      await addSkill(newSkill);
-      addToast('New skill node activated', 'success');
-    }
-    setIsModalOpen(false);
-  };
-
-  return (
-    <div className="space-y-8">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-4xl font-bold mb-2">Capabilities Matrix</h1>
-          <p className="text-xs font-mono text-muted-foreground uppercase tracking-widest">expert.competencies.registry</p>
-        </div>
-        <Button onClick={handleCreate}>
-          <Plus className="w-4 h-4 mr-2" /> Inject Capability
-        </Button>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {skills.length === 0 ? (
-          <div className="col-span-full">
-            <EmptyState 
-              icon={Code}
-              title="Intelligence Matrix Empty"
-              description="No expertise data currently registered in the capability matrix registry."
-              action={<Button onClick={handleCreate}>Add First Expertise</Button>}
-            />
-          </div>
-        ) : (
-          [...skills].sort((a, b) => b.level - a.level).map(skill => (
-            <GlassCard key={skill.id} className="p-6 group hover:border-primary/30" hoverGlow={false}>
-              <div className="flex items-start justify-between mb-6">
-                <div className="flex items-center gap-4">
-                   <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center group-hover:bg-primary/10 transition-colors">
-                     <Code className="w-6 h-6 text-muted-foreground group-hover:text-primary transition-colors" />
-                   </div>
-                   <div>
-                     <h3 className="text-lg font-bold">{skill.name}</h3>
-                     <p className="text-[10px] font-mono text-primary uppercase tracking-[0.2em]">{skill.category}</p>
-                   </div>
+            <TabsContent value="content" className="space-y-6">
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label>Name (Title)</Label>
+                  <Input
+                    value={form.name}
+                    onChange={(e) => {
+                      const name = e.target.value;
+                      setForm((p) => ({
+                        ...p,
+                        name,
+                        slug: editing ? p.slug : slugify(name),
+                        header: p.header || name,
+                      }));
+                    }}
+                    placeholder="E.g. Web Development"
+                  />
                 </div>
-                <div className="flex gap-1">
-                  <Button variant="ghost" size="icon" onClick={() => handleEdit(skill)}>
-                    <Edit2 className="w-3 h-3 text-primary" />
-                  </Button>
-                  <Button variant="ghost" size="icon" onClick={() => handleDelete(skill.id)}>
-                    <Trash2 className="w-3 h-3 text-destructive" />
-                  </Button>
+                <div className="space-y-2">
+                  <Label>Slug (URL Identifier)</Label>
+                  <Input
+                    value={form.slug}
+                    onChange={(e) => update("slug", slugify(e.target.value))}
+                    placeholder="web-development"
+                  />
                 </div>
+              </div>
+
+              <div className="space-y-4">
+                <IconPicker 
+                  value={form.icon || ""} 
+                  onChange={(val) => update("icon", val)} 
+                  label="Service Visual Identity"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Header (Detail Title)</Label>
+                <Input
+                  value={form.header}
+                  onChange={(e) => update("header", e.target.value)}
+                  placeholder="The Ultimate Web Solution"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Caption (Hero Hook)</Label>
+                <Input
+                  value={form.caption}
+                  onChange={(e) => update("caption", e.target.value)}
+                  placeholder="Building for the next generation"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Short Description</Label>
+                <Textarea
+                  rows={2}
+                  value={form.shortDescription}
+                  onChange={(e) => update("shortDescription", e.target.value)}
+                  placeholder="Brief summary for indexing..."
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Full Description (Markdown Compatible)</Label>
+                <Textarea
+                  rows={6}
+                  value={form.fullDescription}
+                  onChange={(e) => update("fullDescription", e.target.value)}
+                  placeholder="Detailed engineering specifications..."
+                />
+              </div>
+            </TabsContent>
+
+            <TabsContent value="media" className="space-y-8">
+              <ImageInput
+                label="Thumbnail (Grid Image)"
+                value={form.thumbnail}
+                onChange={(v) => update("thumbnail", v || "")}
+              />
+              <ImageInput
+                label="Banner (Hero Image)"
+                value={form.bannerImage || ""}
+                onChange={(v) => update("bannerImage", v || "")}
+              />
+              <ImagesInput
+                label="Gallery (Showcase)"
+                value={form.gallery || []}
+                onChange={(v) => update("gallery", v)}
+              />
+            </TabsContent>
+
+            <TabsContent value="organize" className="space-y-6">
+              <div className="space-y-2">
+                <Label>Category</Label>
+                <Select
+                  value={form.category}
+                  onValueChange={(v) => update("category", v as ServiceCategory)}
+                >
+                  <SelectTrigger><SelectValue placeholder="Select Category" /></SelectTrigger>
+                  <SelectContent>
+                    {Object.values(ServiceCategory).map(cat => (
+                      <SelectItem key={cat} value={cat}>{cat.charAt(0).toUpperCase() + cat.slice(1)}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <ListInput
+                label="Tags"
+                value={form.tags || []}
+                onChange={(v) => update("tags", v)}
+                placeholder="tech, react, modern"
+              />
+            </TabsContent>
+
+            <TabsContent value="value" className="space-y-6">
+              <ListInput
+                label="Core Features"
+                value={form.features || []}
+                onChange={(v) => update("features", v)}
+                placeholder="Add a core feature..."
+              />
+              <ListInput
+                label="Concrete Deliverables"
+                value={form.deliverables || []}
+                onChange={(v) => update("deliverables", v)}
+                placeholder="Add a deliverable..."
+              />
+            </TabsContent>
+
+            <TabsContent value="commercial" className="space-y-6">
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label>Pricing Model</Label>
+                  <Select
+                    value={form.pricing?.type || 'custom'}
+                    onValueChange={(v) =>
+                      update("pricing", { ...form.pricing, type: v as PricingType } as any)
+                    }
+                  >
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="fixed">Fixed</SelectItem>
+                      <SelectItem value="starting_from">Starting at</SelectItem>
+                      <SelectItem value="custom">Custom Quote</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Currency</Label>
+                  <Input
+                    value={form.pricing?.currency ?? ""}
+                    onChange={(e) => update("pricing", { ...form.pricing, currency: e.target.value } as any)}
+                    placeholder="USD"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Amount</Label>
+                  <Input
+                    type="number"
+                    value={form.pricing?.amount ?? ""}
+                    onChange={(e) =>
+                      update("pricing", {
+                        ...form.pricing,
+                        amount: e.target.value === "" ? 0 : Number(e.target.value),
+                      } as any)
+                    }
+                    placeholder="1500"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Billing Unit</Label>
+                   <Select
+                    value={form.pricing?.unit || 'project'}
+                    onValueChange={(v) =>
+                      update("pricing", { ...form.pricing, unit: v as PricingUnit } as any)
+                    }
+                  >
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="project">Per Project</SelectItem>
+                      <SelectItem value="month">Per Month</SelectItem>
+                      <SelectItem value="hour">Per Hour</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Est. Timeline</Label>
+                <Input
+                  value={form.estimatedDuration || ""}
+                  onChange={(e) => update("estimatedDuration", e.target.value)}
+                  placeholder="2–4 weeks"
+                />
+              </div>
+
+              <div className="pt-6 border-t border-white/5 space-y-4">
+                <Label>Call to Action (CTA)</Label>
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label className="normal-case">Label</Label>
+                    <Input
+                      value={form.cta?.label || ""}
+                      onChange={(e) => update("cta", { ...form.cta, label: e.target.value } as any)}
+                      placeholder="Discuss Project"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="normal-case">Action</Label>
+                    <Select
+                      value={form.cta?.action || 'contact'}
+                      onValueChange={(v) => update("cta", { ...form.cta, action: v as CtaAction } as any)}
+                    >
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="contact">Contact Page</SelectItem>
+                        <SelectItem value="quote">Request Quote</SelectItem>
+                        <SelectItem value="external">External Link</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="tech" className="space-y-6">
+              <ListInput
+                label="Technologies (Stack)"
+                value={form.technologies || []}
+                onChange={(v) => update("technologies", v)}
+                placeholder="React, TypeScript, AWS..."
+              />
+
+              <div className="space-y-3">
+                <Label>Portfolio Integration</Label>
+                <p className="text-[10px] font-mono text-muted-foreground uppercase opacity-50">Map existing product nodes to this service</p>
+                <div className="flex flex-wrap gap-2">
+                  {products.map((p) => {
+                    const active = (form.relatedProjects || []).includes(p.id);
+                    return (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() =>
+                          update(
+                            "relatedProjects",
+                            active
+                              ? form.relatedProjects!.filter((id) => id !== p.id)
+                              : [...(form.relatedProjects || []), p.id],
+                          )
+                        }
+                        className={cn(
+                          "px-4 py-2 rounded-xl text-xs font-bold transition-all border",
+                          active
+                            ? "bg-primary border-primary text-white shadow-glow-primary"
+                            : "bg-white/5 border-white/10 text-muted-foreground hover:border-white/20"
+                        )}
+                      >
+                        {p.name}
+                      </button>
+                    );
+                  })}
+                  {products.length === 0 && (
+                    <p className="text-xs text-muted-foreground italic bg-white/5 p-4 rounded-xl w-full">No products available in registry.</p>
+                  )}
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="seo" className="space-y-6">
+              <div className="space-y-2">
+                <Label>Meta Title</Label>
+                <Input
+                  value={form.seo?.metaTitle ?? ""}
+                  onChange={(e) => update("seo", { ...form.seo, metaTitle: e.target.value })}
+                  placeholder="Page SEO Title..."
+                />
               </div>
               <div className="space-y-2">
-                 <div className="flex justify-between items-center text-[10px] font-mono text-muted-foreground uppercase">
-                    <span>Proficiency Level</span>
-                    <span className="text-white font-bold">{skill.level}%</span>
-                 </div>
-                 <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
-                    <motion.div 
-                      initial={{ width: 0 }}
-                      animate={{ width: `${skill.level}%` }}
-                      transition={{ duration: 1, ease: "easeOut" }}
-                      className="h-full bg-gradient-brand shadow-glow" 
-                    />
-                 </div>
+                <Label>Meta Description</Label>
+                <Textarea
+                  rows={3}
+                  value={form.seo?.metaDescription ?? ""}
+                  onChange={(e) => update("seo", { ...form.seo, metaDescription: e.target.value })}
+                  placeholder="Brief summary for search engines..."
+                />
               </div>
-            </GlassCard>
-          ))
-        )}
-      </div>
+              <ListInput
+                label="SEO Keywords"
+                value={form.seo?.keywords ?? []}
+                onChange={(v) => update("seo", { ...form.seo, keywords: v })}
+                placeholder="kw1, kw2..."
+              />
+            </TabsContent>
 
-      <Modal 
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
-        title={editingSkill ? 'Recalibrate Capability' : 'Inject New Expertise Node'}
+            <TabsContent value="control" className="space-y-6">
+               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="flex items-center justify-between p-6 rounded-2xl bg-white/5 border border-white/10 group hover:border-primary/50 transition-all">
+                  <div className="space-y-1">
+                    <Label className="mb-0">Active Status</Label>
+                    <p className="text-[10px] text-muted-foreground font-mono uppercase">Production Visibility</p>
+                  </div>
+                  <Switch
+                    checked={form.isActive}
+                    onCheckedChange={(v) => update("isActive", v)}
+                  />
+                </div>
+                <div className="flex items-center justify-between p-6 rounded-2xl bg-white/5 border border-white/10 group hover:border-primary/50 transition-all">
+                  <div className="space-y-1">
+                    <Label className="mb-0">Featured Node</Label>
+                    <p className="text-[10px] text-muted-foreground font-mono uppercase">Priority Ranking</p>
+                  </div>
+                  <Switch
+                    checked={form.isFeatured || false}
+                    onCheckedChange={(v) => update("isFeatured", v)}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2 max-w-xs">
+                <Label>Node Display Order</Label>
+                <Input
+                  type="number"
+                  value={form.order || 0}
+                  onChange={(e) => update("order", Number(e.target.value) || 0)}
+                  className="font-mono text-center"
+                />
+              </div>
+            </TabsContent>
+          </Tabs>
+
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setOpen(false)} className="rounded-xl">Cancel</Button>
+            <Button onClick={handleSave} className="rounded-xl px-8 shadow-glow-primary">
+              {editing ? "Save Refactor" : "Deploy Node"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
+const emptyProduct = (): Product => ({
+  id: "",
+  name: "",
+  description: "",
+  serviceId: "",
+  icon: "ShoppingBag",
+  imageUrl: "",
+  demoUrl: "",
+  repoUrl: "",
+  tags: [],
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
+});
+
+export const AdminProductsPage = () => {
+  const { products, services, addProduct, updateProduct, deleteProduct, reorderProducts } = useAppStore();
+  const addToast = useToastStore((state) => state.addToast);
+  const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState<Product | null>(null);
+  const [form, setForm] = useState<Product>(emptyProduct());
+
+  const update = <K extends keyof Product>(key: K, val: Product[K]) =>
+    setForm((prev) => ({ ...prev, [key]: val }));
+
+  const openAdd = () => {
+    setEditing(null);
+    setForm(emptyProduct());
+    setOpen(true);
+  };
+
+  const openEdit = (p: Product) => {
+    setEditing(p);
+    setForm({ ...p });
+    setOpen(true);
+  };
+
+  const handleSave = async () => {
+    if (!form.name.trim()) {
+      addToast("Name is required", "error");
+      return;
+    }
+    const id = editing?.id || Math.random().toString(36).substring(7);
+    const payload: Product = {
+      ...form,
+      id,
+      updatedAt: new Date().toISOString(),
+    };
+
+    try {
+      if (editing) {
+        await updateProduct(payload);
+        addToast("Product updated", "success");
+      } else {
+        await addProduct(payload);
+        addToast("Product registered", "success");
+      }
+      setOpen(false);
+    } catch (error: any) {
+      addToast("Operation failed", "error");
+    }
+  };
+
+  const handleDelete = async (p: Product) => {
+    if (!confirm(`Remove product "${p.name}"?`)) return;
+    try {
+      await deleteProduct(p.id);
+      addToast("Product removed", "success");
+    } catch (error: any) {
+      addToast("Delete failed", "error");
+    }
+  };
+
+  const ordered = [...products].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+
+  return (
+    <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
+      <CrudPageShell
+        title="Products"
+        description="Register and showcase your completed projects"
+        onAdd={openAdd}
+        addLabel="Register Product"
+        count={products.length}
       >
-        <SkillForm initialData={editingSkill} onSubmit={handleSubmit} />
-      </Modal>
+        <SortableList items={ordered} onReorder={reorderProducts}>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-10 pl-4"></TableHead>
+              <TableHead className="w-20">Preview</TableHead>
+              <TableHead>Product Identity</TableHead>
+              <TableHead className="hidden md:table-cell">Associated Service</TableHead>
+              <TableHead className="hidden lg:table-cell">Tags</TableHead>
+              <TableHead className="w-[120px] text-right pr-4">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {ordered.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={6} className="py-20 text-center text-sm text-muted-foreground font-mono uppercase tracking-widest bg-white/[0.01]">
+                   No_Product_Nodes_Found
+                </TableCell>
+              </TableRow>
+            )}
+            {ordered.map((p) => {
+              const service = services.find(s => s.id === p.serviceId);
+              return (
+                <SortableRow key={p.id} id={p.id}>
+                  {() => (
+                    <>
+                      <TableCell>
+                        <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 overflow-hidden">
+                          {p.imageUrl ? (
+                            <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center bg-primary/5">
+                              <DynamicIcon name={p.icon} className="w-6 h-6 text-primary/40" fallback={ShoppingBag} />
+                            </div>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="font-bold flex items-center gap-2">{p.name}</div>
+                        <div className="text-[10px] text-muted-foreground font-mono uppercase truncate max-w-[200px] opacity-50">{p.description}</div>
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell">
+                        {service ? (
+                          <Badge variant="secondary" className="font-mono text-[10px] border-primary/20 text-primary">{service.name}</Badge>
+                        ) : (
+                          <span className="text-[10px] text-muted-foreground font-mono italic">Unmapped</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="hidden lg:table-cell">
+                        <div className="flex flex-wrap gap-1">
+                          {(p.tags ?? []).slice(0, 2).map((t) => (
+                            <span key={t} className="text-[10px] bg-white/5 border border-white/5 px-2 py-0.5 rounded text-muted-foreground">#{t}</span>
+                          ))}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right pr-4">
+                        <div className="flex justify-end gap-1">
+                          <Button size="icon" variant="ghost" onClick={() => openEdit(p)} className="rounded-lg hover:bg-primary/10 hover:text-primary">
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button size="icon" variant="ghost" onClick={() => handleDelete(p)} className="rounded-lg hover:bg-destructive/10 hover:text-destructive">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </>
+                  )}
+                </SortableRow>
+              );
+            })}
+          </TableBody>
+        </SortableList>
+      </CrudPageShell>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-2xl" onOpenChange={setOpen}>
+          <DialogHeader>
+            <DialogTitle>{editing ? "Edit Product node" : "Register Product node"}</DialogTitle>
+          </DialogHeader>
+
+          <Tabs defaultValue="base" className="w-full">
+            <TabsList className="w-full justify-start h-auto flex-wrap gap-1 bg-transparent p-0 mb-8 border-b border-white/5 rounded-none">
+              <TabsTrigger value="base" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 py-4">Identity</TabsTrigger>
+              <TabsTrigger value="assets" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 py-4">Assets</TabsTrigger>
+              <TabsTrigger value="links" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 py-4">Deployment</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="base" className="space-y-6">
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label>Product Name</Label>
+                  <Input
+                    value={form.name}
+                    onChange={(e) => update("name", e.target.value)}
+                    placeholder="Wise Cloud Dashboard"
+                  />
+                </div>
+                <div className="space-y-4">
+                  <IconPicker 
+                    value={form.icon || ""} 
+                    onChange={(val) => update("icon", val)} 
+                    label="Product Symbol"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Architecture Mapping</Label>
+                <Select
+                  value={form.serviceId}
+                  onValueChange={(v) => update("serviceId", v)}
+                >
+                  <SelectTrigger><SelectValue placeholder="Select Parent Service" /></SelectTrigger>
+                  <SelectContent>
+                    {services.map(s => (
+                      <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Description</Label>
+                <Textarea
+                  rows={4}
+                  value={form.description}
+                  onChange={(e) => update("description", e.target.value)}
+                  placeholder="Full engineering summary..."
+                />
+              </div>
+
+              <ListInput
+                label="Product Tags"
+                value={form.tags || []}
+                onChange={(v) => update("tags", v)}
+                placeholder="react, tailwind, node"
+              />
+            </TabsContent>
+
+            <TabsContent value="assets" className="space-y-6">
+              <ImageInput
+                label="Main Preview Image"
+                value={form.imageUrl || ""}
+                onChange={(v) => update("imageUrl", v || "")}
+              />
+            </TabsContent>
+
+            <TabsContent value="links" className="space-y-6">
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Live Project URL</Label>
+                  <div className="relative">
+                    <Input
+                      value={form.demoUrl || ""}
+                      onChange={(e) => update("demoUrl", e.target.value)}
+                      placeholder="https://example.com"
+                      className="pl-10"
+                    />
+                    <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Repository URL</Label>
+                  <div className="relative">
+                    <Input
+                      value={form.repoUrl || ""}
+                      onChange={(e) => update("repoUrl", e.target.value)}
+                      placeholder="https://github.com/..."
+                      className="pl-10"
+                    />
+                    <Github className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  </div>
+                </div>
+              </div>
+            </TabsContent>
+          </Tabs>
+
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setOpen(false)} className="rounded-xl">Cancel</Button>
+            <Button onClick={handleSave} className="rounded-xl px-8 shadow-glow-primary">
+              {editing ? "Update Registry" : "Initialize Register"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
+const emptySkill = (): Skill => ({
+  id: "",
+  name: "",
+  category: SkillCategory.OTHER,
+  level: 80,
+  icon: "Code",
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
+});
+
+export const AdminSkillsPage = () => {
+  const { skills, addSkill, updateSkill, deleteSkill, reorderSkills } = useAppStore();
+  const addToast = useToastStore((state) => state.addToast);
+  const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState<Skill | null>(null);
+  const [form, setForm] = useState<Skill>(emptySkill());
+
+  const update = <K extends keyof Skill>(key: K, val: Skill[K]) =>
+    setForm((prev) => ({ ...prev, [key]: val }));
+
+  const openAdd = () => {
+    setEditing(null);
+    setForm(emptySkill());
+    setOpen(true);
+  };
+
+  const openEdit = (s: Skill) => {
+    setEditing(s);
+    setForm({ ...s });
+    setOpen(true);
+  };
+
+  const handleSave = async () => {
+    if (!form.name.trim()) {
+      addToast("Name is required", "error");
+      return;
+    }
+    const id = editing?.id || Math.random().toString(36).substring(7);
+    const payload: Skill = {
+      ...form,
+      id,
+      updatedAt: new Date().toISOString(),
+    };
+
+    try {
+      if (editing) {
+        await updateSkill(payload);
+        addToast("Skill updated", "success");
+      } else {
+        await addSkill(payload);
+        addToast("Skill indexed", "success");
+      }
+      setOpen(false);
+    } catch (error: any) {
+      addToast("Operation failed", "error");
+    }
+  };
+
+  const handleDelete = async (s: Skill) => {
+    if (!confirm(`Purge skill "${s.name}"?`)) return;
+    try {
+      await deleteSkill(s.id);
+      addToast("Skill purged", "success");
+    } catch (error: any) {
+      addToast("Delete failed", "error");
+    }
+  };
+
+  const ordered = [...skills].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+
+  return (
+    <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
+      <CrudPageShell
+        title="Capability Matrix"
+        description="Manage the technical and creative skill nodes"
+        onAdd={openAdd}
+        addLabel="Index Skill"
+        count={skills.length}
+      >
+        <SortableList items={ordered} onReorder={reorderSkills}>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-10 pl-4"></TableHead>
+              <TableHead>Skill Identity</TableHead>
+              <TableHead className="hidden md:table-cell">Classification</TableHead>
+              <TableHead>Proficiency (%)</TableHead>
+              <TableHead className="w-[120px] text-right pr-4">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {ordered.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={5} className="py-20 text-center text-sm text-muted-foreground uppercase tracking-widest bg-white/[0.01]">
+                   No Skills Found
+                </TableCell>
+              </TableRow>
+            )}
+            {ordered.map((s) => (
+              <SortableRow key={s.id} id={s.id}>
+                {() => (
+                  <>
+                    <TableCell>
+                      <div className="font-bold flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center">
+                           <DynamicIcon name={s.icon} className="w-4 h-4 text-primary opacity-50" fallback={Zap} />
+                        </div>
+                        {s.name}
+                      </div>
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      <Badge variant="secondary" className="font-mono text-[10px] capitalize">{s.category}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="w-full max-w-[100px] h-1.5 rounded-full bg-white/5 overflow-hidden">
+                        <div 
+                          className="h-full bg-primary shadow-glow-primary transition-all duration-1000" 
+                          style={{ width: `${s.level}%` }}
+                        />
+                      </div>
+                      <span className="text-[10px] font-mono font-bold mt-1 block">{s.level}%</span>
+                    </TableCell>
+                    <TableCell className="text-right pr-4">
+                      <div className="flex justify-end gap-1">
+                        <Button size="icon" variant="ghost" onClick={() => openEdit(s)} className="rounded-lg hover:bg-primary/10 hover:text-primary">
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button size="icon" variant="ghost" onClick={() => handleDelete(s)} className="rounded-lg hover:bg-destructive/10 hover:text-destructive">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </>
+                )}
+              </SortableRow>
+            ))}
+          </TableBody>
+        </SortableList>
+      </CrudPageShell>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-md" onOpenChange={setOpen}>
+          <DialogHeader>
+            <DialogTitle>{editing ? "Refactor Skill Node" : "Index Skill Node"}</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-6 py-4">
+            <div className="space-y-6">
+              <div className="space-y-2">
+                <Label>Skill Name</Label>
+                <Input
+                  value={form.name}
+                  onChange={(e) => update("name", e.target.value)}
+                  placeholder="E.g. TypeScript"
+                />
+              </div>
+              <IconPicker 
+                value={form.icon || ""} 
+                onChange={(val) => update("icon", val)} 
+                label="Capability Node Icon"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Classification</Label>
+              <Select
+                value={form.category}
+                onValueChange={(v) => update("category", v as SkillCategory)}
+              >
+                <SelectTrigger><SelectValue placeholder="Select Category" /></SelectTrigger>
+                <SelectContent>
+                  {Object.values(SkillCategory).map(cat => (
+                    <SelectItem key={cat} value={cat}>{cat.charAt(0).toUpperCase() + cat.slice(1)}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <Label>Proficiency Level</Label>
+                <span className="text-xs font-mono font-bold text-primary">{form.level}%</span>
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="100"
+                value={form.level}
+                onChange={(e) => update("level", Number(e.target.value))}
+                className="w-full h-1.5 bg-white/5 rounded-full appearance-none cursor-pointer accent-primary"
+              />
+              <div className="flex justify-between text-[10px] text-muted-foreground font-mono uppercase">
+                <span>Beginner</span>
+                <span>Expert</span>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setOpen(false)} className="rounded-xl">Cancel</Button>
+            <Button onClick={handleSave} className="rounded-xl px-8 shadow-glow-primary">
+              {editing ? "Save Refactor" : "Deploy Index"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
@@ -1050,7 +1985,9 @@ export const ServiceDetailPage = () => {
   const products = useAppStore((state) => state.products);
   
   const service = services.find(s => s.id === id);
-  const relatedProducts = products.filter(p => p.serviceId === id);
+  const relatedProducts = [...products]
+    .filter(p => p.serviceId === id)
+    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 
   if (!service) {
     return (
@@ -1077,7 +2014,7 @@ export const ServiceDetailPage = () => {
             to="/services" 
             className="inline-flex items-center text-xs font-mono text-muted-foreground hover:text-primary transition-colors mb-12 uppercase tracking-widest"
           >
-            <ArrowLeft className="mr-2 w-3 h-3" /> Registry.Back()
+            <ArrowLeft className="mr-2 w-3 h-3" /> Back to Services
           </Link>
 
           <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 mb-16">
@@ -1087,13 +2024,18 @@ export const ServiceDetailPage = () => {
                   {service.category}
                 </span>
                 <span className="w-1 h-1 rounded-full bg-white/20" />
-                <span className="text-[10px] font-mono text-muted-foreground tracking-widest uppercase">
-                  Node ID: {service.id.slice(0, 8)}
+                <span className="text-[10px] font-bold text-muted-foreground tracking-widest uppercase">
+                  Service ID: {service.id.slice(0, 8)}
                 </span>
               </div>
               <h1 className="text-5xl md:text-7xl font-bold mb-8 tracking-tight leading-tight">
                 {service.name}
               </h1>
+              <div className="flex items-center gap-4 mb-8">
+                 <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center border border-primary/20">
+                    <DynamicIcon name={service.icon} className="w-8 h-8 text-primary shadow-glow-primary" fallback={Briefcase} />
+                 </div>
+              </div>
               <p className="text-xl text-muted-foreground leading-relaxed">
                 {service.caption || service.shortDescription}
               </p>
@@ -1127,7 +2069,7 @@ export const ServiceDetailPage = () => {
           <div className="lg:col-span-7 space-y-16">
             <div>
               <h2 className="text-2xl font-bold mb-8 flex items-center gap-3">
-                <Terminal className="w-6 h-6 text-primary" /> Engineering Specification
+                <Terminal className="w-6 h-6 text-primary" /> Service Specifications
               </h2>
               <div className="prose prose-invert max-w-none text-muted-foreground leading-relaxed text-lg space-y-6">
                 {(service.fullDescription || service.shortDescription).split('\n').map((para, i) => (
@@ -1195,7 +2137,7 @@ export const ServiceDetailPage = () => {
                     <Clock className="w-5 h-5 text-primary" />
                   </div>
                   <div>
-                    <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">Est. Deployment Time</p>
+                    <p className="text-[11px] font-bold text-primary uppercase tracking-[0.4em] mb-1">Est. Duration</p>
                     <p className="font-bold">{service.estimatedDuration}</p>
                   </div>
                 </div>
@@ -1210,7 +2152,7 @@ export const ServiceDetailPage = () => {
                   }
                 }}>
                   {service.cta.label} 
-                  {service.cta.action === 'external' ? <ExternalLink className="ml-2 w-5 h-5" /> : <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />}
+                  {service.cta.action === 'external' ? <ExternalLink className="ml-2 w-5 h-5" /> : <ArrowRight className="ml-2 w-5 h-5 transition-transform" />}
                 </Button>
               </div>
             )}
@@ -1220,7 +2162,7 @@ export const ServiceDetailPage = () => {
 
       {/* Featured Output */}
       {relatedProducts.length > 0 && (
-        <section className="bg-white/[0.02] py-24">
+        <section className="bg-white/[0.02] py-16 md:py-24">
           <div className="container mx-auto px-6">
             <div className="flex items-end justify-between mb-12">
               <div>
@@ -1237,10 +2179,10 @@ export const ServiceDetailPage = () => {
                 <GlassCard key={p.id} className="p-0 overflow-hidden group border-white/5 hover:border-white/10">
                    <div className="aspect-video relative overflow-hidden bg-muted">
                     {p.imageUrl ? (
-                      <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover" />
+                      <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover transition-transform duration-500" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
-                        <ShoppingBag className="w-12 h-12 text-white/5" />
+                        <DynamicIcon name={p.icon} className="w-12 h-12 text-white/5" fallback={ShoppingBag} />
                       </div>
                     )}
                   </div>
@@ -1248,7 +2190,7 @@ export const ServiceDetailPage = () => {
                     <h3 className="text-xl font-bold mb-2 group-hover:text-primary transition-colors">{p.name}</h3>
                     <p className="text-muted-foreground text-sm line-clamp-2 mb-4 leading-relaxed">{p.description}</p>
                     <Link to={`/products/${p.id}`} className="inline-flex items-center text-xs font-mono text-primary hover:underline uppercase tracking-widest">
-                      Detail_View() <ArrowRight className="ml-1 w-3 h-3" />
+                      View Details <ArrowRight className="ml-1 w-3 h-3" />
                     </Link>
                   </div>
                 </GlassCard>
@@ -1292,7 +2234,7 @@ export const ProductDetailPage = () => {
             to="/products" 
             className="inline-flex items-center text-xs font-mono text-muted-foreground hover:text-primary transition-colors mb-12 uppercase tracking-widest"
           >
-            <ArrowLeft className="mr-2 w-3 h-3" /> Showcase.Back()
+            <ArrowLeft className="mr-2 w-3 h-3" /> Back to Products
           </Link>
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 items-center">
@@ -1315,6 +2257,11 @@ export const ProductDetailPage = () => {
                 <h1 className="text-5xl md:text-6xl font-bold tracking-tight leading-tight">
                   {product.name}
                 </h1>
+                <div className="flex items-center gap-4 mb-8">
+                   <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center border border-primary/20">
+                      <DynamicIcon name={product.icon} className="w-8 h-8 text-primary shadow-glow-primary" fallback={ShoppingBag} />
+                   </div>
+                </div>
                 <p className="text-xl text-muted-foreground leading-relaxed max-w-2xl">
                   {product.description}
                 </p>
@@ -1336,8 +2283,8 @@ export const ProductDetailPage = () => {
 
             <div className="lg:col-span-6">
               <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
                 transition={{ delay: 0.2 }}
                 className="relative"
               >
@@ -1351,7 +2298,7 @@ export const ProductDetailPage = () => {
                     />
                   ) : (
                     <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground">
-                      <ShoppingBag className="w-16 h-16 mb-4 opacity-10" />
+                      <DynamicIcon name={product.icon} className="w-16 h-16 mb-4 opacity-10" fallback={ShoppingBag} />
                       <p className="text-xs font-mono uppercase tracking-widest italic">Visual node data missing</p>
                     </div>
                   )}
@@ -1364,7 +2311,9 @@ export const ProductDetailPage = () => {
 
       {product.tags && product.tags.length > 0 && (
          <div className="container mx-auto px-6 py-12">
-            <h3 className="text-xs font-mono text-muted-foreground uppercase tracking-[0.3em] mb-6 border-l-2 border-primary pl-4">Metatags // Attributes</h3>
+            <div className="mb-6 inline-flex items-center px-4 py-1.5 bg-primary/5 dark:bg-primary/10 border border-primary/20 rounded-full">
+              <h3 className="text-[11px] font-bold text-primary uppercase tracking-[0.4em]">Project Tags</h3>
+            </div>
             <div className="flex flex-wrap gap-2">
               {product.tags.map(tag => (
                 <span key={tag} className="px-3 py-1 bg-white/5 border border-white/5 rounded-full text-xs text-muted-foreground hover:border-primary/20 hover:text-primary transition-all cursor-default">
@@ -1376,14 +2325,14 @@ export const ProductDetailPage = () => {
       )}
 
       {service && (
-        <section className="py-24 border-t border-white/5">
+        <section className="py-16 md:py-24 border-t border-white/5">
           <div className="container mx-auto px-6">
             <div className="flex flex-col md:flex-row items-center gap-12 p-12 bg-white/[0.02] rounded-3xl border border-white/5 relative overflow-hidden">
               <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 blur-[100px] -z-10" />
               
               <div className="md:w-1/3 text-center md:text-left">
                 <div className="w-16 h-16 bg-primary/20 rounded-2xl flex items-center justify-center mb-6 mx-auto md:mx-0">
-                  <Briefcase className="w-8 h-8 text-primary" />
+                  <DynamicIcon name={service.icon} className="w-8 h-8 text-primary" fallback={Briefcase} />
                 </div>
                 <h3 className="text-2xl font-bold mb-2">Powered By</h3>
                 <p className="text-muted-foreground">This product is an outcome of our {service.name} capability module.</p>
@@ -1391,7 +2340,9 @@ export const ProductDetailPage = () => {
 
               <div className="md:flex-1 grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div className="space-y-4">
-                  <h4 className="text-sm font-bold uppercase tracking-widest text-primary">Key features</h4>
+                  <div className="mb-4 inline-flex items-center px-4 py-1.5 bg-primary/5 dark:bg-primary/10 border border-primary/20 rounded-full">
+                    <h4 className="text-[11px] font-bold uppercase tracking-[0.4em] text-primary">Key features</h4>
+                  </div>
                   <ul className="space-y-2">
                     {service.features.slice(0, 3).map((f, i) => (
                       <li key={i} className="text-sm text-muted-foreground flex items-center gap-2">
@@ -1430,12 +2381,12 @@ export const ContactPage = () => {
         </div>
       </section>
 
-      <section className="py-24">
+      <section className="py-16 md:py-24">
         <div className="container mx-auto px-6">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-16">
             <div className="lg:col-span-4 space-y-12">
               <div>
-                <h3 className="text-xs font-mono text-primary uppercase tracking-[0.3em] mb-6">Contact_Details</h3>
+                <h3 className="text-[11px] font-bold text-primary uppercase tracking-[0.4em] mb-8 inline-flex items-center px-4 py-1.5 bg-primary/5 dark:bg-primary/10 border border-primary/20 rounded-full">Contact Details</h3>
                 <div className="space-y-8">
                    <div className="flex items-start gap-4">
                     <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
@@ -1480,11 +2431,23 @@ export const ContactPage = () => {
                       </a>
                     </div>
                   </div>
+
+                  <div className="flex items-start gap-4">
+                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                      <Github className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest mb-1">GitHub</p>
+                      <a href="https://github.com/wisebyteconcepts" target="_blank" className="text-lg font-bold hover:text-primary transition-colors">
+                        wisebyteconcepts
+                      </a>
+                    </div>
+                  </div>
                 </div>
               </div>
 
               <div>
-                <h3 className="text-xs font-mono text-primary uppercase tracking-[0.3em] mb-6">Business_Identity</h3>
+                <h3 className="text-[11px] font-bold text-primary uppercase tracking-[0.4em] mb-8 inline-flex items-center px-4 py-1.5 bg-primary/5 dark:bg-primary/10 border border-primary/20 rounded-full">Our Brand</h3>
                 <p className="text-xl font-bold">Wise Byte Concepts</p>
                 <p className="text-muted-foreground text-sm mt-2">Delivering precision digital engineering and scalable design systems for the modern era.</p>
               </div>
@@ -1495,24 +2458,24 @@ export const ContactPage = () => {
                 <form className="space-y-8" onSubmit={(e) => e.preventDefault()}>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div className="space-y-2">
-                       <label className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest ml-1">Full_Name</label>
+                       <label className="text-[10px] font-bold text-primary uppercase tracking-[0.2em] ml-1">Full Name</label>
                        <Input placeholder="John Doe" className="bg-white/5 border-white/10" id="contact-name" />
                     </div>
                     <div className="space-y-2">
-                       <label className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest ml-1">Email_Address</label>
+                       <label className="text-[10px] font-bold text-primary uppercase tracking-[0.2em] ml-1">Email Address</label>
                        <Input type="email" placeholder="john@example.com" className="bg-white/5 border-white/10" id="contact-email" />
                     </div>
                   </div>
                   <div className="space-y-2">
-                     <label className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest ml-1">Project_Brief</label>
+                     <label className="text-[10px] font-bold text-primary uppercase tracking-[0.2em] ml-1">Project Brief</label>
                      <Input placeholder="What are we building?" className="bg-white/5 border-white/10" id="contact-brief" />
                   </div>
                   <div className="space-y-2">
-                     <label className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest ml-1">Technical_Requirements</label>
+                     <label className="text-[10px] font-bold text-primary uppercase tracking-[0.2em] ml-1">Technical Requirements</label>
                      <textarea className="w-full min-h-[150px] bg-white/5 border border-white/10 rounded-xl p-4 text-sm focus:outline-none focus:border-primary/50 transition-colors hide-scrollbar" placeholder="Tell us more about your needs..." id="contact-message" />
                   </div>
                   <Button size="lg" className="w-full h-14 text-base rounded-xl font-bold">
-                    Transmit Inquiry // send_message()
+                    Send Message
                   </Button>
                 </form>
               </GlassCard>

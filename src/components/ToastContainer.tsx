@@ -17,9 +17,9 @@ export const ToastContainer = () => {
         {toasts.map((toast) => (
           <motion.div
             key={toast.id}
-            initial={{ opacity: 0, y: 20, scale: 0.9 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.9 }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
             className={`flex items-center gap-3 px-4 py-3 bg-card border border-border shadow-elegant rounded-xl min-w-[280px]`}
           >
             {icons[toast.type]}

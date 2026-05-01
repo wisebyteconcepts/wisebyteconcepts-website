@@ -3,7 +3,8 @@ import {
   getDocs, 
   setDoc, 
   doc, 
-  deleteDoc 
+  deleteDoc,
+  writeBatch 
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { Service, Product, Skill, OperationType } from '@/types';
@@ -139,6 +140,20 @@ export class FirestoreAdapter implements StorageService {
       await deleteDoc(doc(db, 'skills', id));
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, `skills/${id}`);
+      throw error;
+    }
+  }
+
+  async batchUpdate(collectionName: string, updates: any[]): Promise<void> {
+    try {
+      const batch = writeBatch(db);
+      updates.forEach(item => {
+        const ref = doc(db, collectionName, item.id);
+        batch.set(ref, item, { merge: true });
+      });
+      await batch.commit();
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, collectionName);
       throw error;
     }
   }

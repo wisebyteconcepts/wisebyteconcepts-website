@@ -18,4 +18,7 @@ export interface StorageService {
   createSkill(skill: Skill): Promise<Skill>;
   updateSkill(skill: Skill): Promise<Skill>;
   deleteSkill(id: string): Promise<void>;
+
+  // Batch
+  batchUpdate(collectionName: string, updates: any[]): Promise<void>;
 }

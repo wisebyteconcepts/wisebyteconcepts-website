@@ -5,7 +5,7 @@
 
 import { useEffect, lazy, Suspense } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion } from 'motion/react';
 import { useAppStore } from '@/store';
 import { useAuthStore } from '@/store/authStore';
 import { ProtectedRoute, ToastContainer, Skeleton } from '@/components';

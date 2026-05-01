@@ -67,21 +67,20 @@ export const Navbar = ({
   return (
     <header 
       className={cn(
-        'fixed top-0 left-0 right-0 z-50 transition-all duration-300 py-3',
+        'fixed top-0 left-0 right-0 z-50 transition-all duration-300 transform-gpu',
         isScrolled 
-          ? 'bg-background/80 backdrop-blur-md' 
-          : 'bg-transparent'
+          ? 'bg-background/80 backdrop-blur-md h-16' 
+          : 'bg-transparent h-24'
       )}
     >
-      <div className="container mx-auto px-6 flex items-center justify-between">
+      <div className="container mx-auto px-6 h-full flex items-center justify-between">
         {/* Left Section: Logo & Title */}
-        <Link to="/" className="flex items-center gap-3 group shrink-0">
-          <motion.div 
-            whileTap={{ scale: 0.95 }}
+        <Link to="/" className="flex items-center gap-3 group shrink-0 transform-gpu">
+          <div 
             className="w-10 h-10 bg-[#3b82f6] flex items-center justify-center rounded-lg"
           >
             <Code2 className="text-white w-6 h-6" />
-          </motion.div>
+          </div>
           <span className="text-lg font-bold tracking-tight text-foreground whitespace-nowrap">
             Wise Byte Concepts
           </span>

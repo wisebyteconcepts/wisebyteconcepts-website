@@ -200,7 +200,7 @@ export const ServiceForm = ({ initialData, onSubmit, isLoading }: ServiceFormPro
         <button
           type="submit"
           disabled={isLoading}
-          className="w-full h-14 bg-primary text-white font-bold rounded-xl shadow-elegant hover:shadow-glow hover:-translate-y-0.5 transition-all active:translate-y-0 active:scale-[0.99] disabled:opacity-50 flex items-center justify-center gap-2"
+          className="w-full h-14 bg-primary text-white font-bold rounded-xl shadow-elegant hover:shadow-glow transition-all disabled:opacity-50 flex items-center justify-center gap-2"
         >
           {isLoading ? (
             <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />

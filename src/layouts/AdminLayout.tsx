@@ -1,6 +1,6 @@
 import { Link, useLocation, useNavigate, Outlet } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
-import { LayoutDashboard, ShoppingBag, Briefcase, Code, LogOut, Terminal } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag, Briefcase, Code, LogOut, Terminal, ExternalLink } from 'lucide-react';
 import { GlowOrb, Button } from '@/components';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -41,7 +41,12 @@ export const AdminLayout = () => {
               </div>
             </Link>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <a href="/" target="_blank" rel="noopener noreferrer" className="hidden sm:block">
+              <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-primary transition-colors">
+                <ExternalLink className="w-4 h-4 mr-2" /> View Website
+              </Button>
+            </a>
             <Button variant="ghost" size="sm" onClick={handleLogout} className="text-muted-foreground hover:text-destructive">
               <LogOut className="w-4 h-4 mr-2" /> Logout
             </Button>
@@ -107,9 +112,9 @@ export const AdminLayout = () => {
              <AnimatePresence mode="wait">
                <motion.div
                  key={location.pathname}
-                 initial={{ opacity: 0, x: 5 }}
-                 animate={{ opacity: 1, x: 0 }}
-                 exit={{ opacity: 0, x: -5 }}
+                 initial={{ opacity: 0 }}
+                 animate={{ opacity: 1 }}
+                 exit={{ opacity: 0 }}
                  transition={{ duration: 0.2 }}
                  className="h-full"
                >

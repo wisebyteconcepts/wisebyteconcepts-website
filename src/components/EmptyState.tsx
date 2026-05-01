@@ -12,8 +12,8 @@ interface EmptyStateProps {
 export const EmptyState = ({ icon: Icon, title, description, action }: EmptyStateProps) => {
   return (
     <motion.div 
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
       className="flex flex-col items-center justify-center p-12 text-center border-2 border-dashed border-border rounded-2xl bg-secondary/10"
     >
       <div className="w-16 h-16 bg-background rounded-full flex items-center justify-center mb-6 shadow-soft text-muted-foreground/40">

@@ -1,6 +1,6 @@
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import { GlowOrb, Navbar } from '@/components';
-import { Code2 } from 'lucide-react';
+import { Code2, Github } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 export const PublicLayout = () => {
@@ -14,14 +14,14 @@ export const PublicLayout = () => {
 
       <Navbar />
 
-      <main className="flex-1 pt-24 overflow-hidden">
+      <main className="flex-1 pt-24">
         <AnimatePresence mode="wait">
           <motion.div
             key={location.pathname}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.3, ease: "easeInOut" }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
           >
             <Outlet />
           </motion.div>
@@ -44,12 +44,24 @@ export const PublicLayout = () => {
               </p>
             </div>
             
-            <div className="flex gap-8">
-                <Link to="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Home</Link>
-                <Link to="/services" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Services</Link>
-                <Link to="/products" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Products</Link>
-                <Link to="/skills" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Skills</Link>
-                <Link to="/contact" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Contact</Link>
+            <div className="flex items-center gap-8">
+                <div className="flex gap-6">
+                    <Link to="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Home</Link>
+                    <Link to="/services" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Services</Link>
+                    <Link to="/products" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Products</Link>
+                    <Link to="/skills" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Skills</Link>
+                    <Link to="/contact" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Contact</Link>
+                </div>
+                <div className="h-4 w-[1px] bg-border hidden md:block" />
+                <a 
+                  href="https://github.com/wisebyteconcepts" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                  aria-label="GitHub"
+                >
+                  <Github className="w-5 h-5" />
+                </a>
             </div>
           </div>
         </div>

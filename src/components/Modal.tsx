@@ -33,13 +33,13 @@ export const Modal = ({ isOpen, onClose, title, children }: ModalProps) => {
             className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[110]"
           />
           <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
             className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[calc(100%-2rem)] max-w-2xl bg-card border border-border shadow-2xl rounded-2xl z-[120] overflow-hidden flex flex-col max-h-[90vh]"
           >
             <div className="flex items-center justify-between p-6 border-b border-border bg-gradient-brand/5">
-              <h3 className="text-xl font-bold text-foreground font-display">{title}</h3>
+              <h3 className="text-xl font-bold text-foreground">{title}</h3>
               <button
                 onClick={onClose}
                 className="p-2 hover:bg-secondary rounded-full transition-colors group"
