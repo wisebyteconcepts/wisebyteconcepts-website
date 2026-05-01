@@ -34,6 +34,7 @@ export const ListInput = ({ label, value = [], onChange, placeholder }: ListInpu
           onChange={(e) => setCurrent(e.target.value)} 
           onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), add())}
           placeholder={placeholder}
+          className="bg-white/5 border-white/10"
         />
         <Button type="button" size="icon" onClick={add} variant="secondary" className="shrink-0 rounded-xl">
           <Plus className="h-4 w-4" />
@@ -41,7 +42,7 @@ export const ListInput = ({ label, value = [], onChange, placeholder }: ListInpu
       </div>
       <div className="flex flex-wrap gap-2">
         {value.map((item, i) => (
-          <div key={i} className="flex items-center gap-2 bg-primary/10 border border-primary/30 px-3 py-1.5 rounded-xl group transition-all hover:border-primary/50">
+          <div key={i} className="flex items-center gap-2 bg-white/5 border border-white/10 px-3 py-1.5 rounded-xl group transition-all hover:border-primary/50">
             <span className="text-sm font-medium">{item}</span>
             <button 
               type="button" 

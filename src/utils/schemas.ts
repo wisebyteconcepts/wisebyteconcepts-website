@@ -12,7 +12,6 @@ export const serviceSchema = z.object({
   bannerImage: z.string().url('Must be a valid URL').optional().or(z.literal('')),
   category: z.nativeEnum(ServiceCategory),
   features: z.array(z.string()).min(1, 'At least one feature is required'),
-  technologies: z.array(z.string()).optional(),
   isActive: z.boolean(),
   isFeatured: z.boolean().optional(),
   order: z.number().optional(),

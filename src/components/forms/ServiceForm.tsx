@@ -3,10 +3,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { serviceSchema } from '@/utils/schemas';
 import { Service, ServiceCategory } from '@/types';
-import { useAppStore } from '@/store';
 import { FormField, Input, Textarea, Select } from './FormControls';
-import { Plus, Trash2, Check } from 'lucide-react';
-import { useState } from 'react';
+import { Plus, Trash2 } from 'lucide-react';
 
 type ServiceFormData = z.infer<typeof serviceSchema>;
 
@@ -17,9 +15,6 @@ interface ServiceFormProps {
 }
 
 export const ServiceForm = ({ initialData, onSubmit, isLoading }: ServiceFormProps) => {
-  const { skills } = useAppStore();
-  const [selectedSkillId, setSelectedSkillId] = useState('');
-  
   const {
     register,
     handleSubmit,
@@ -38,7 +33,6 @@ export const ServiceForm = ({ initialData, onSubmit, isLoading }: ServiceFormPro
       bannerImage: initialData.bannerImage || '',
       category: initialData.category,
       features: initialData.features,
-      technologies: initialData.technologies || [],
       isActive: initialData.isActive ?? true,
       isFeatured: initialData.isFeatured || false,
       order: initialData.order || 0,
@@ -46,7 +40,6 @@ export const ServiceForm = ({ initialData, onSubmit, isLoading }: ServiceFormPro
       isActive: true,
       category: ServiceCategory.DEVELOPMENT,
       features: [''],
-      technologies: [],
     },
   });
 
@@ -54,21 +47,6 @@ export const ServiceForm = ({ initialData, onSubmit, isLoading }: ServiceFormPro
     control,
     name: 'features' as never,
   });
-
-  const { fields: techFields, append: appendTech, remove: removeTech } = useFieldArray({
-    control,
-    name: 'technologies' as never,
-  });
-
-  const handleAddTechnology = () => {
-    if (selectedSkillId) {
-      const skill = skills.find(s => s.id === selectedSkillId);
-      if (skill) {
-        appendTech(skill.name as never);
-        setSelectedSkillId('');
-      }
-    }
-  };
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
@@ -153,62 +131,6 @@ export const ServiceForm = ({ initialData, onSubmit, isLoading }: ServiceFormPro
         </div>
       </section>
 
-      {/* Technology Stack */}
-      <section className="space-y-4">
-        <div className="flex items-center justify-between mb-2">
-          <label className="text-[10px] font-mono text-muted-foreground uppercase tracking-[0.2em] flex items-center gap-2">
-            <div className="w-1 h-1 bg-primary rounded-full animate-pulse" />
-            Technology Stack
-          </label>
-        </div>
-
-        <div className="flex gap-2">
-          <Select 
-            value={selectedSkillId} 
-            onChange={(e: any) => setSelectedSkillId(e.target.value)}
-            disabled={isLoading || skills.length === 0}
-            className=""
-          >
-            <option value="">Select a skill to add...</option>
-            {skills.map((skill) => (
-              <option key={skill.id} value={skill.id}>
-                {skill.name}
-              </option>
-            ))}
-          </Select>
-          <button
-            type="button"
-            onClick={handleAddTechnology}
-            disabled={!selectedSkillId || isLoading}
-            className="flex items-center gap-1.5 px-4 py-2 bg-primary/10 text-primary hover:bg-primary/20 text-[10px] font-bold rounded-lg transition-all uppercase tracking-widest disabled:opacity-50"
-          >
-            <Plus className="w-3 h-3" /> Add
-          </button>
-        </div>
-
-        <div className="flex flex-wrap gap-2">
-          {techFields.map((field, index) => {
-            const fieldValue = field as any;
-            const displayValue = typeof fieldValue === 'string' ? fieldValue : fieldValue.name || '';
-            return (
-              <div key={field.id} className="flex items-center gap-2 bg-primary/10 border border-primary/30 px-3 py-1.5 rounded-lg group transition-all hover:border-primary/50 animate-fade-in">
-                <Check className="w-3 h-3 text-primary" />
-                <span className="text-sm font-medium text-foreground">{displayValue}</span>
-                <button
-                  type="button"
-                  onClick={() => removeTech(index)}
-                  className="text-muted-foreground hover:text-destructive transition-colors"
-                  disabled={isLoading}
-                >
-                  <Trash2 className="w-3 h-3" />
-                </button>
-              </div>
-            );
-          })}
-          {techFields.length === 0 && <span className="text-xs text-muted-foreground italic py-2">No technologies added yet.</span>}
-        </div>
-      </section>
-
       {/* Capabilities Array */}
       <section className="space-y-4">
         <div className="flex items-center justify-between mb-2">
@@ -233,6 +155,7 @@ export const ServiceForm = ({ initialData, onSubmit, isLoading }: ServiceFormPro
                   {...register(`features.${index}` as const)}
                   placeholder="Capability descriptor..."
                   disabled={isLoading}
+                  className="bg-white/[0.02] border-white/5 focus:bg-white/[0.05]"
                 />
               </div>
               <button
@@ -251,12 +174,12 @@ export const ServiceForm = ({ initialData, onSubmit, isLoading }: ServiceFormPro
       </section>
 
       {/* Status Matrix */}
-      <div className="flex items-center gap-8 p-6 bg-accent rounded-2xl border border-border">
+      <div className="flex items-center gap-8 p-6 bg-white/[0.02] rounded-2xl border border-white/5">
         <label className="flex items-center gap-3 cursor-pointer group">
           <div className="relative flex items-center">
             <input type="checkbox" {...register('isActive')} className="peer sr-only" />
             <div className="w-4 h-4 border border-border rounded transition-all peer-checked:bg-primary peer-checked:border-primary flex items-center justify-center">
-              <div className="w-1.5 h-1.5 bg-primary-foreground rounded-full opacity-0 peer-checked:opacity-100 transition-opacity" />
+              <div className="w-1.5 h-1.5 bg-white rounded-full opacity-0 peer-checked:opacity-100 transition-opacity" />
             </div>
           </div>
           <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground group-hover:text-foreground transition-colors">Node_Active</span>
@@ -266,7 +189,7 @@ export const ServiceForm = ({ initialData, onSubmit, isLoading }: ServiceFormPro
           <div className="relative flex items-center">
             <input type="checkbox" {...register('isFeatured')} className="peer sr-only" />
             <div className="w-4 h-4 border border-border rounded transition-all peer-checked:bg-primary peer-checked:border-primary flex items-center justify-center">
-              <div className="w-1.5 h-1.5 bg-primary-foreground rounded-full opacity-0 peer-checked:opacity-100 transition-opacity" />
+              <div className="w-1.5 h-1.5 bg-white rounded-full opacity-0 peer-checked:opacity-100 transition-opacity" />
             </div>
           </div>
           <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground group-hover:text-foreground transition-colors">Promote_Featured</span>

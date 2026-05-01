@@ -761,27 +761,27 @@ export const AdminLoginPage = () => {
             <Lock className="w-8 h-8 text-white" />
           </div>
           <h1 className="text-3xl font-bold mb-6">Admin Login</h1>
-          <div className="mb-6 inline-flex items-center px-4 py-1.5 bg-primary/10 border border-primary/20 rounded-full">
+          <div className="mb-6 inline-flex items-center px-4 py-1.5 bg-primary/5 dark:bg-primary/10 border border-primary/20 rounded-full">
             <span className="text-[11px] text-primary uppercase tracking-[0.4em] font-bold">Secure Access</span>
           </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="text-left space-y-2">
-            <label className="text-[10px] font-bold uppercase tracking-widest text-foreground ml-1 font-mono">Email Address</label>
+            <label className="text-[10px] font-bold uppercase tracking-widest text-primary ml-1 font-mono">Email Address</label>
             <Input 
               type="email" 
               value={email} 
               onChange={(e: any) => setEmail(e.target.value)}
               placeholder="admin@wisebyte.com"
               disabled={loading}
-              className="py-4"
+              className="glass border-white/10 focus:border-primary/50 py-4"
               autoFocus
             />
           </div>
           <div className="text-left space-y-2">
             <div className="flex justify-between items-center mr-1">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-foreground ml-1">Password</label>
+              <label className="text-[10px] font-bold uppercase tracking-widest text-primary ml-1">Password</label>
               <button 
                 type="button"
                 onClick={handleForgotPassword}
@@ -797,7 +797,7 @@ export const AdminLoginPage = () => {
               onChange={(e: any) => setPassword(e.target.value)}
               placeholder="••••••••"
               disabled={loading}
-              className="py-4"
+              className="glass border-white/10 focus:border-primary/50 py-4"
             />
           </div>
           <Button
@@ -809,7 +809,7 @@ export const AdminLoginPage = () => {
           </Button>
         </form>
         
-        <div className="mt-10 pt-6 border-t border-border flex justify-between items-center text-[10px] font-mono text-muted-foreground uppercase tracking-widest">
+        <div className="mt-10 pt-6 border-t border-white/5 flex justify-between items-center text-[10px] font-mono text-muted-foreground uppercase tracking-widest">
           <span>SEC: FIREBASE v11+</span>
           <button onClick={() => navigate('/')} className="hover:text-primary transition-colors flex items-center gap-1">
             <X className="w-3 h-3" /> Exit
@@ -979,7 +979,7 @@ const emptyService = (): Service => ({
 });
 
 export const AdminServicesPage = () => {
-  const { services, products, skills, addService, updateService, deleteService, reorderServices } = useAppStore();
+  const { services, products, addService, updateService, deleteService, reorderServices } = useAppStore();
   const addToast = useToastStore((state) => state.addToast);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Service | null>(null);
@@ -1380,40 +1380,12 @@ export const AdminServicesPage = () => {
             </TabsContent>
 
             <TabsContent value="tech" className="space-y-6">
-              <div className="space-y-3">
-                <Label>Technology Stack</Label>
-                <p className="text-[10px] font-mono text-muted-foreground uppercase opacity-50">Select skills from your engineering arsenal</p>
-                <div className="flex flex-wrap gap-2">
-                  {skills.map((skill) => {
-                    const active = (form.technologies || []).includes(skill.name);
-                    return (
-                      <button
-                        key={skill.id}
-                        type="button"
-                        onClick={() =>
-                          update(
-                            "technologies",
-                            active
-                              ? form.technologies!.filter((t) => t !== skill.name)
-                              : [...(form.technologies || []), skill.name],
-                          )
-                        }
-                        className={cn(
-                          "px-4 py-2 rounded-xl text-xs font-bold transition-all border",
-                          active
-                            ? "bg-primary border-primary text-white shadow-glow-primary"
-                            : "bg-white/5 border-border text-muted-foreground hover:border-primary/50"
-                        )}
-                      >
-                        {skill.name}
-                      </button>
-                    );
-                  })}
-                  {skills.length === 0 && (
-                    <p className="text-xs text-muted-foreground italic bg-white/5 p-4 rounded-xl w-full">No skills available in registry. Add skills first.</p>
-                  )}
-                </div>
-              </div>
+              <ListInput
+                label="Technologies (Stack)"
+                value={form.technologies || []}
+                onChange={(v) => update("technologies", v)}
+                placeholder="React, TypeScript, AWS..."
+              />
 
               <div className="space-y-3">
                 <Label>Portfolio Integration</Label>
@@ -1437,7 +1409,7 @@ export const AdminServicesPage = () => {
                           "px-4 py-2 rounded-xl text-xs font-bold transition-all border",
                           active
                             ? "bg-primary border-primary text-white shadow-glow-primary"
-                            : "bg-white/5 border-border text-muted-foreground hover:border-primary/50"
+                            : "bg-white/5 border-white/10 text-muted-foreground hover:border-white/20"
                         )}
                       >
                         {p.name}
