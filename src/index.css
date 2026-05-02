@@ -33,8 +33,10 @@
 
   --font-sans: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
   --font-display: 'Space Grotesk', system-ui, sans-serif;
+  --font-space: 'Space Grotesk', system-ui, sans-serif;
   
   --shadow-glow: 0 0 30px rgba(131, 48, 255, 0.3);
+  --shadow-glow-strong: 0 0 50px rgba(131, 48, 255, 0.6);
   --shadow-glass: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
 }
 
@@ -81,10 +83,11 @@
 
   html {
     scroll-behavior: smooth;
+    font-size: 105%;
   }
 
   body {
-    @apply bg-background text-foreground antialiased font-sans selection:bg-primary/30;
+    @apply bg-background text-foreground antialiased font-sans selection:bg-primary/30 select-none cursor-default;
   }
 
   h1, h2, h3, h4, h5, h6 {

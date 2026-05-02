@@ -89,10 +89,10 @@ export const SkillForm = ({ initialData, onSubmit, isLoading }: SkillFormProps) 
         <button
           type="submit"
           disabled={isLoading}
-          className="w-full h-14 bg-primary text-white font-bold rounded-xl shadow-elegant hover:shadow-glow transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+          className="w-full h-14 bg-primary text-primary-foreground font-bold rounded-xl shadow-elegant hover:shadow-glow transition-all disabled:opacity-50 flex items-center justify-center gap-2"
         >
           {isLoading ? (
-            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            <div className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
           ) : (
             <Plus className="w-5 h-5" />
           )}

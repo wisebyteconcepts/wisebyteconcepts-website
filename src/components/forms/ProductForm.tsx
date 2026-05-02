@@ -105,14 +105,14 @@ export const ProductForm = ({ initialData, services, onSubmit, isLoading }: Prod
         </FormField>
       </div>
 
-      <div className="pt-6 sticky bottom-0 bg-card/80 backdrop-blur-md pb-2 -mx-2 px-2 border-t border-border mt-12">
+      <div className="pt-6 sticky bottom-0 bg-background/95 backdrop-blur-sm pb-2 -mx-2 px-2 border-t border-border mt-12">
         <button
           type="submit"
           disabled={isLoading}
-          className="w-full h-14 bg-primary text-white font-bold rounded-xl shadow-elegant hover:shadow-glow transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+          className="w-full h-14 bg-primary text-primary-foreground font-bold rounded-xl shadow-elegant hover:shadow-glow transition-all disabled:opacity-50 flex items-center justify-center gap-2"
         >
           {isLoading ? (
-            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            <div className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
           ) : (
             <Plus className="w-5 h-5" />
           )}

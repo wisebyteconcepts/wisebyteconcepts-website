@@ -52,7 +52,7 @@ export const SortableRow: React.FC<SortableRowProps> = ({ id, children, classNam
   const handleProps = {
     ...attributes,
     ...listeners,
-    className: "cursor-grab active:cursor-grabbing p-2 hover:bg-white/10 rounded-md transition-colors",
+    className: "cursor-grab active:cursor-grabbing p-2 hover:bg-muted rounded-md transition-colors",
   };
 
   return (
@@ -60,7 +60,7 @@ export const SortableRow: React.FC<SortableRowProps> = ({ id, children, classNam
       ref={setNodeRef}
       style={style}
       className={cn(
-        isDragging && "opacity-50 ring-1 ring-primary/50 bg-white/[0.05] shadow-2xl z-50",
+        isDragging && "opacity-50 ring-1 ring-primary/50 bg-muted/50 shadow-2xl z-50",
         className
       )}
     >

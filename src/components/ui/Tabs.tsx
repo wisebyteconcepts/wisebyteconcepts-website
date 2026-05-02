@@ -19,7 +19,7 @@ export const Tabs = ({ defaultValue, children, className }: { defaultValue: stri
 };
 
 export const TabsList = ({ className, children }: { className?: string, children: React.ReactNode }) => (
-  <div className={cn("inline-flex h-12 items-center justify-center rounded-xl bg-white/5 p-1 text-muted-foreground", className)}>
+  <div className={cn("inline-flex h-10 items-center justify-center rounded-lg bg-muted/40 p-1 text-muted-foreground", className)}>
     {children}
   </div>
 );
@@ -33,7 +33,7 @@ export const TabsTrigger = ({ value, children, className }: { value: string, chi
       type="button"
       onClick={() => setActiveTab(value)}
       className={cn(
-        "relative inline-flex items-center justify-center whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium ring-offset-background transition-all focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+        "relative inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-medium ring-offset-background transition-all focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
         isActive ? "text-foreground" : "hover:text-foreground/80",
         className
       )}
@@ -41,7 +41,7 @@ export const TabsTrigger = ({ value, children, className }: { value: string, chi
       {isActive && (
         <motion.div
           layoutId="activeTab"
-          className="absolute inset-0 rounded-lg bg-primary shadow-glow"
+          className="absolute inset-0 rounded-md bg-primary shadow-glow"
           transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
         />
       )}

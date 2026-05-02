@@ -37,7 +37,7 @@ export const CrudPageShell = ({
         </Button>
       </div>
 
-      <Card className="overflow-hidden border-white/5">
+      <Card className="overflow-hidden border-border/50">
         {children}
       </Card>
     </div>

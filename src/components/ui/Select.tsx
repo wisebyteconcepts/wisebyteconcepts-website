@@ -54,9 +54,12 @@ export const SelectContent = ({ children }: { children: React.ReactNode }) => {
             initial={{ opacity: 0, y: -10, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -10, scale: 0.95 }}
-            className="absolute z-[60] mt-2 w-full min-w-[8rem] overflow-hidden rounded-xl border border-white/10 bg-black/90 p-1 text-foreground shadow-2xl backdrop-blur-xl"
+            className="absolute z-[60] mt-2 w-full min-w-[8rem] overflow-hidden rounded-xl border border-white/10 bg-slate-950/90 p-1 text-foreground shadow-2xl backdrop-blur-xl"
           >
-            {children}
+            <div className="absolute inset-0 bg-primary/5 pointer-events-none" />
+            <div className="relative z-10">
+              {children}
+            </div>
           </motion.div>
         </>
       )}

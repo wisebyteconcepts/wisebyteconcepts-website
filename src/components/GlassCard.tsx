@@ -11,11 +11,11 @@ interface GlassCardProps extends HTMLMotionProps<'div'> {
 export const GlassCard = ({ children, className, hoverGlow = true, ...props }: GlassCardProps) => {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
+      initial={{ opacity: 0 }}
+      whileInView={{ opacity: 1 }}
+      viewport={{ once: true, margin: "-50px" }}
       className={cn(
-        'glass rounded-2xl p-6 transition-all duration-300',
+        'glass rounded-2xl p-6 transition-all duration-300 will-change-[transform,opacity]',
         hoverGlow && 'glass-hover',
         className
       )}

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { Menu, X, Github, Code2, Sun, Moon, Monitor } from 'lucide-react';
+import { Menu, X, Github, Code2, Sun, Moon } from 'lucide-react';
 import { Button } from './Button';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -47,19 +47,16 @@ export const Navbar = ({
   const isActive = (path: string) => location.pathname === path;
 
   const cycleTheme = () => {
-    if (theme === 'system') setTheme('light');
-    else if (theme === 'light') setTheme('dark');
-    else setTheme('system');
+    if (theme === 'light') setTheme('dark');
+    else setTheme('light');
   };
 
   const getThemeIcon = () => {
-    if (theme === 'system') return <Monitor className="w-4 h-4" />;
     if (theme === 'light') return <Sun className="w-4 h-4" />;
     return <Moon className="w-4 h-4" />;
   };
 
   const getThemeLabel = () => {
-    if (theme === 'system') return 'System';
     if (theme === 'light') return 'Light';
     return 'Dark';
   };
@@ -67,21 +64,21 @@ export const Navbar = ({
   return (
     <header 
       className={cn(
-        'fixed top-0 left-0 right-0 z-50 transition-all duration-300 transform-gpu',
+        'fixed top-0 left-0 right-0 z-50 transition-all duration-300 transform-gpu border-b',
         isScrolled 
-          ? 'bg-background/80 backdrop-blur-md h-16' 
-          : 'bg-transparent h-24'
+          ? 'bg-background/80 backdrop-blur-md h-16 border-border/40' 
+          : 'bg-transparent h-24 border-border/10'
       )}
     >
-      <div className="container mx-auto px-6 h-full flex items-center justify-between">
+      <div className="max-w-6xl mx-auto px-6 h-full flex items-center justify-between">
         {/* Left Section: Logo & Title */}
         <Link to="/" className="flex items-center gap-3 group shrink-0 transform-gpu">
           <div 
-            className="w-10 h-10 bg-[#3b82f6] flex items-center justify-center rounded-lg"
+            className="w-10 h-10 bg-[#3b82f6] flex items-center justify-center rounded-lg shadow-sm group-hover:shadow-soft transition-all duration-300"
           >
             <Code2 className="text-white w-6 h-6" />
           </div>
-          <span className="text-lg font-bold tracking-tight text-foreground whitespace-nowrap">
+          <span className="text-xl font-bold tracking-tight text-foreground whitespace-nowrap font-display">
             Wise Byte Concepts
           </span>
         </Link>
@@ -132,22 +129,28 @@ export const Navbar = ({
           </button>
 
           <a 
-            href={githubUrl} 
+            href="https://github.com/wisebyteconcepts" 
             target="_blank" 
             rel="noopener noreferrer"
-            className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors group"
+            className="cursor-pointer"
           >
-            <Github className="w-5 h-5" />
-            <span>GitHub</span>
+            <Button 
+              variant="glass" 
+              size="sm" 
+              className="flex items-center gap-2 border-border/50 !shadow-none cursor-pointer"
+            >
+              <Github className="w-4 h-4" />
+              <span>GitHub</span>
+            </Button>
           </a>
 
-          <div className="w-px h-4 bg-border" />
+          <div className="w-px h-4 bg-border/50 mx-1" />
 
           <Link to="/contact">
             <Button 
               variant="primary" 
               size="md" 
-              className="px-8 rounded-full"
+              className="px-8 rounded-full hover:shadow-glow transition-all duration-300"
             >
               Contact
             </Button>
@@ -199,7 +202,7 @@ export const Navbar = ({
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground font-medium">Appearance</span>
                   <div className="flex bg-foreground/5 p-1 rounded-lg border border-foreground/10">
-                    {(['light', 'dark', 'system'] as const).map((t) => (
+                    {(['light', 'dark'] as const).map((t) => (
                       <button
                         key={t}
                         onClick={() => setTheme(t)}

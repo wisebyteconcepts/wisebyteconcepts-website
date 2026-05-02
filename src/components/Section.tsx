@@ -13,7 +13,7 @@ interface SectionProps {
 export const Section = ({ title, description, children, className, id }: SectionProps) => {
   return (
     <section id={id} className={cn('py-12 md:py-20', className)}>
-      <div className="container mx-auto px-6">
+      <div className="max-w-6xl mx-auto px-6">
         {title && (
           <div className="max-w-3xl mb-12 md:mb-16">
             <motion.h2

@@ -14,14 +14,15 @@ export const PublicLayout = () => {
 
       <Navbar />
 
-      <main className="flex-1 pt-24">
+      <main className="flex-1">
         <AnimatePresence mode="wait">
           <motion.div
             key={location.pathname}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
+            transition={{ duration: 0.15 }}
+            className="transform-gpu"
           >
             <Outlet />
           </motion.div>
@@ -34,10 +35,10 @@ export const PublicLayout = () => {
           <div className="flex flex-col md:flex-row justify-between items-center gap-8">
             <div className="flex flex-col gap-2">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-[#3b82f6] flex items-center justify-center rounded-lg font-bold text-white text-xs">
+                <div className="w-8 h-8 bg-primary/10 border border-primary/20 flex items-center justify-center rounded-lg font-bold text-primary text-xs">
                   <Code2 className="w-5 h-5" />
                 </div>
-                <span className="text-xl font-bold text-foreground">Wise Byte Concepts</span>
+                <span className="text-xl font-bold text-foreground font-display">Wise Byte Concepts</span>
               </div>
               <p className="text-muted-foreground text-sm max-w-xs leading-relaxed">
                 Practical, scalable, and visually strong digital solutions. We combine development expertise with design precision.
@@ -70,7 +71,7 @@ export const PublicLayout = () => {
       {/* Copyright Bar */}
       <div className="py-6 border-t border-border/50 text-center">
         <div className="container mx-auto px-6">
-          <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-bold">
+          <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-bold font-display">
             &copy; {new Date().getFullYear()} Wise Byte Concepts. Precision Digital Engineering.
           </span>
         </div>

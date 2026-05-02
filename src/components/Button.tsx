@@ -18,11 +18,11 @@ export const Button = ({
   ...props
 }: ButtonProps) => {
   const variants = {
-    primary: 'bg-gradient-brand text-white shadow-glow hover:brightness-110 active:brightness-95',
-    secondary: 'bg-secondary text-foreground hover:bg-secondary/80',
-    ghost: 'bg-transparent hover:bg-white/5 text-muted-foreground hover:text-foreground',
-    glass: 'glass text-foreground dark:text-white hover:bg-black/5 dark:hover:bg-white/10 border-black/10 dark:border-white/10 hover:border-primary/40 shadow-sm transition-all',
-    destructive: 'bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-glow-destructive',
+    primary: 'bg-gradient-brand text-primary-foreground hover:brightness-110 active:brightness-95 transition-all duration-500 transform-gpu relative overflow-hidden after:absolute after:inset-0 after:bg-white/10 after:opacity-0 hover:after:opacity-100 after:transition-opacity after:duration-500',
+    secondary: 'bg-secondary text-foreground hover:bg-secondary/80 transform-gpu',
+    ghost: 'bg-transparent hover:bg-muted text-muted-foreground hover:text-foreground transform-gpu',
+    glass: 'glass text-foreground hover:bg-muted/50 border-border/50 hover:border-primary/40 transition-all transform-gpu',
+    destructive: 'bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-glow-destructive transform-gpu',
   };
 
   const sizes = {
@@ -35,7 +35,7 @@ export const Button = ({
   return (
     <motion.button
       className={cn(
-        'inline-flex items-center justify-center rounded-xl font-medium transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-50 disabled:cursor-not-allowed',
+        'inline-flex items-center justify-center rounded-xl font-medium transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer',
         variants[variant],
         sizes[size],
         className

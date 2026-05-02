@@ -30,23 +30,30 @@ export const FormField = ({ label, error, children, id, required }: FormFieldPro
 
 export const Input = ({ className = '', ...props }) => (
   <input
-    className={`w-full px-4 py-2 bg-background border border-border rounded-lg text-sm transition-all focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none disabled:opacity-50 ${className}`}
+    className={`w-full px-4 py-3 bg-muted/30 border border-border rounded-xl text-sm transition-all focus:ring-2 focus:ring-primary/20 focus:border-primary/50 outline-none disabled:opacity-50 font-sans ${className}`}
     {...props}
   />
 );
 
 export const Textarea = ({ className = '', ...props }) => (
   <textarea
-    className={`w-full px-4 py-2 bg-background border border-border rounded-lg text-sm transition-all focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none min-h-[100px] ${className}`}
+    className={`w-full px-4 py-3 bg-muted/30 border border-border rounded-xl text-sm transition-all focus:ring-2 focus:ring-primary/20 focus:border-primary/50 outline-none min-h-[100px] font-sans ${className}`}
     {...props}
   />
 );
 
 export const Select = ({ className = '', children, ...props }: { className?: string; children: ReactNode; [key: string]: any }) => (
-  <select
-    className={`w-full px-4 py-2 bg-background border border-border rounded-lg text-sm transition-all focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none appearance-none ${className}`}
-    {...props}
-  >
-    {children}
-  </select>
+  <div className="relative">
+    <select
+      className={`w-full px-4 py-3 bg-muted/30 border border-border rounded-xl text-sm transition-all focus:ring-2 focus:ring-primary/20 focus:border-primary/50 outline-none appearance-none font-sans ${className}`}
+      {...props}
+    >
+      {children}
+    </select>
+    <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none opacity-50">
+      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+      </svg>
+    </div>
+  </div>
 );

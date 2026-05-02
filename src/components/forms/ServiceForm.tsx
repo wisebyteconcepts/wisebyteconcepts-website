@@ -155,7 +155,7 @@ export const ServiceForm = ({ initialData, onSubmit, isLoading }: ServiceFormPro
                   {...register(`features.${index}` as const)}
                   placeholder="Capability descriptor..."
                   disabled={isLoading}
-                  className="bg-white/[0.02] border-white/5 focus:bg-white/[0.05]"
+                  className="bg-muted/10 border-border focus:bg-muted/20"
                 />
               </div>
               <button
@@ -174,7 +174,7 @@ export const ServiceForm = ({ initialData, onSubmit, isLoading }: ServiceFormPro
       </section>
 
       {/* Status Matrix */}
-      <div className="flex items-center gap-8 p-6 bg-white/[0.02] rounded-2xl border border-white/5">
+      <div className="flex items-center gap-8 p-6 bg-muted/30 rounded-2xl border border-border/50">
         <label className="flex items-center gap-3 cursor-pointer group">
           <div className="relative flex items-center">
             <input type="checkbox" {...register('isActive')} className="peer sr-only" />
@@ -196,14 +196,14 @@ export const ServiceForm = ({ initialData, onSubmit, isLoading }: ServiceFormPro
         </label>
       </div>
 
-      <div className="pt-4 sticky bottom-0 bg-card/80 backdrop-blur-md pb-2 -mx-2 px-2 border-t border-border mt-12">
+      <div className="pt-4 sticky bottom-0 bg-background/95 backdrop-blur-md pb-2 -mx-2 px-2 border-t border-border mt-12 z-20">
         <button
           type="submit"
           disabled={isLoading}
-          className="w-full h-14 bg-primary text-white font-bold rounded-xl shadow-elegant hover:shadow-glow transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+          className="w-full h-14 bg-primary text-primary-foreground font-bold rounded-xl shadow-elegant hover:shadow-glow transition-all disabled:opacity-50 flex items-center justify-center gap-2"
         >
           {isLoading ? (
-            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            <div className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
           ) : (
             <Plus className="w-5 h-5" />
           )}

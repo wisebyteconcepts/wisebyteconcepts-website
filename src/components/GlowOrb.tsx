@@ -11,20 +11,18 @@ interface GlowOrbProps {
 export const GlowOrb = ({ className, size = '400px', color = 'rgba(131, 48, 255, 0.1)', delay = 0 }: GlowOrbProps) => {
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.8 }}
+      initial={{ opacity: 0 }}
       animate={{ 
-        opacity: [0.3, 0.6, 0.3], 
-        scale: [1, 1.1, 1],
-        x: [0, 30, 0],
-        y: [0, -30, 0]
+        opacity: [0.2, 0.4, 0.2],
+        scale: [1, 1.05, 1],
       }}
       transition={{ 
-        duration: 10, 
+        duration: 8, 
         repeat: Infinity, 
         delay,
         ease: "easeInOut" 
       }}
-      className={cn('fixed rounded-full pointer-events-none blur-[100px]', className)}
+      className={cn('fixed rounded-full pointer-events-none blur-[140px] will-change-transform z-0', className)}
       style={{
         width: size,
         height: size,

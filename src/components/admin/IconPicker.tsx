@@ -50,7 +50,7 @@ export const IconPicker: React.FC<IconPickerProps> = ({ value, onChange, label =
           <Button 
             variant="ghost" 
             size="sm" 
-            className={cn("h-7 px-3 text-[10px] uppercase font-bold", mode === 'library' && "bg-white/5 text-primary")}
+            className={cn("h-7 px-3 text-[10px] uppercase font-bold", mode === 'library' && "bg-muted text-primary")}
             onClick={() => setMode('library')}
           >
             Library
@@ -58,7 +58,7 @@ export const IconPicker: React.FC<IconPickerProps> = ({ value, onChange, label =
           <Button 
             variant="ghost" 
             size="sm" 
-            className={cn("h-7 px-3 text-[10px] uppercase font-bold", mode === 'url' && "bg-white/5 text-primary")}
+            className={cn("h-7 px-3 text-[10px] uppercase font-bold", mode === 'url' && "bg-muted text-primary")}
             onClick={() => setMode('url')}
           >
             Custom
@@ -66,37 +66,38 @@ export const IconPicker: React.FC<IconPickerProps> = ({ value, onChange, label =
         </div>
       </div>
 
-      <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/10">
-        <div className="flex items-center gap-4 mb-4">
-          <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/5 flex items-center justify-center shrink-0 text-primary">
-            {value ? renderPreview(value, "w-6 h-6") : <div className="w-6 h-6 rounded-md border border-dashed border-white/20" />}
+      <div className="p-4 rounded-2xl bg-white/5 border border-white/10 relative overflow-hidden group/picker">
+        <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover/picker:opacity-100 transition-opacity pointer-events-none" />
+        <div className="flex items-center gap-4 mb-4 relative z-10">
+          <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0 text-primary shadow-glow-sm">
+            {value ? renderPreview(name, "w-6 h-6") : <div className="w-6 h-6 rounded-md border border-dashed border-white/20" />}
           </div>
           <div className="flex-grow">
-            <p className="text-xs font-bold truncate max-w-[200px]">{value || "No icon selected"}</p>
+            <p className="text-xs font-bold truncate max-w-[200px] text-foreground">{value || "No icon selected"}</p>
             <p className="text-[10px] text-muted-foreground font-mono uppercase tracking-tighter">
               {isUrl ? "Custom data source" : "Lucide registry node"}
             </p>
           </div>
           {value && (
-            <Button variant="ghost" size="icon" onClick={() => onChange('')} className="shrink-0 h-8 w-8">
+            <Button variant="ghost" size="icon" onClick={() => onChange('')} className="shrink-0 h-8 w-8 hover:text-destructive">
               <X className="h-4 w-4" />
             </Button>
           )}
         </div>
 
         {mode === 'library' ? (
-          <div className="space-y-4">
+          <div className="space-y-4 relative z-10">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary opacity-50" />
               <Input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search Lucide icons..."
-                className="pl-9 h-9 bg-white/5 border-white/10 text-xs"
+                className="pl-10 h-10 bg-white/5 border-white/10 text-xs"
               />
             </div>
             
-            <div className="grid grid-cols-6 gap-2 max-h-[200px] overflow-y-auto pr-2 custom-scrollbar">
+            <div className="grid grid-cols-6 gap-2 max-h-[220px] overflow-y-auto pr-2 hide-scrollbar">
               {filteredIcons.map((name) => {
                 const Icon = (LucideIcons as any)[name] as typeof LucideIcons.Zap;
                 const active = value === name;
@@ -109,8 +110,8 @@ export const IconPicker: React.FC<IconPickerProps> = ({ value, onChange, label =
                     className={cn(
                       "aspect-square rounded-lg flex items-center justify-center transition-all border",
                       active 
-                        ? "bg-primary/20 border-primary shadow-glow-primary text-primary" 
-                        : "bg-white/5 border-white/5 text-muted-foreground hover:bg-white/10 hover:border-white/20"
+                        ? "bg-primary text-primary-foreground shadow-glow border-primary scale-105 z-10" 
+                        : "bg-white/5 border-white/10 text-muted-foreground hover:bg-white/10 hover:border-white/20 hover:scale-105"
                     )}
                   >
                     <Icon className="w-5 h-5" />

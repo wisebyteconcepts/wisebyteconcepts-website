@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAppStore } from '@/store';
 import { useAuthStore } from '@/store/authStore';
@@ -55,6 +55,7 @@ import {
   Briefcase, 
   ShoppingBag, 
   Code, 
+  Code2, 
   Search,
   X,
   Terminal,
@@ -64,9 +65,6 @@ import {
   Github,
   Globe,
   Layers,
-  Layout,
-  Server,
-  Smartphone,
   Cpu,
   CheckCircle2,
   Clock,
@@ -115,25 +113,79 @@ const DynamicIcon = ({ name, className, fallback: Fallback }: { name?: string; c
 // ... (omitting unused pageVariants)
 
 export const HomePage = () => {
-  const { services, products } = useAppStore();
+  const { skills, services, products } = useAppStore();
   const navigate = useNavigate();
+
+  const skillsScrollRef = React.useRef<HTMLDivElement>(null);
+
+  const [showLeftFade, setShowLeftFade] = useState(false);
+  const [showRightFade, setShowRightFade] = useState(false);
+
+  const checkScroll = () => {
+    if (skillsScrollRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = skillsScrollRef.current;
+      setShowLeftFade(scrollLeft > 20);
+      setShowRightFade(scrollLeft < scrollWidth - clientWidth - 20);
+    }
+  };
+
+  React.useEffect(() => {
+    checkScroll();
+    const el = skillsScrollRef.current;
+    if (el) {
+      el.addEventListener('scroll', checkScroll);
+      window.addEventListener('resize', checkScroll);
+      
+      // Initial check after a short delay to ensure content is rendered
+      const timer = setTimeout(checkScroll, 100);
+      return () => {
+        el.removeEventListener('scroll', checkScroll);
+        window.removeEventListener('resize', checkScroll);
+        clearTimeout(timer);
+      };
+    }
+  }, [skills]);
+
+  const handleWheel = (e: WheelEvent) => {
+    if (skillsScrollRef.current) {
+      if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+        e.preventDefault();
+        skillsScrollRef.current.scrollLeft += e.deltaY;
+      }
+    }
+  };
+
+  React.useEffect(() => {
+    const el = skillsScrollRef.current;
+    if (el) {
+      el.parentElement?.addEventListener('wheel', handleWheel, { passive: false });
+    }
+    return () => {
+      el?.parentElement?.removeEventListener('wheel', handleWheel);
+    };
+  }, []);
 
   return (
     <div className="flex flex-col">
       {/* Hero Section */}
-      <section className="relative min-h-[75vh] flex items-center justify-center overflow-hidden pt-16">
-        {/* Animated Background decorative elements */}
-        <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-primary/20 rounded-full blur-[120px] animate-pulse" />
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-[140px] animate-pulse" style={{ animationDelay: '2s' }} />
+      <section className="relative min-h-screen flex items-center justify-center pt-32 pb-20 overflow-hidden">
+        {/* Animated Background Decorative Elements */}
+        <div className="absolute inset-x-0 -top-24 bottom-0 pointer-events-none">
+          <div className="absolute top-0 right-[10%] w-[800px] h-[800px] bg-primary/15 rounded-full blur-[140px] animate-pulse" />
+          <div className="absolute top-1/4 left-[-10%] w-[600px] h-[600px] bg-blue-500/10 rounded-full blur-[120px] animate-pulse" style={{ animationDelay: '2s' }} />
+        </div>
         
-        <div className="container mx-auto px-6 relative z-10 text-center">
+        {/* Bottom Fade Mask to fix clipping */}
+        <div className="absolute bottom-0 left-0 right-0 h-80 bg-gradient-to-t from-background via-background/80 to-transparent z-10 pointer-events-none" />
+        
+        <div className="max-w-6xl mx-auto px-6 relative z-20 text-center">
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.8 }}
             className="mb-8 inline-flex items-center py-2 px-4 bg-primary/5 dark:bg-primary/10 rounded-full border border-primary/20"
           >
-            <span className="text-[11px] font-bold uppercase tracking-[0.4em] text-primary">Precision Digital Engineering</span>
+            <span className="text-[11px] font-bold uppercase tracking-[0.4em] text-primary font-display">Precision Digital Engineering</span>
           </motion.div>
           
           <motion.h1
@@ -160,7 +212,7 @@ export const HomePage = () => {
             transition={{ duration: 0.8, delay: 0.6 }}
             className="flex flex-col sm:flex-row items-center justify-center gap-4"
           >
-            <Button size="lg" className="rounded-full px-10" onClick={() => navigate('/contact')}>
+            <Button size="lg" className="rounded-full px-10 hover:shadow-glow transition-all duration-300" onClick={() => navigate('/contact')}>
               Get Started
             </Button>
             <Button variant="glass" size="lg" className="rounded-full px-10" onClick={() => navigate('/products')}>
@@ -174,8 +226,9 @@ export const HomePage = () => {
       <Section 
         title="Core Services" 
         description="Our specialized technical services are engineered to scale your operations and deliver measurable results."
+        className="bg-muted/10 border-y border-border/50"
       >
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {[...services].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)).map((s) => (
             <GlassCard key={s.id} className="p-0 overflow-hidden group flex flex-col h-full border-white/5 hover:border-primary/20">
               <div className="relative">
@@ -194,21 +247,19 @@ export const HomePage = () => {
                   <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent opacity-60" />
                 </div>
                 <div className="absolute -bottom-6 right-6 z-20">
-                  <div className="w-12 h-12 rounded-2xl bg-primary shadow-glow flex items-center justify-center transform transition-all duration-500 group-hover:scale-110 group-hover:-translate-y-1">
+                  <div className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center transform transition-all duration-500 group-hover:scale-110 group-hover:-translate-y-1">
                     <DynamicIcon name={s.icon} className="w-6 h-6 text-white" fallback={Code} />
                   </div>
                 </div>
               </div>
               <div className="p-8 pt-10 flex-grow flex flex-col">
-                <h3 className="text-2xl font-display font-bold mb-3 group-hover:text-primary transition-colors">{s.name}</h3>
-                <p className="text-muted-foreground text-sm leading-relaxed mb-6 line-clamp-3">{s.shortDescription}</p>
-                <div className="flex flex-wrap gap-2 mt-auto mb-8">
-                  {s.features?.slice(0, 3).map(f => (
-                    <span key={f} className="text-[9px] font-sans font-medium border border-primary/20 bg-primary/5 dark:bg-primary/10 px-2.5 py-1 rounded-md text-primary dark:text-primary-foreground/80 uppercase tracking-widest">{f}</span>
-                  ))}
-                </div>
-                <Link to={`/services/${s.id}`} className="w-fit">
-                  <Button variant="ghost" className="justify-start px-0 hover:bg-transparent hover:text-primary gap-2 transition-all group/btn text-xs uppercase tracking-widest font-bold">
+                <Link to={`/services/${s.id}`}>
+                  <h3 className="text-2xl font-display font-bold mb-3 group-hover:text-primary transition-colors cursor-pointer">{s.name}</h3>
+                </Link>
+                <p className="text-muted-foreground text-sm leading-relaxed mb-8 line-clamp-3">{s.shortDescription}</p>
+                
+                <Link to={`/services/${s.id}`} className="mt-auto">
+                  <Button variant="ghost" className="justify-start px-0 hover:bg-transparent hover:text-primary gap-2 transition-all group/btn text-xs uppercase tracking-widest font-bold cursor-pointer">
                     Engineering Details
                     <ArrowRight className="w-4 h-4 transition-transform group-hover/btn:translate-x-1" />
                   </Button>
@@ -223,7 +274,7 @@ export const HomePage = () => {
           )}
         </div>
         <div className="mt-12 text-center">
-          <Button variant="glass" onClick={() => navigate('/services')}>Access All Services</Button>
+          <Button variant="glass" size="sm" onClick={() => navigate('/services')}>Access All Services</Button>
         </div>
       </Section>
 
@@ -231,7 +282,6 @@ export const HomePage = () => {
       <Section 
         title="Why Choose Us" 
         description="Engineered for reliability, performance, and long-term growth."
-        className="bg-white/[0.02]"
       >
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {[
@@ -242,7 +292,7 @@ export const HomePage = () => {
             { title: 'Attention to Detail', desc: 'Surgical precision in design, code quality, and final delivery.', icon: CheckCircle2 },
             { title: 'Reliable Support', desc: 'Dedicated ongoing maintenance and technical assistance.', icon: Clock }
           ].map((item) => (
-            <div key={item.title} className="p-8 rounded-3xl bg-white/[0.03] border border-white/5 hover:border-primary/30 transition-all group">
+            <div key={item.title} className="p-8 rounded-3xl bg-background/50 border border-border/50 hover:border-primary/30 transition-all duration-300 group">
               <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center mb-6 group-hover:bg-primary/20 transition-colors">
                 <item.icon className="w-6 h-6 text-primary" />
               </div>
@@ -257,6 +307,7 @@ export const HomePage = () => {
       <Section 
         title="Key Features" 
         description="The technical standards we uphold in every project we undertake."
+        className="bg-muted/10 border-y border-border/50"
       >
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
           {[
@@ -267,7 +318,7 @@ export const HomePage = () => {
             { title: 'Cross-Platform Compatibility', desc: 'Consistent performance across all modern browsers.', icon: Globe },
             { title: 'User-Centric Design', desc: 'Interfaces designed around the needs of your users.', icon: Sparkles }
           ].map((feature) => (
-            <div key={feature.title} className="flex gap-4 p-4 border-l border-white/10 hover:border-primary transition-colors pl-6">
+            <div key={feature.title} className="flex gap-4 p-4 border-l border-border/50 hover:border-primary transition-colors pl-6">
               <feature.icon className="w-5 h-5 text-primary shrink-0 mt-1" />
               <div>
                 <h4 className="font-bold mb-1">{feature.title}</h4>
@@ -278,8 +329,70 @@ export const HomePage = () => {
         </div>
       </Section>
 
+      {/* Featured Products */}
+      <Section 
+        title="Project Showcase" 
+        description="Demonstrating our ability to deliver robust digital solutions across various domains."
+      >
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-8">
+          {[...products].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)).slice(0, 3).map((p) => {
+            return (
+              <GlassCard key={p.id} className="p-0 overflow-hidden group border-white/5 hover:border-primary/20 h-full flex flex-col">
+                <div className="relative">
+                  <div className="aspect-[16/10] relative overflow-hidden bg-muted">
+                    {p.imageUrl ? (
+                      <img 
+                        src={p.imageUrl} 
+                        alt={p.name} 
+                        loading="lazy"
+                        className="absolute inset-0 h-full w-full object-cover transition-transform duration-700" 
+                      />
+                    ) : (
+                      <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-blue-500/5">
+                        <div className="w-12 h-12 rounded-xl bg-background/80 backdrop-blur flex items-center justify-center shadow-soft transition-transform duration-500">
+                          <DynamicIcon name={p.icon} className="w-6 h-6 text-primary/40" fallback={ShoppingBag} />
+                        </div>
+                      </div>
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent opacity-60" />
+                  </div>
+                  <div className="absolute -bottom-6 right-6 z-20">
+                    <div className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center transform transition-all duration-500 group-hover:scale-110 group-hover:-translate-y-1">
+                      <DynamicIcon name={p.icon} className="w-6 h-6 text-white" fallback={ShoppingBag} />
+                    </div>
+                  </div>
+                </div>
+                <div className="p-8 pt-10 flex-grow flex flex-col">
+                  <Link to={`/products/${p.id}`}>
+                    <h3 className="text-2xl font-display font-bold mb-3 group-hover:text-primary transition-colors cursor-pointer">
+                      {p.name}
+                    </h3>
+                  </Link>
+                  <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed mb-8">{p.description}</p>
+                  
+                  <Link to={`/products/${p.id}`} className="mt-auto">
+                    <Button variant="ghost" className="justify-start px-0 hover:bg-transparent hover:text-primary gap-2 transition-all group/btn text-xs uppercase tracking-widest font-bold cursor-pointer">
+                      Project Insight
+                      <ArrowRight className="w-4 h-4 transition-transform group-hover/btn:translate-x-1" />
+                    </Button>
+                  </Link>
+                </div>
+              </GlassCard>
+            );
+          })}
+          {products.length === 0 && (
+            <div className="col-span-full">
+               <EmptyState icon={ShoppingBag} title="Showcase Offline" description="Output entries are currently being prepared." />
+            </div>
+          )}
+        </div>
+        <div className="mt-12 text-center">
+          <Button variant="glass" size="sm" onClick={() => navigate('/products')}>Explore Full Registry</Button>
+        </div>
+      </Section>
+
       {/* About Us Section */}
-      <section className="py-16 md:py-24 border-y border-white/5">
+      <section className="py-16 md:py-24 border-y border-border/50 bg-muted/20">
         <div className="container mx-auto px-6">
           <div className="max-w-4xl mx-auto text-center">
             <h2 className="text-[11px] font-bold text-primary uppercase tracking-[0.4em] mb-8 inline-flex items-center px-4 py-1.5 bg-primary/5 dark:bg-primary/10 border border-primary/20 rounded-full">Our Mission</h2>
@@ -293,190 +406,160 @@ export const HomePage = () => {
         </div>
       </section>
 
-      {/* Featured Products */}
-      <Section 
-        title="Project Showcase" 
-        description="Demonstrating our ability to deliver robust digital solutions across various domains."
-      >
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
-          {[...products].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)).slice(0, 4).map((p) => {
-            const service = services.find(s => s.id === p.serviceId);
-            return (
-              <GlassCard key={p.id} className="p-0 overflow-hidden group border-white/5 hover:border-primary/20 h-full flex flex-col">
-                <div className="aspect-[16/10] relative overflow-hidden bg-muted">
-                  {p.imageUrl ? (
-                    <img 
-                      src={p.imageUrl} 
-                      alt={p.name} 
-                      loading="lazy"
-                      className="absolute inset-0 h-full w-full object-cover transition-transform duration-700" 
-                    />
-                  ) : (
-                    <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-blue-500/5">
-                      <div className="w-12 h-12 rounded-xl bg-background/80 backdrop-blur flex items-center justify-center shadow-soft transition-transform duration-500">
-                        <DynamicIcon name={p.icon} className="w-6 h-6 text-primary/40" fallback={ShoppingBag} />
-                      </div>
-                    </div>
-                  )}
-                  <div className="absolute top-3 left-3">
-                    <span className="text-[9px] font-sans font-medium border border-primary/20 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm px-2.5 py-1 rounded-md text-primary dark:text-primary-foreground uppercase tracking-widest shadow-sm">
-                      {service?.name || 'Project'}
-                    </span>
-                  </div>
-                </div>
-                <div className="p-6 flex-grow flex flex-col">
-                  <h3 className="text-2xl font-display font-bold mb-3 group-hover:text-primary transition-colors">
-                    {p.name}
-                  </h3>
-                  <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed mb-6">{p.description}</p>
-                  
-                  <div className="mt-auto">
-                    <Link to={`/products/${p.id}`} className="w-fit">
-                      <Button variant="ghost" className="justify-start px-0 hover:bg-transparent hover:text-primary gap-2 transition-all group/btn text-xs uppercase tracking-widest font-bold">
-                        Project Insight
-                        <ArrowRight className="w-4 h-4 transition-transform group-hover/btn:translate-x-1" />
-                      </Button>
-                    </Link>
-                  </div>
-                </div>
-              </GlassCard>
-            );
-          })}
-          {products.length === 0 && (
-            <div className="col-span-full">
-               <EmptyState icon={ShoppingBag} title="Showcase Offline" description="Output entries are currently being prepared." />
-            </div>
-          )}
-        </div>
-        <div className="mt-12 text-center">
-          <Button variant="glass" onClick={() => navigate('/products')}>Explore Full Registry</Button>
-        </div>
-      </Section>
-
       {/* Skills / Tech Stack Section */}
       <Section 
         title="Engineering Stack" 
         description="Our specialized technical arsenal is composed of industry-leading technologies optimized for performance, scalability, and long-term maintainability."
       >
-        <motion.div 
-          initial="hidden"
-          whileInView="show"
-          viewport={{ once: true, margin: "-100px" }}
-          variants={{
-            hidden: { opacity: 0 },
-            show: {
-              opacity: 1,
-              transition: {
-                staggerChildren: 0.1
-              }
-            }
-          }}
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8"
-        >
-          {[
-            {
-              category: 'Frontend & UI',
-              icon: <Layout className="w-6 h-6 text-[#61DAFB]" />,
-              skills: [
-                { name: 'React', desc: 'Atomic design & state mgmt' },
-                { name: 'TypeScript', desc: 'Enterprise-grade safety' },
-                { name: 'Tailwind', desc: 'High-speed fluid UI' },
-                { name: 'Blazor', desc: 'C# robustness on Web' }
-              ]
-            },
-            {
-              category: 'Backend & APIs',
-              icon: <Server className="w-6 h-6 text-[#512BD4]" />,
-              skills: [
-                { name: 'Node.js', desc: 'Real-time event driven' },
-                { name: '.NET 8', desc: 'High-concurrency systems' },
-                { name: 'PostgreSQL', desc: 'Relational data integrity' },
-                { name: 'Next.js', desc: 'Edge-ready serverless' }
-              ]
-            },
-            {
-              category: 'Mobile & Desktop',
-              icon: <Smartphone className="w-6 h-6 text-[#3b82f6]" />,
-              skills: [
-                { name: 'React Native', desc: 'Native mobile performance' },
-                { name: '.NET MAUI', desc: 'Cross-platform mobility' },
-                { name: 'WinUI 3', desc: 'Standard desktop UX' },
-                { name: 'WPF', desc: 'Legacy systems' }
-              ]
-            },
-            {
-              category: 'Architecture',
-              icon: <Cpu className="w-6 h-6 text-[#F29111]" />,
-              skills: [
-                { name: 'Docker', desc: 'Containerized portability' },
-                { name: 'Azure', desc: 'Hyperscale cloud infra' },
-                { name: 'GitHub', desc: 'DevOps & CI/CD pipeline' },
-                { name: 'WordPress', desc: 'Content modules' }
-              ]
-            }
-          ].map((group, idx) => (
-            <motion.div
-              key={idx}
-              variants={{
-                hidden: { opacity: 0, y: 20 },
-                show: { opacity: 1, y: 0 }
-              }}
-            >
-              <GlassCard className="flex flex-col h-full border-white/5 hover:border-primary/20 transition-all group overflow-hidden">
-                <div className="flex items-center gap-4 mb-6">
-                  <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center group-hover:scale-110 transition-transform duration-500">
-                    {group.icon}
+        <div className="relative group">
+          <div 
+            ref={skillsScrollRef}
+            style={{
+              maskImage: `linear-gradient(to right, ${showLeftFade ? 'transparent' : 'black'} 0%, black ${showLeftFade ? '100px' : '0%'}, black ${showRightFade ? 'calc(100% - 100px)' : '100%'}, ${showRightFade ? 'transparent' : 'black'} 100%)`,
+              WebkitMaskImage: `linear-gradient(to right, ${showLeftFade ? 'transparent' : 'black'} 0%, black ${showLeftFade ? '100px' : '0%'}, black ${showRightFade ? 'calc(100% - 100px)' : '100%'}, ${showRightFade ? 'transparent' : 'black'} 100%)`,
+            }}
+            className="flex gap-6 py-4 overflow-x-auto px-4 -mx-4 hide-scrollbar snap-x snap-mandatory scroll-smooth transition-all duration-300"
+          >
+            {([...skills].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)) || []).map((skill) => (
+              <div
+                key={skill.id}
+                className="shrink-0 w-44 snap-center select-none"
+              >
+                <GlassCard className="p-6 flex flex-col items-center text-center group/skill hover:border-primary/50 transition-all duration-500 relative h-full">
+                  <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover/skill:opacity-100 transition-opacity duration-500" />
+                  <div className="w-14 h-14 rounded-2xl bg-muted/50 flex items-center justify-center mb-4 group-hover/skill:scale-110 group-hover/skill:bg-primary/20 group-hover/skill:shadow-glow-sm transition-all duration-500 relative z-10">
+                    <DynamicIcon name={skill.icon} className="w-7 h-7 text-primary" fallback={Code} />
                   </div>
-                  <h3 className="font-bold text-[11px] uppercase tracking-[0.4em] text-primary">{group.category}</h3>
-                </div>
-                <div className="space-y-4 flex-grow">
-                  {group.skills.map((skill, sIdx) => (
-                    <div key={sIdx} className="relative pl-4 border-l border-white/10 group/item">
-                      <div className="absolute left-[-1px] top-0 bottom-0 w-0.5 bg-primary scale-y-0 group-hover/item:scale-y-100 transition-transform origin-top" />
-                      <h4 className="text-sm font-bold mb-0.5">{skill.name}</h4>
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{skill.desc}</p>
+                  <h4 className="font-bold text-sm mb-1 relative z-10">{skill.name}</h4>
+                  <div className="flex items-center gap-1 relative z-10 mt-auto">
+                    <div className="h-0.5 w-12 bg-muted rounded-full overflow-hidden">
+                      <motion.div 
+                        initial={{ width: 0 }}
+                        whileInView={{ width: `${skill.level}%` }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 1, delay: 0.2 }}
+                        className="h-full bg-primary"
+                      />
                     </div>
-                  ))}
-                </div>
-              </GlassCard>
-            </motion.div>
-          ))}
-        </motion.div>
-        <div className="mt-12 text-center">
-          <Button variant="glass" onClick={() => navigate('/skills')}>View Expanded Skill Matrix</Button>
+                    <span className="text-[10px] font-mono text-muted-foreground">{skill.level}%</span>
+                  </div>
+                </GlassCard>
+              </div>
+            ))}
+            {useAppStore().skills.length === 0 && (
+              <div className="w-full flex justify-center py-12">
+                <EmptyState icon={Terminal} title="No Skills Cataloged" description="The engineering matrix is currently offline." />
+              </div>
+            )}
+          </div>
         </div>
       </Section>
 
       {/* CTA Section */}
-      <section className="py-16 md:py-24 relative overflow-hidden" id="contact">
-        <div className="absolute inset-0 bg-primary/5" />
-        <div className="container mx-auto px-6 relative z-10">
-          <GlassCard className="max-w-4xl mx-auto p-12 text-center" hoverGlow={false}>
-            <h2 className="text-3xl md:text-5xl font-bold mb-6">Commence Your Technical Project</h2>
-            <p className="text-muted-foreground text-lg mb-10 max-w-2xl mx-auto">
-              Our engineering team is ready to discuss your requirements and design a custom solution that aligns with your technical and business objectives.
-            </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Button size="lg" onClick={() => navigate('/contact')}>Send Project Inquiry</Button>
-              <a href="mailto:contact@wisebyteconcepts.com" className="text-sm font-bold text-muted-foreground hover:text-white transition-colors underline underline-offset-8">
-                contact@wisebyteconcepts.com
-              </a>
+      <Section className="pb-32">
+        <div className="relative rounded-[2.5rem] overflow-hidden border border-border/50 bg-muted/30">
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-primary/5" />
+          <div className="absolute -top-24 -right-24 w-96 h-96 bg-primary/20 rounded-full blur-[120px]" />
+          <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-blue-500/10 rounded-full blur-[120px]" />
+          
+          <div className="relative z-10 px-8 py-20 text-center max-w-4xl mx-auto space-y-8">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={{ once: true }}
+              className="space-y-6"
+            >
+              <h2 className="text-4xl md:text-6xl font-display font-bold tracking-tight leading-tight">
+                Ready to engineer your <span className="text-primary">digital edge?</span>
+              </h2>
+              <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
+                Join our network of precision-built applications. We transform complex technical requirements into high-performance experiences.
+              </p>
+            </motion.div>
+            
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-6 pt-4">
+              <Button 
+                size="lg" 
+                className="w-full sm:w-auto h-16 px-10 rounded-2xl text-lg font-bold"
+                onClick={() => navigate('/contact')}
+              >
+                Start Project Inquiry
+              </Button>
+              <Button 
+                variant="glass" 
+                size="lg" 
+                className="w-full sm:w-auto h-16 px-10 rounded-2xl text-lg"
+                onClick={() => navigate('/services')}
+              >
+                Explore Services
+              </Button>
             </div>
-          </GlassCard>
+
+            <div className="pt-8 flex items-center justify-center gap-8 opacity-50 grayscale hover:grayscale-0 transition-all duration-700">
+               <LucideIcons.CheckCircle2 className="w-5 h-5" />
+               <span className="text-[10px] uppercase font-bold tracking-widest font-sans">Industry Standards Verified</span>
+               <div className="w-1 h-1 rounded-full bg-border" />
+               <LucideIcons.ShieldAlert className="w-5 h-5" />
+               <span className="text-[10px] uppercase font-bold tracking-widest font-sans">Secure by Design</span>
+            </div>
+          </div>
         </div>
-      </section>
+      </Section>
     </div>
   );
 };
+
+const SubPageHero = ({ title, subtitle, badge }: { title: React.ReactNode; subtitle?: string; badge?: string }) => (
+  <section className="relative pt-48 pb-20 overflow-hidden border-b border-border/10">
+    <div className="absolute inset-x-0 top-0 bottom-0 pointer-events-none">
+      <div className="absolute top-[-20%] right-[10%] w-[800px] h-[800px] bg-primary/10 rounded-full blur-[140px] animate-pulse" />
+      <div className="absolute bottom-[-20%] left-[-10%] w-[500px] h-[500px] bg-blue-500/5 rounded-full blur-[120px] animate-pulse" style={{ animationDelay: '2s' }} />
+    </div>
+    <div className="max-w-6xl mx-auto px-6 relative z-10">
+      <div className="max-w-4xl">
+        {badge && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-8 inline-flex items-center py-2 px-4 bg-primary/5 dark:bg-primary/10 rounded-full border border-primary/20"
+          >
+            <span className="text-[11px] font-bold uppercase tracking-[0.4em] text-primary font-display">{badge}</span>
+          </motion.div>
+        )}
+        <motion.h1
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8 }}
+          className="text-5xl md:text-8xl font-bold tracking-tighter mb-8 leading-tight"
+        >
+          {title}
+        </motion.h1>
+        {subtitle && (
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.2 }}
+            className="text-xl text-muted-foreground leading-relaxed max-w-2xl"
+          >
+            {subtitle}
+          </motion.p>
+        )}
+      </div>
+    </div>
+  </section>
+);
 
 export const ServicesPage = () => {
   const servicesData = useAppStore((state) => state.services);
   const services = [...servicesData].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
   return (
-    <Section 
-      title="Our Services" 
-      description="Explore our full range of engineering and design solutions."
-    >
+    <div className="flex flex-col">
+      <SubPageHero 
+        title={<>Specialized <span className="text-primary">Services.</span></>}
+        subtitle="Explore our full range of engineering and design solutions tailored for modern business scalability."
+        badge="Capability Registry"
+      />
+      <Section>
       {services.length === 0 ? (
         <EmptyState 
           icon={Briefcase}
@@ -509,13 +592,15 @@ export const ServicesPage = () => {
                 </div>
               </div>
               <div className="p-8 pt-10 flex-grow flex flex-col">
-                <h3 className="text-2xl font-display font-bold mb-3 group-hover:text-primary transition-colors">{s.name}</h3>
+                <Link to={`/services/${s.id}`}>
+                  <h3 className="text-2xl font-display font-bold mb-3 group-hover:text-primary transition-colors cursor-pointer">{s.name}</h3>
+                </Link>
                 <p className="text-muted-foreground text-sm leading-relaxed mb-6 line-clamp-3">{s.shortDescription}</p>
                 
                 {s.features && s.features.length > 0 && (
                   <div className="flex flex-wrap gap-2 mb-8">
                     {s.features.slice(0, 3).map((feature, i) => (
-                      <span key={i} className="text-[9px] font-sans font-medium border border-primary/20 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm px-2.5 py-1 rounded-md text-primary dark:text-primary-foreground uppercase tracking-widest shadow-sm">{feature}</span>
+                      <span key={i} className="text-[9px] font-sans font-medium border border-primary/30 bg-primary/10 dark:bg-primary/20 px-2.5 py-1 rounded-md text-primary dark:text-primary-foreground uppercase tracking-widest shadow-sm">{feature}</span>
                     ))}
                   </div>
                 )}
@@ -523,7 +608,7 @@ export const ServicesPage = () => {
                 <div className="mt-auto pt-6 border-t border-white/5 flex justify-between items-center">
                   <span className="text-[10px] text-primary/70 font-bold uppercase tracking-[0.2em]">{s.category}</span>
                   <Link to={`/services/${s.id}`}>
-                    <Button variant="ghost" size="sm" className="px-0 hover:bg-transparent hover:text-primary gap-2 transition-all">
+                    <Button variant="ghost" size="sm" className="px-0 hover:bg-transparent hover:text-primary gap-2 transition-all cursor-pointer">
                       Full Capability Map <ArrowRight className="w-3 h-3" />
                     </Button>
                   </Link>
@@ -534,6 +619,7 @@ export const ServicesPage = () => {
         </div>
       )}
     </Section>
+    </div>
   );
 };
 
@@ -547,10 +633,13 @@ export const ProductsPage = () => {
   }, [products, filter]);
 
   return (
-    <Section 
-      title="Product Showcase" 
-      description="Explore our portfolio of high-performance digital products and tools."
-    >
+    <div className="flex flex-col">
+      <SubPageHero 
+        title={<>Project <span className="text-primary">Showcase.</span></>}
+        subtitle="Explore our portfolio of high-performance digital products and technical tools engineered for precision."
+        badge="Output Gallery"
+      />
+      <Section>
       <div className="flex items-center gap-2 overflow-x-auto pb-8 hide-scrollbar">
         <Button 
           variant={filter === 'all' ? 'primary' : 'glass'} 
@@ -606,14 +695,16 @@ export const ProductsPage = () => {
                   </div>
                 </div>
                 <div className="p-6 flex-grow flex flex-col">
-                  <h3 className="text-2xl font-display font-bold mb-3 group-hover:text-primary transition-colors">
-                    {p.name}
-                  </h3>
+                  <Link to={`/products/${p.id}`}>
+                    <h3 className="text-2xl font-display font-bold mb-3 group-hover:text-primary transition-colors cursor-pointer">
+                      {p.name}
+                    </h3>
+                  </Link>
                   <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed mb-6">{p.description}</p>
                   
                   <div className="mt-auto">
                     <Link to={`/products/${p.id}`} className="w-fit">
-                      <Button variant="ghost" className="justify-start px-0 hover:bg-transparent hover:text-primary gap-2 transition-all group/btn text-xs uppercase tracking-widest font-bold">
+                      <Button variant="ghost" className="justify-start px-0 hover:bg-transparent hover:text-primary gap-2 transition-all group/btn text-xs uppercase tracking-widest font-bold cursor-pointer">
                         Project Insight
                         <ArrowRight className="w-4 h-4 transition-transform group-hover/btn:translate-x-1" />
                       </Button>
@@ -626,6 +717,7 @@ export const ProductsPage = () => {
         </div>
       )}
     </Section>
+    </div>
   );
 };
 
@@ -642,10 +734,13 @@ export const SkillsPage = () => {
   }, [skills]);
 
   return (
-    <Section 
-      title="Technical Stack" 
-      description="The foundation of our precision engineering and digital craftsmanship."
-    >
+    <div className="flex flex-col">
+      <SubPageHero 
+        title={<>Technical <span className="text-primary">Stack.</span></>}
+        subtitle="The foundation of our precision engineering and digital craftsmanship, powered by industry-leading core technologies."
+        badge="Capability Matrix"
+      />
+      <Section>
       {skills.length === 0 ? (
         <EmptyState 
           icon={Code}
@@ -679,7 +774,7 @@ export const SkillsPage = () => {
                          <span>Proficiency</span>
                          <span>{skill.level}%</span>
                        </div>
-                       <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
+                       <div className="h-1 w-full bg-muted/50 rounded-full overflow-hidden">
                           <motion.div 
                             initial={{ width: 0 }}
                             whileInView={{ width: `${skill.level}%` }}
@@ -697,6 +792,7 @@ export const SkillsPage = () => {
         </div>
       )}
     </Section>
+    </div>
   );
 };
 
@@ -756,39 +852,47 @@ export const AdminLoginPage = () => {
       <GlowOrb className="top-[-10%] left-[-10%]" color="rgba(131, 48, 255, 0.15)" />
       
       <GlassCard className="w-full max-w-md p-10 text-center relative z-10" hoverGlow={false}>
-        <div className="mb-8">
-          <div className="w-16 h-16 bg-gradient-brand rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-glow">
-            <Lock className="w-8 h-8 text-white" />
-          </div>
-          <h1 className="text-3xl font-bold mb-6">Admin Login</h1>
-          <div className="mb-6 inline-flex items-center px-4 py-1.5 bg-primary/5 dark:bg-primary/10 border border-primary/20 rounded-full">
-            <span className="text-[11px] text-primary uppercase tracking-[0.4em] font-bold">Secure Access</span>
+        <div className="mb-10 relative">
+          <motion.div 
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="w-20 h-20 bg-gradient-brand rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-glow transition-transform hover:scale-110 duration-500 relative z-10"
+          >
+            <Lock className="w-10 h-10 text-white" />
+          </motion.div>
+          
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-[60%] w-32 h-32 bg-primary/20 blur-3xl rounded-full" />
+
+          <h1 className="text-4xl font-bold tracking-tighter mb-4 uppercase">Console Access</h1>
+          <div className="inline-flex items-center px-4 py-2 bg-primary/5 border border-primary/20 rounded-full gap-2">
+            <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+            <span className="text-[10px] text-primary uppercase tracking-[0.4em] font-bold font-mono">Secure System Node</span>
           </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="text-left space-y-2">
-            <label className="text-[10px] font-bold uppercase tracking-widest text-primary ml-1 font-mono">Email Address</label>
+          <div className="text-left space-y-3">
+            <Label className="text-primary ml-1">Identity Vector (Email)</Label>
             <Input 
               type="email" 
               value={email} 
               onChange={(e: any) => setEmail(e.target.value)}
-              placeholder="admin@wisebyte.com"
+              placeholder="operator@wisebyte.concepts"
               disabled={loading}
-              className="glass border-white/10 focus:border-primary/50 py-4"
+              className="glass py-6"
               autoFocus
             />
           </div>
-          <div className="text-left space-y-2">
-            <div className="flex justify-between items-center mr-1">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-primary ml-1">Password</label>
+          <div className="text-left space-y-3">
+            <div className="flex justify-between items-center px-1">
+              <Label className="text-primary mb-0">Access Cipher (Password)</Label>
               <button 
                 type="button"
                 onClick={handleForgotPassword}
                 disabled={resetLoading}
-                className="text-[10px] uppercase font-bold text-muted-foreground hover:text-primary transition-colors disabled:opacity-50"
+                className="text-[9px] uppercase font-bold text-muted-foreground hover:text-primary transition-colors disabled:opacity-50 tracking-tighter"
               >
-                {resetLoading ? 'Sending...' : 'Reset Password'}
+                {resetLoading ? 'Decrypting...' : 'Reset Key'}
               </button>
             </div>
             <Input 
@@ -797,15 +901,15 @@ export const AdminLoginPage = () => {
               onChange={(e: any) => setPassword(e.target.value)}
               placeholder="••••••••"
               disabled={loading}
-              className="glass border-white/10 focus:border-primary/50 py-4"
+              className="glass py-6"
             />
           </div>
           <Button
             type="submit"
             isLoading={loading}
-            className="w-full py-4 text-base font-bold"
+            className="w-full py-6 text-base font-bold shadow-glow-primary"
           >
-            {loading ? 'Logging in...' : 'Login'}
+            {loading ? 'Authenticating...' : 'Authorize Access'}
           </Button>
         </form>
         
@@ -883,10 +987,10 @@ export const AdminDashboardPage = () => {
         </Card>
       </div>
 
-      <Card className="p-8 bg-gradient-to-br from-white/[0.02] to-transparent">
+      <Card className="p-8 bg-gradient-to-br from-muted/50 to-transparent border-border/50">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center text-muted-foreground">
+            <div className="w-12 h-12 rounded-2xl bg-muted flex items-center justify-center text-muted-foreground">
               <Settings className="h-6 w-6" />
             </div>
             <div>
@@ -1070,7 +1174,7 @@ export const AdminServicesPage = () => {
           <TableBody>
             {ordered.length === 0 && (
               <TableRow>
-                <TableCell colSpan={7} className="py-20 text-center text-sm text-muted-foreground uppercase tracking-widest bg-white/[0.01]">
+                <TableCell colSpan={7} className="py-20 text-center text-sm text-muted-foreground uppercase tracking-widest bg-muted/10">
                    No Services Found
                 </TableCell>
               </TableRow>
@@ -1594,7 +1698,7 @@ export const AdminProductsPage = () => {
           <TableBody>
             {ordered.length === 0 && (
               <TableRow>
-                <TableCell colSpan={6} className="py-20 text-center text-sm text-muted-foreground font-mono uppercase tracking-widest bg-white/[0.01]">
+                <TableCell colSpan={6} className="py-20 text-center text-sm text-muted-foreground font-mono uppercase tracking-widest bg-muted/10">
                    No_Product_Nodes_Found
                 </TableCell>
               </TableRow>
@@ -1861,7 +1965,7 @@ export const AdminSkillsPage = () => {
           <TableBody>
             {ordered.length === 0 && (
               <TableRow>
-                <TableCell colSpan={5} className="py-20 text-center text-sm text-muted-foreground uppercase tracking-widest bg-white/[0.01]">
+                <TableCell colSpan={5} className="py-20 text-center text-sm text-muted-foreground uppercase tracking-widest bg-muted/10">
                    No Skills Found
                 </TableCell>
               </TableRow>
@@ -2020,7 +2124,7 @@ export const ServiceDetailPage = () => {
           <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 mb-16">
             <div className="max-w-3xl">
               <div className="flex items-center gap-3 mb-6">
-                <span className="px-3 py-1 bg-primary/10 text-primary text-[10px] font-mono tracking-widest uppercase rounded-full">
+                <span className="px-4 py-1.5 bg-primary/10 text-primary text-[11px] font-bold tracking-[0.4em] uppercase rounded-full font-display">
                   {service.category}
                 </span>
                 <span className="w-1 h-1 rounded-full bg-white/20" />
@@ -2245,11 +2349,11 @@ export const ProductDetailPage = () => {
                 className="space-y-6"
               >
                 <div className="flex items-center gap-3 mb-6">
-                  <span className="px-3 py-1 bg-primary/10 text-primary text-[10px] font-mono tracking-widest uppercase rounded-full">
+                  <span className="px-4 py-1.5 bg-primary/10 text-primary text-[11px] font-bold tracking-[0.4em] uppercase rounded-full font-display">
                     Product Node
                   </span>
                   {service && (
-                    <Link to={`/services/${service.id}`} className="text-[10px] font-mono text-muted-foreground hover:text-primary transition-colors tracking-widest uppercase">
+                    <Link to={`/services/${service.id}`} className="text-[11px] font-bold text-muted-foreground hover:text-primary transition-colors tracking-[0.4em] uppercase font-display">
                       Mapped to: {service.name}
                     </Link>
                   )}
@@ -2368,22 +2472,15 @@ export const ProductDetailPage = () => {
 export const ContactPage = () => {
   return (
     <div className="flex flex-col min-h-screen">
-      <section className="pt-32 pb-20 border-b border-white/5">
-        <div className="container mx-auto px-6">
-          <div className="max-w-4xl">
-            <h1 className="text-5xl md:text-7xl font-bold mb-8 tracking-tighter">
-              Get in <span className="text-primary">Touch.</span>
-            </h1>
-            <p className="text-xl text-muted-foreground leading-relaxed max-w-2xl">
-              Have a project in mind or just want to chat about technical possibilities? We're always open to new engineering challenges.
-            </p>
-          </div>
-        </div>
-      </section>
+      <SubPageHero 
+        title={<>Get in <span className="text-primary">Touch.</span></>}
+        subtitle="Have a project in mind or just want to chat about technical possibilities? We're always open to new engineering challenges."
+        badge="Project Inquiries"
+      />
 
       <section className="py-16 md:py-24">
         <div className="container mx-auto px-6">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-16">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-24">
             <div className="lg:col-span-4 space-y-12">
               <div>
                 <h3 className="text-[11px] font-bold text-primary uppercase tracking-[0.4em] mb-8 inline-flex items-center px-4 py-1.5 bg-primary/5 dark:bg-primary/10 border border-primary/20 rounded-full">Contact Details</h3>
@@ -2448,31 +2545,36 @@ export const ContactPage = () => {
 
               <div>
                 <h3 className="text-[11px] font-bold text-primary uppercase tracking-[0.4em] mb-8 inline-flex items-center px-4 py-1.5 bg-primary/5 dark:bg-primary/10 border border-primary/20 rounded-full">Our Brand</h3>
-                <p className="text-xl font-bold">Wise Byte Concepts</p>
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-[#3b82f6] flex items-center justify-center rounded-lg shadow-sm shrink-0">
+                    <Code2 className="text-white w-5 h-5" />
+                  </div>
+                  <p className="text-xl font-bold font-display">Wise Byte Concepts</p>
+                </div>
                 <p className="text-muted-foreground text-sm mt-2">Delivering precision digital engineering and scalable design systems for the modern era.</p>
               </div>
             </div>
 
             <div className="lg:col-span-8">
-              <GlassCard className="p-8 lg:p-12">
+              <GlassCard className="p-8 lg:p-12 border-border/50">
                 <form className="space-y-8" onSubmit={(e) => e.preventDefault()}>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div className="space-y-2">
                        <label className="text-[10px] font-bold text-primary uppercase tracking-[0.2em] ml-1">Full Name</label>
-                       <Input placeholder="John Doe" className="bg-white/5 border-white/10" id="contact-name" />
+                       <Input placeholder="John Doe" className="bg-muted/50 border-border" id="contact-name" />
                     </div>
                     <div className="space-y-2">
                        <label className="text-[10px] font-bold text-primary uppercase tracking-[0.2em] ml-1">Email Address</label>
-                       <Input type="email" placeholder="john@example.com" className="bg-white/5 border-white/10" id="contact-email" />
+                       <Input type="email" placeholder="john@example.com" className="bg-muted/50 border-border" id="contact-email" />
                     </div>
                   </div>
                   <div className="space-y-2">
                      <label className="text-[10px] font-bold text-primary uppercase tracking-[0.2em] ml-1">Project Brief</label>
-                     <Input placeholder="What are we building?" className="bg-white/5 border-white/10" id="contact-brief" />
+                     <Input placeholder="What are we building?" className="bg-muted/50 border-border" id="contact-brief" />
                   </div>
                   <div className="space-y-2">
                      <label className="text-[10px] font-bold text-primary uppercase tracking-[0.2em] ml-1">Technical Requirements</label>
-                     <textarea className="w-full min-h-[150px] bg-white/5 border border-white/10 rounded-xl p-4 text-sm focus:outline-none focus:border-primary/50 transition-colors hide-scrollbar" placeholder="Tell us more about your needs..." id="contact-message" />
+                     <textarea className="w-full min-h-[150px] bg-muted/50 border border-border rounded-xl p-4 text-sm focus:outline-none focus:border-primary/50 transition-colors hide-scrollbar text-foreground" placeholder="Tell us more about your needs..." id="contact-message" />
                   </div>
                   <Button size="lg" className="w-full h-14 text-base rounded-xl font-bold">
                     Send Message
@@ -2486,4 +2588,6 @@ export const ContactPage = () => {
     </div>
   );
 };
+
+export * from './NotFoundPage';
 

@@ -30,13 +30,19 @@ export const DialogContent = ({ children, className, onOpenChange }: { children:
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 10 }}
           className={cn(
-            "relative z-50 w-full max-w-lg rounded-3xl border border-white/10 bg-black/90 p-8 shadow-2xl backdrop-blur-xl max-h-[90vh] overflow-y-auto hide-scrollbar",
+            "relative z-50 w-full max-w-lg rounded-[2rem] border border-border bg-background/80 p-8 shadow-2xl backdrop-blur-xl max-h-[90vh] overflow-y-auto hide-scrollbar overflow-hidden",
             className
           )}
         >
+          {/* Decorative corners */}
+          <div className="absolute top-0 left-0 w-8 h-8 border-t border-l border-primary/20 pointer-events-none" />
+          <div className="absolute top-0 right-0 w-8 h-8 border-t border-r border-primary/20 pointer-events-none" />
+          <div className="absolute bottom-0 left-0 w-8 h-8 border-b border-l border-primary/20 pointer-events-none" />
+          <div className="absolute bottom-0 right-0 w-8 h-8 border-b border-r border-primary/20 pointer-events-none" />
+          
           <button
             onClick={() => onOpenChange?.(false)}
-            className="absolute right-6 top-6 rounded-full p-2 text-muted-foreground hover:bg-white/10 transition-colors"
+            className="absolute right-6 top-6 rounded-full p-2 text-muted-foreground hover:bg-primary/10 hover:text-primary transition-all z-10"
           >
             <X className="h-5 w-5" />
           </button>
@@ -56,5 +62,5 @@ export const DialogFooter = ({ className, ...props }: React.HTMLAttributes<HTMLD
 );
 
 export const DialogTitle = ({ className, ...props }: React.HTMLAttributes<HTMLHeadingElement>) => (
-  <h2 className={cn("text-2xl font-bold tracking-tight text-white", className)} {...props} />
+  <h2 className={cn("text-2xl font-bold tracking-tight text-foreground", className)} {...props} />
 );
