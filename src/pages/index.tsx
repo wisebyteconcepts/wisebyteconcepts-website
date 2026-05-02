@@ -172,7 +172,7 @@ export const HomePage = () => {
         {/* Animated Background Decorative Elements */}
         <div className="absolute inset-x-0 -top-24 bottom-0 pointer-events-none">
           <div className="absolute top-0 right-[10%] w-[800px] h-[800px] bg-primary/15 rounded-full blur-[140px] animate-pulse" />
-          <div className="absolute top-1/4 left-[-10%] w-[600px] h-[600px] bg-blue-500/10 rounded-full blur-[120px] animate-pulse" style={{ animationDelay: '2s' }} />
+          <div className="absolute top-1/4 left-[-10%] w-[600px] h-[600px] bg-primary/10 rounded-full blur-[120px] animate-pulse" style={{ animationDelay: '2s' }} />
         </div>
         
         {/* Bottom Fade Mask to fix clipping */}
@@ -348,7 +348,7 @@ export const HomePage = () => {
                         className="absolute inset-0 h-full w-full object-cover transition-transform duration-700" 
                       />
                     ) : (
-                      <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-blue-500/5">
+                      <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-primary/5">
                         <div className="w-12 h-12 rounded-xl bg-background/80 backdrop-blur flex items-center justify-center shadow-soft transition-transform duration-500">
                           <DynamicIcon name={p.icon} className="w-6 h-6 text-primary/40" fallback={ShoppingBag} />
                         </div>
@@ -460,7 +460,7 @@ export const HomePage = () => {
         <div className="relative rounded-[2.5rem] overflow-hidden border border-border/50 bg-muted/30">
           <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-primary/5" />
           <div className="absolute -top-24 -right-24 w-96 h-96 bg-primary/20 rounded-full blur-[120px]" />
-          <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-blue-500/10 rounded-full blur-[120px]" />
+          <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-primary/10 rounded-full blur-[120px]" />
           
           <div className="relative z-10 px-8 py-20 text-center max-w-4xl mx-auto space-y-8">
             <motion.div
@@ -480,7 +480,7 @@ export const HomePage = () => {
             <div className="flex flex-col sm:flex-row items-center justify-center gap-6 pt-4">
               <Button 
                 size="lg" 
-                className="w-full sm:w-auto h-16 px-10 rounded-2xl text-lg font-bold"
+                className="w-full sm:w-auto px-10 rounded-full hover:shadow-glow transition-all duration-300"
                 onClick={() => navigate('/contact')}
               >
                 Start Project Inquiry
@@ -488,7 +488,7 @@ export const HomePage = () => {
               <Button 
                 variant="glass" 
                 size="lg" 
-                className="w-full sm:w-auto h-16 px-10 rounded-2xl text-lg"
+                className="w-full sm:w-auto px-10 rounded-full"
                 onClick={() => navigate('/services')}
               >
                 Explore Services
@@ -513,7 +513,7 @@ const SubPageHero = ({ title, subtitle, badge }: { title: React.ReactNode; subti
   <section className="relative pt-48 pb-20 overflow-hidden border-b border-border/10">
     <div className="absolute inset-x-0 top-0 bottom-0 pointer-events-none">
       <div className="absolute top-[-20%] right-[10%] w-[800px] h-[800px] bg-primary/10 rounded-full blur-[140px] animate-pulse" />
-      <div className="absolute bottom-[-20%] left-[-10%] w-[500px] h-[500px] bg-blue-500/5 rounded-full blur-[120px] animate-pulse" style={{ animationDelay: '2s' }} />
+      <div className="absolute bottom-[-20%] left-[-10%] w-[500px] h-[500px] bg-primary/5 rounded-full blur-[120px] animate-pulse" style={{ animationDelay: '2s' }} />
     </div>
     <div className="max-w-6xl mx-auto px-6 relative z-10">
       <div className="max-w-4xl">
@@ -567,7 +567,7 @@ export const ServicesPage = () => {
           description="Our technical service registry is currently being synchronized. Check back shortly for our full capability map."
         />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {services.map(s => (
             <GlassCard key={s.id} className="p-0 overflow-hidden group flex flex-col h-full border-white/5 hover:border-primary/20">
               <div className="relative">
@@ -586,7 +586,7 @@ export const ServicesPage = () => {
                   <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent opacity-60" />
                 </div>
                 <div className="absolute -bottom-6 right-6 z-20">
-                  <div className="w-12 h-12 rounded-2xl bg-primary shadow-glow flex items-center justify-center transform transition-all duration-500 group-hover:scale-110 group-hover:-translate-y-1">
+                  <div className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center transform transition-all duration-500 group-hover:scale-110 group-hover:-translate-y-1">
                     <DynamicIcon name={s.icon} className="w-6 h-6 text-white" fallback={Briefcase} />
                   </div>
                 </div>
@@ -595,24 +595,14 @@ export const ServicesPage = () => {
                 <Link to={`/services/${s.id}`}>
                   <h3 className="text-2xl font-display font-bold mb-3 group-hover:text-primary transition-colors cursor-pointer">{s.name}</h3>
                 </Link>
-                <p className="text-muted-foreground text-sm leading-relaxed mb-6 line-clamp-3">{s.shortDescription}</p>
+                <p className="text-muted-foreground text-sm leading-relaxed mb-8 line-clamp-3">{s.shortDescription}</p>
                 
-                {s.features && s.features.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mb-8">
-                    {s.features.slice(0, 3).map((feature, i) => (
-                      <span key={i} className="text-[9px] font-sans font-medium border border-primary/30 bg-primary/10 dark:bg-primary/20 px-2.5 py-1 rounded-md text-primary dark:text-primary-foreground uppercase tracking-widest shadow-sm">{feature}</span>
-                    ))}
-                  </div>
-                )}
-
-                <div className="mt-auto pt-6 border-t border-white/5 flex justify-between items-center">
-                  <span className="text-[10px] text-primary/70 font-bold uppercase tracking-[0.2em]">{s.category}</span>
-                  <Link to={`/services/${s.id}`}>
-                    <Button variant="ghost" size="sm" className="px-0 hover:bg-transparent hover:text-primary gap-2 transition-all cursor-pointer">
-                      Full Capability Map <ArrowRight className="w-3 h-3" />
-                    </Button>
-                  </Link>
-                </div>
+                <Link to={`/services/${s.id}`} className="mt-auto">
+                  <Button variant="ghost" className="justify-start px-0 hover:bg-transparent hover:text-primary gap-2 transition-all group/btn text-xs uppercase tracking-widest font-bold cursor-pointer">
+                    Engineering Details
+                    <ArrowRight className="w-4 h-4 transition-transform group-hover/btn:translate-x-1" />
+                  </Button>
+                </Link>
               </div>
             </GlassCard>
           ))}
@@ -668,48 +658,48 @@ export const ProductsPage = () => {
           description={filter === 'all' ? "The engineering showcase is currently empty." : "No products currently associated with this service category."}
         />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-8">
           {filteredProducts.map(p => {
-            const service = services.find(s => s.id === p.serviceId);
             return (
               <GlassCard key={p.id} className="p-0 overflow-hidden group border-white/5 hover:border-primary/20 h-full flex flex-col">
-                <div className="aspect-[16/10] relative overflow-hidden bg-muted">
-                  {p.imageUrl ? (
-                    <img 
-                      src={p.imageUrl} 
-                      alt={p.name} 
-                      loading="lazy"
-                      className="absolute inset-0 h-full w-full object-cover transition-transform duration-700" 
-                    />
-                  ) : (
-                    <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-blue-500/5">
-                      <div className="w-12 h-12 rounded-xl bg-background/80 backdrop-blur flex items-center justify-center shadow-soft transition-transform duration-500">
-                        <DynamicIcon name={p.icon} className="w-6 h-6 text-primary/40" fallback={ShoppingBag} />
+                <div className="relative">
+                  <div className="aspect-[16/10] relative overflow-hidden bg-muted">
+                    {p.imageUrl ? (
+                      <img 
+                        src={p.imageUrl} 
+                        alt={p.name} 
+                        loading="lazy"
+                        className="absolute inset-0 h-full w-full object-cover transition-transform duration-700" 
+                      />
+                    ) : (
+                      <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-primary/5">
+                        <div className="w-12 h-12 rounded-xl bg-background/80 backdrop-blur flex items-center justify-center shadow-soft transition-transform duration-500">
+                          <DynamicIcon name={p.icon} className="w-6 h-6 text-primary/40" fallback={ShoppingBag} />
+                        </div>
                       </div>
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent opacity-60" />
+                  </div>
+                  <div className="absolute -bottom-6 right-6 z-20">
+                    <div className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center transform transition-all duration-500 group-hover:scale-110 group-hover:-translate-y-1">
+                      <DynamicIcon name={p.icon} className="w-6 h-6 text-white" fallback={ShoppingBag} />
                     </div>
-                  )}
-                  <div className="absolute top-3 left-3">
-                    <span className="text-[9px] font-sans font-medium border border-primary/20 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm px-2.5 py-1 rounded-md text-primary dark:text-primary-foreground uppercase tracking-widest shadow-sm">
-                      {service?.name || 'Project'}
-                    </span>
                   </div>
                 </div>
-                <div className="p-6 flex-grow flex flex-col">
+                <div className="p-8 pt-10 flex-grow flex flex-col">
                   <Link to={`/products/${p.id}`}>
                     <h3 className="text-2xl font-display font-bold mb-3 group-hover:text-primary transition-colors cursor-pointer">
                       {p.name}
                     </h3>
                   </Link>
-                  <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed mb-6">{p.description}</p>
+                  <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed mb-8">{p.description}</p>
                   
-                  <div className="mt-auto">
-                    <Link to={`/products/${p.id}`} className="w-fit">
-                      <Button variant="ghost" className="justify-start px-0 hover:bg-transparent hover:text-primary gap-2 transition-all group/btn text-xs uppercase tracking-widest font-bold cursor-pointer">
-                        Project Insight
-                        <ArrowRight className="w-4 h-4 transition-transform group-hover/btn:translate-x-1" />
-                      </Button>
-                    </Link>
-                  </div>
+                  <Link to={`/products/${p.id}`} className="mt-auto">
+                    <Button variant="ghost" className="justify-start px-0 hover:bg-transparent hover:text-primary gap-2 transition-all group/btn text-xs uppercase tracking-widest font-bold cursor-pointer">
+                      Project Insight
+                      <ArrowRight className="w-4 h-4 transition-transform group-hover/btn:translate-x-1" />
+                    </Button>
+                  </Link>
                 </div>
               </GlassCard>
             );
@@ -849,7 +839,7 @@ export const AdminLoginPage = () => {
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-6 relative overflow-hidden">
-      <GlowOrb className="top-[-10%] left-[-10%]" color="rgba(131, 48, 255, 0.15)" />
+      <GlowOrb className="top-[-10%] left-[-10%]" color="rgba(59, 130, 246, 0.15)" />
       
       <GlassCard className="w-full max-w-md p-10 text-center relative z-10" hoverGlow={false}>
         <div className="mb-10 relative">
@@ -2546,7 +2536,7 @@ export const ContactPage = () => {
               <div>
                 <h3 className="text-[11px] font-bold text-primary uppercase tracking-[0.4em] mb-8 inline-flex items-center px-4 py-1.5 bg-primary/5 dark:bg-primary/10 border border-primary/20 rounded-full">Our Brand</h3>
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-[#3b82f6] flex items-center justify-center rounded-lg shadow-sm shrink-0">
+                  <div className="w-8 h-8 bg-primary flex items-center justify-center rounded-lg shadow-sm shrink-0">
                     <Code2 className="text-white w-5 h-5" />
                   </div>
                   <p className="text-xl font-bold font-display">Wise Byte Concepts</p>

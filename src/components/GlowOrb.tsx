@@ -8,7 +8,7 @@ interface GlowOrbProps {
   delay?: number;
 }
 
-export const GlowOrb = ({ className, size = '400px', color = 'rgba(131, 48, 255, 0.1)', delay = 0 }: GlowOrbProps) => {
+export const GlowOrb = ({ className, size = '400px', color = 'rgba(59, 130, 246, 0.1)', delay = 0 }: GlowOrbProps) => {
   return (
     <motion.div
       initial={{ opacity: 0 }}

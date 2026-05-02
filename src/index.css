@@ -12,7 +12,7 @@
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
 
-  --color-primary: #8330ff;
+  --color-primary: #3b82f6;
   --color-primary-foreground: #ffffff;
 
   --color-secondary: var(--secondary);
@@ -26,7 +26,7 @@
 
   --color-border: var(--border);
   --color-input: var(--input);
-  --color-ring: #8330ff;
+  --color-ring: #3b82f6;
 
   --radius-xl: 1rem;
   --radius-2xl: 1.5rem;
@@ -35,8 +35,8 @@
   --font-display: 'Space Grotesk', system-ui, sans-serif;
   --font-space: 'Space Grotesk', system-ui, sans-serif;
   
-  --shadow-glow: 0 0 30px rgba(131, 48, 255, 0.3);
-  --shadow-glow-strong: 0 0 50px rgba(131, 48, 255, 0.6);
+  --shadow-glow: 0 0 30px rgba(59, 130, 246, 0.3);
+  --shadow-glow-strong: 0 0 50px rgba(59, 130, 246, 0.6);
   --shadow-glass: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
 }
 
@@ -52,12 +52,12 @@
     --secondary-foreground: #18181b;
     --muted: #f4f4f5;
     --muted-foreground: #71717a;
-    --accent: rgba(131, 48, 255, 0.05);
-    --accent-foreground: #8330ff;
+    --accent: rgba(59, 130, 246, 0.05);
+    --accent-foreground: #3b82f6;
     --border: #e4e4e7;
     --input: #e4e4e7;
 
-    --gradient-brand: linear-gradient(135deg, #8330ff 0%, #3b82f6 100%);
+    --gradient-brand: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
     --gradient-surface: linear-gradient(180deg, rgba(0, 0, 0, 0.02) 0%, rgba(0, 0, 0, 0) 100%);
     --glass-blur: blur(12px);
   }
@@ -73,8 +73,8 @@
     --secondary-foreground: #ffffff;
     --muted: #1e1e1e;
     --muted-foreground: #a1a1aa;
-    --accent: rgba(131, 48, 255, 0.1);
-    --accent-foreground: #8330ff;
+    --accent: rgba(59, 130, 246, 0.1);
+    --accent-foreground: #3b82f6;
     --border: rgba(255, 255, 255, 0.08);
     --input: rgba(255, 255, 255, 0.05);
 
@@ -127,7 +127,7 @@
   }
   .glass-hover:hover {
     background: rgba(255, 255, 255, 0.1);
-    border-color: rgba(131, 48, 255, 0.3);
+    border-color: rgba(59, 130, 246, 0.3);
     box-shadow: var(--shadow-glow);
   }
 
@@ -142,7 +142,7 @@
     background: var(--gradient-brand);
   }
 
-  .glow-purple {
-    background: radial-gradient(circleAt Center, rgba(131, 48, 255, 0.15) 0%, transparent 70%);
+  .glow-blue {
+    background: radial-gradient(circle at center, rgba(59, 130, 246, 0.15) 0%, transparent 70%);
   }
 }

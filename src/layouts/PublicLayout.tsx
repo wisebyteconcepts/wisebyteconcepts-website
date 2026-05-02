@@ -9,7 +9,7 @@ export const PublicLayout = () => {
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground selection:bg-primary/30">
       {/* Background Effects */}
-      <GlowOrb className="top-[-10%] left-[-5%]" color="rgba(131, 48, 255, 0.1)" />
+      <GlowOrb className="top-[-10%] left-[-5%]" color="rgba(59, 130, 246, 0.1)" />
       <GlowOrb className="bottom-[-10%] right-[-5%]" color="rgba(59, 130, 246, 0.08)" delay={2} />
 
       <Navbar />
