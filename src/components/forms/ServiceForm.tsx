@@ -49,9 +49,9 @@ export const ServiceForm = ({ initialData, onSubmit, isLoading }: ServiceFormPro
   });
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-8 rounded-[2rem] border border-border/20 bg-background/80 p-6 shadow-soft">
       {/* Basic Registry Info */}
-      <section className="space-y-4">
+      <section className="space-y-4 rounded-[1.75rem] border border-border/20 bg-white/5 p-6">
         <div className="flex items-center gap-2 mb-4">
           <div className="h-px flex-1 bg-border" />
           <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest px-2">Registry Configuration</span>
@@ -63,7 +63,7 @@ export const ServiceForm = ({ initialData, onSubmit, isLoading }: ServiceFormPro
             <Input {...register('name')} id="name" placeholder="e.g. Web Development" disabled={isLoading} />
           </FormField>
 
-          <FormField label="Slug (URL Segment)" error={errors.slug?.message} id="slug" required>
+          <FormField label="Slugs (URL Segment)" error={errors.slug?.message} id="slug" required>
             <Input {...register('slug')} id="slug" placeholder="e.g. web-development" disabled={isLoading} />
           </FormField>
         </div>
@@ -90,7 +90,7 @@ export const ServiceForm = ({ initialData, onSubmit, isLoading }: ServiceFormPro
       </section>
 
       {/* Content Specification */}
-      <section className="space-y-4">
+      <section className="space-y-4 rounded-[1.75rem] border border-border/20 bg-white/5 p-6">
         <div className="flex items-center gap-2 mb-4">
           <div className="h-px flex-1 bg-border" />
           <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest px-2">Content Specification</span>
@@ -113,7 +113,7 @@ export const ServiceForm = ({ initialData, onSubmit, isLoading }: ServiceFormPro
       </section>
 
       {/* Visual Assets */}
-      <section className="space-y-4">
+      <section className="space-y-4 rounded-[1.75rem] border border-border/20 bg-white/5 p-6">
         <div className="flex items-center gap-2 mb-4">
           <div className="h-px flex-1 bg-border" />
           <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest px-2">Visual Mapping</span>
@@ -132,7 +132,7 @@ export const ServiceForm = ({ initialData, onSubmit, isLoading }: ServiceFormPro
       </section>
 
       {/* Capabilities Array */}
-      <section className="space-y-4">
+      <section className="space-y-4 rounded-[1.75rem] border border-border/20 bg-white/5 p-6">
         <div className="flex items-center justify-between mb-2">
           <label className="text-[10px] font-mono text-muted-foreground uppercase tracking-[0.2em] flex items-center gap-2">
             <div className="w-1 h-1 bg-primary rounded-full animate-pulse" />
