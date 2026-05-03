@@ -17,7 +17,7 @@ export const Dialog = ({ open, children }: DialogProps) => {
 export const DialogContent = ({ children, className, onOpenChange }: { children: React.ReactNode, className?: string, onOpenChange?: (v: boolean) => void }) => {
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -30,21 +30,15 @@ export const DialogContent = ({ children, className, onOpenChange }: { children:
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 10 }}
           className={cn(
-            "relative z-50 w-full max-w-lg rounded-[2rem] border border-border bg-background/80 p-8 shadow-2xl backdrop-blur-xl max-h-[90vh] overflow-y-auto hide-scrollbar overflow-hidden",
+            "relative z-50 w-full max-w-lg rounded-3xl border border-border bg-background shadow-2xl overflow-hidden",
             className
           )}
         >
-          {/* Decorative corners */}
-          <div className="absolute top-0 left-0 w-8 h-8 border-t border-l border-primary/20 pointer-events-none" />
-          <div className="absolute top-0 right-0 w-8 h-8 border-t border-r border-primary/20 pointer-events-none" />
-          <div className="absolute bottom-0 left-0 w-8 h-8 border-b border-l border-primary/20 pointer-events-none" />
-          <div className="absolute bottom-0 right-0 w-8 h-8 border-b border-r border-primary/20 pointer-events-none" />
-          
           <button
             onClick={() => onOpenChange?.(false)}
-            className="absolute right-6 top-6 rounded-full p-2 text-muted-foreground hover:bg-primary/10 hover:text-primary transition-all z-10"
+            className="absolute right-4 top-[14px] rounded-full p-2 text-muted-foreground hover:bg-muted transition-all z-50"
           >
-            <X className="h-5 w-5" />
+            <X className="h-4 w-4" />
           </button>
           {children}
         </motion.div>

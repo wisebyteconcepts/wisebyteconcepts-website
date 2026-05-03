@@ -5,10 +5,9 @@
 
 import { useEffect, lazy, Suspense } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { motion } from 'motion/react';
 import { useAppStore } from '@/store';
 import { useAuthStore } from '@/store/authStore';
-import { ProtectedRoute, ToastContainer, Skeleton, SystemInitializer } from '@/components';
+import { ProtectedRoute, ToastContainer, SystemInitializer } from '@/components';
 import { PublicLayout, AdminLayout } from '@/layouts';
 
 // Lazy load pages
