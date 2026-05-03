@@ -14,7 +14,6 @@ import {
   Card 
 } from '@/components/ui/Card';
 import { cn } from '@/lib/utils';
-import { getIconComponent } from '@/lib/iconLibrary';
 import {
   TableBody,
   TableCell,
@@ -95,12 +94,19 @@ import {
 import { useParams } from 'react-router-dom';
 import { motion } from 'motion/react';
 
-const DynamicIcon = ({ name, className, fallback: Fallback }: { name?: string; className?: string; fallback: any }) => {
+const DynamicIcon = ({ name, className, fallback: Fallback }: { name?: string; className?: string; fallback: LucideIcon }) => {
   if (!name) return <Fallback className={className} />;
   
-  const icon = getIconComponent(name, className);
-  if (!icon) return <Fallback className={className} />;
-  return icon;
+  // Check if it's a URL
+  const isUrl = name.startsWith('http') || name.startsWith('data:') || name.includes('/');
+  
+  if (isUrl) {
+    return <img src={name} alt="icon" className={cn("object-contain", className)} referrerPolicy="no-referrer" />;
+  }
+
+  const Icon = (LucideIcons as any)[name] as LucideIcon;
+  if (!Icon) return <Fallback className={className} />;
+  return <Icon className={className} />;
 };
 
 // Animation variants for pages
