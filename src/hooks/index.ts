@@ -1,2 +1,2 @@
 // Application-wide custom hooks
-export {};
+export * from './useBodyScrollLock';
