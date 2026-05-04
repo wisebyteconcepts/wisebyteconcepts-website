@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAppStore } from '@/store';
 import { useAuthStore } from '@/store/authStore';
@@ -51,13 +51,23 @@ import * as LucideIcons from 'lucide-react';
 import { 
   Trash2, 
   Shield, 
+  Plus,
+  X,
   Lock, 
   Briefcase, 
   ShoppingBag, 
+  Camera,
   Code, 
   Code2, 
   Search,
-  X,
+  Smartphone,
+  Cloud,
+  Database,
+  Palette,
+  Server,
+  Monitor as MonitorIcon,
+  Globe as GlobeIcon,
+  CircleDot,
   Terminal,
   ArrowLeft,
   ChevronRight,
@@ -92,7 +102,7 @@ import {
   CtaAction
 } from '@/types';
 import { useParams } from 'react-router-dom';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 
 const DynamicIcon = ({ name, className, fallback: Fallback }: { name?: string; className?: string; fallback: LucideIcon }) => {
   if (!name) return <Fallback className={className} />;
@@ -247,7 +257,7 @@ export const HomePage = () => {
                   <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent opacity-60" />
                 </div>
                 <div className="absolute -bottom-6 right-6 z-20">
-                  <div className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center transform transition-all duration-500 group-hover:scale-110 group-hover:-translate-y-1">
+                  <div className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center transition-all duration-500 group-hover:scale-110 group-hover:-translate-y-1 transform-gpu will-change-transform [backface-visibility:hidden] [perspective:1000px]">
                     <DynamicIcon name={s.icon} className="w-6 h-6 text-white" fallback={Code} />
                   </div>
                 </div>
@@ -349,7 +359,7 @@ export const HomePage = () => {
                       />
                     ) : (
                       <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-primary/5">
-                        <div className="w-12 h-12 rounded-xl bg-background/80 backdrop-blur flex items-center justify-center shadow-soft transition-transform duration-500">
+                        <div className="w-12 h-12 rounded-xl bg-background/80 backdrop-blur flex items-center justify-center shadow-soft transition-transform duration-500 transform-gpu [backface-visibility:hidden]">
                           <DynamicIcon name={p.icon} className="w-6 h-6 text-primary/40" fallback={ShoppingBag} />
                         </div>
                       </div>
@@ -357,7 +367,7 @@ export const HomePage = () => {
                     <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent opacity-60" />
                   </div>
                   <div className="absolute -bottom-6 right-6 z-20">
-                    <div className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center transform transition-all duration-500 group-hover:scale-110 group-hover:-translate-y-1">
+                    <div className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center transition-all duration-500 group-hover:scale-110 group-hover:-translate-y-1 transform-gpu will-change-transform [backface-visibility:hidden] [perspective:1000px]">
                       <DynamicIcon name={p.icon} className="w-6 h-6 text-white" fallback={ShoppingBag} />
                     </div>
                   </div>
@@ -427,7 +437,7 @@ export const HomePage = () => {
               >
                 <GlassCard className="p-6 flex flex-col items-center text-center group/skill hover:border-primary/50 transition-all duration-500 relative h-full">
                   <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover/skill:opacity-100 transition-opacity duration-500" />
-                  <div className="w-14 h-14 rounded-2xl bg-muted/50 flex items-center justify-center mb-4 group-hover/skill:scale-110 group-hover/skill:bg-primary/20 group-hover/skill:shadow-glow-sm transition-all duration-500 relative z-10">
+                  <div className="w-14 h-14 rounded-2xl bg-muted/50 flex items-center justify-center mb-4 group-hover/skill:scale-110 group-hover/skill:bg-primary/20 group-hover/skill:shadow-glow-sm transition-all duration-500 relative z-10 transform-gpu [backface-visibility:hidden]">
                     <DynamicIcon name={skill.icon} className="w-7 h-7 text-primary" fallback={Code} />
                   </div>
                   <h4 className="font-bold text-sm mb-1 relative z-10">{skill.name}</h4>
@@ -586,7 +596,7 @@ export const ServicesPage = () => {
                   <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent opacity-60" />
                 </div>
                 <div className="absolute -bottom-6 right-6 z-20">
-                  <div className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center transform transition-all duration-500 group-hover:scale-110 group-hover:-translate-y-1">
+                  <div className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center transition-all duration-500 group-hover:scale-110 group-hover:-translate-y-1 transform-gpu will-change-transform [backface-visibility:hidden] [perspective:1000px]">
                     <DynamicIcon name={s.icon} className="w-6 h-6 text-white" fallback={Briefcase} />
                   </div>
                 </div>
@@ -673,7 +683,7 @@ export const ProductsPage = () => {
                       />
                     ) : (
                       <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-primary/5">
-                        <div className="w-12 h-12 rounded-xl bg-background/80 backdrop-blur flex items-center justify-center shadow-soft transition-transform duration-500">
+                        <div className="w-12 h-12 rounded-xl bg-background/80 backdrop-blur flex items-center justify-center shadow-soft transition-transform duration-500 transform-gpu [backface-visibility:hidden]">
                           <DynamicIcon name={p.icon} className="w-6 h-6 text-primary/40" fallback={ShoppingBag} />
                         </div>
                       </div>
@@ -681,7 +691,7 @@ export const ProductsPage = () => {
                     <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent opacity-60" />
                   </div>
                   <div className="absolute -bottom-6 right-6 z-20">
-                    <div className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center transform transition-all duration-500 group-hover:scale-110 group-hover:-translate-y-1">
+                    <div className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center transition-all duration-500 group-hover:scale-110 group-hover:-translate-y-1 transform-gpu will-change-transform [backface-visibility:hidden] [perspective:1000px]">
                       <DynamicIcon name={p.icon} className="w-6 h-6 text-white" fallback={ShoppingBag} />
                     </div>
                   </div>
@@ -846,7 +856,7 @@ export const AdminLoginPage = () => {
           <motion.div 
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className="w-20 h-20 bg-gradient-brand rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-glow transition-transform hover:scale-110 duration-500 relative z-10"
+            className="w-20 h-20 bg-gradient-brand rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-glow transition-transform hover:scale-110 duration-500 relative z-10 transform-gpu [backface-visibility:hidden]"
           >
             <Lock className="w-10 h-10 text-white" />
           </motion.div>
@@ -2077,11 +2087,43 @@ export const ServiceDetailPage = () => {
   const navigate = useNavigate();
   const services = useAppStore((state) => state.services);
   const products = useAppStore((state) => state.products);
+  const skills = useAppStore((state) => state.skills);
   
   const service = services.find(s => s.id === id);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (selectedImage) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [selectedImage]);
+
   const relatedProducts = [...products]
     .filter(p => p.serviceId === id)
     .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+
+  const getTechIcon = (techName: string) => {
+    const skill = skills.find(s => s.name.toLowerCase() === techName.toLowerCase());
+    if (skill?.icon) {
+      return <DynamicIcon name={skill.icon} className="w-4 h-4" fallback={CircleDot} />;
+    }
+
+    const t = techName.toLowerCase();
+    if (t.includes('react') || t.includes('frontend') || t.includes('ui') || t.includes('next')) return <MonitorIcon className="w-4 h-4" />;
+    if (t.includes('node') || t.includes('backend') || t.includes('server') || t.includes('api') || t.includes('express') || t.includes('nest')) return <Server className="w-4 h-4" />;
+    if (t.includes('postgre') || t.includes('db') || t.includes('sql') || t.includes('mongo') || t.includes('redis') || t.includes('firebase')) return <Database className="w-4 h-4" />;
+    if (t.includes('tailwind') || t.includes('css') || t.includes('design') || t.includes('sass') || t.includes('figma')) return <Palette className="w-4 h-4" />;
+    if (t.includes('typescript') || t.includes('js') || t.includes('code') || t.includes('python') || t.includes('c#')) return <Code2 className="w-4 h-4" />;
+    if (t.includes('cloud') || t.includes('azure') || t.includes('aws') || t.includes('gcp') || t.includes('docker')) return <Cloud className="w-4 h-4" />;
+    if (t.includes('mobile') || t.includes('ios') || t.includes('android') || t.includes('maui') || t.includes('flutter')) return <Smartphone className="w-4 h-4" />;
+    if (t.includes('web') || t.includes('browser') || t.includes('rest')) return <GlobeIcon className="w-4 h-4" />;
+    return <CircleDot className="w-4 h-4" />;
+  };
 
   if (!service) {
     return (
@@ -2091,67 +2133,104 @@ export const ServiceDetailPage = () => {
         </div>
         <h1 className="text-4xl font-bold mb-4">Service Node Not Found</h1>
         <p className="text-muted-foreground max-w-md mb-8">The requested technical service module could not be located in our registry.</p>
-        <Button onClick={() => navigate('/services')}>
-          <ArrowLeft className="mr-2 w-4 h-4" /> Back to Registry
+        <Button onClick={() => navigate(-1)}>
+          <ArrowLeft className="mr-2 w-4 h-4" /> Go Back
         </Button>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col relative">
+      <AnimatePresence>
+        {selectedImage && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[9999] flex items-center justify-center p-4 md:p-8 pointer-events-auto touch-none overflow-hidden"
+          >
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/90 backdrop-blur-2xl"
+              onClick={() => setSelectedImage(null)}
+            />
+            
+            <motion.div
+              layoutId={selectedImage}
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="relative z-10 max-w-6xl w-full max-h-full flex items-center justify-center"
+            >
+              <button 
+                onClick={() => setSelectedImage(null)}
+                className="absolute -top-12 right-0 md:-right-12 md:top-0 p-2 text-white/50 hover:text-white transition-colors z-20"
+                id="close-modal-btn"
+                aria-label="Close modal"
+              >
+                <X className="w-8 h-8" />
+              </button>
+              
+              <div className="relative w-full h-full flex flex-col items-center justify-center p-4">
+                <img 
+                  src={selectedImage} 
+                  alt="Enlarged technical view"
+                  className="w-full h-auto max-h-[85vh] object-contain rounded-xl shadow-[0_0_50px_rgba(0,0,0,0.5)] border border-white/10"
+                />
+                
+                <div className="mt-6 text-center">
+                  <p className="text-white/40 text-[10px] font-mono tracking-[0.3em] uppercase mb-1">
+                    Technical Implementation Record
+                  </p>
+                  <p className="text-white/80 text-sm font-medium">
+                    {service.name} System Preview
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Hero Section */}
-      <section className="relative pt-32 pb-20 overflow-hidden border-b border-white/5">
+      <section className="relative pt-32 pb-0 overflow-hidden border-b border-white/5">
+        <GlowOrb color="primary" size="lg" className="top-[-10%] right-[-10%] opacity-20" />
+        <GlowOrb color="secondary" size="md" className="bottom-[-20%] left-[-10%] opacity-10" />
         <div className="absolute top-0 right-0 w-1/2 h-full bg-primary/5 blur-[120px] -z-10" />
         <div className="container mx-auto px-6">
-          <Link 
-            to="/services" 
-            className="inline-flex items-center text-xs font-mono text-muted-foreground hover:text-primary transition-colors mb-12 uppercase tracking-widest"
+          <button 
+            onClick={() => navigate(-1)}
+            className="inline-flex items-center text-xs font-sans font-medium text-muted-foreground hover:text-primary transition-colors mb-12 uppercase tracking-[0.2em] cursor-pointer transform-gpu"
           >
-            <ArrowLeft className="mr-2 w-3 h-3" /> Back to Services
-          </Link>
+            <ArrowLeft className="mr-2 w-3 h-3" /> Back
+          </button>
 
-          <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 mb-16">
+          <div className="flex flex-col gap-6 mb-8">
             <div className="max-w-3xl">
-              <div className="flex items-center gap-3 mb-6">
+              <div className="flex items-center gap-3 mb-8">
                 <span className="px-4 py-1.5 bg-primary/10 text-primary text-[11px] font-bold tracking-[0.4em] uppercase rounded-full font-display">
                   {service.category}
                 </span>
-                <span className="w-1 h-1 rounded-full bg-white/20" />
-                <span className="text-[10px] font-bold text-muted-foreground tracking-widest uppercase">
-                  Service ID: {service.id.slice(0, 8)}
-                </span>
               </div>
-              <h1 className="text-5xl md:text-7xl font-bold mb-8 tracking-tight leading-tight">
-                {service.name}
-              </h1>
-              <div className="flex items-center gap-4 mb-8">
-                 <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center border border-primary/20">
-                    <DynamicIcon name={service.icon} className="w-8 h-8 text-primary shadow-glow-primary" fallback={Briefcase} />
+              
+              <div className="flex flex-col md:flex-row md:items-center gap-8 mb-0">
+                 <div className="w-20 h-20 bg-primary/10 rounded-2xl flex items-center justify-center border border-primary/20 backdrop-blur-xl relative group overflow-hidden shrink-0">
+                    <div className="absolute inset-0 bg-primary/20 blur-xl opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <DynamicIcon name={service.icon} className="w-10 h-10 text-primary relative z-10" fallback={Briefcase} />
+                 </div>
+                 <div>
+                   <h1 className="text-[48.8px] font-bold mb-1 tracking-tight leading-tight">
+                    {service.name}
+                   </h1>
+                   <p className="text-base text-muted-foreground leading-relaxed max-w-2xl">
+                    {service.caption || service.shortDescription}
+                  </p>
                  </div>
               </div>
-              <p className="text-xl text-muted-foreground leading-relaxed">
-                {service.caption || service.shortDescription}
-              </p>
             </div>
-            
-            {service.pricing && (
-              <GlassCard className="lg:mb-4 min-w-[280px]">
-                <p className="text-xs font-mono text-muted-foreground uppercase tracking-widest mb-2">Pricing Matrix</p>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-4xl font-bold">
-                    {service.pricing.amount ? `${service.pricing.currency || '$'}${service.pricing.amount}` : 'Custom'}
-                  </span>
-                  {service.pricing.unit && (
-                    <span className="text-muted-foreground text-sm">/ {service.pricing.unit}</span>
-                  )}
-                </div>
-                <p className="text-xs text-muted-foreground mt-2 italic">
-                  {service.pricing.type === 'starting_from' ? 'Starting from estimate' : 
-                   service.pricing.type === 'fixed' ? 'Fixed project rate' : 'Bespoke quotation required'}
-                </p>
-              </GlassCard>
-            )}
           </div>
         </div>
       </section>
@@ -2167,7 +2246,7 @@ export const ServiceDetailPage = () => {
               </h2>
               <div className="prose prose-invert max-w-none text-muted-foreground leading-relaxed text-lg space-y-6">
                 {(service.fullDescription || service.shortDescription).split('\n').map((para, i) => (
-                  para ? <p key={i}>{para}</p> : <br key={i} />
+                   para.trim() ? <p key={i}>{para}</p> : null
                 ))}
               </div>
             </div>
@@ -2189,20 +2268,53 @@ export const ServiceDetailPage = () => {
                 </div>
               </div>
             )}
+
+            {service.gallery && service.gallery.length > 0 && (
+              <div className="mt-12">
+                <h2 className="text-2xl font-bold mb-8 flex items-center gap-3">
+                  <Camera className="w-6 h-6 text-primary" /> Visual Repository
+                </h2>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                  {service.gallery.map((img, i) => (
+                    <div 
+                      key={i} 
+                      className="group relative aspect-square rounded-xl overflow-hidden bg-primary/5 border border-white/5 cursor-pointer"
+                      onClick={() => setSelectedImage(img)}
+                    >
+                      <img 
+                        src={img} 
+                        alt={`${service.name} gallery ${i}`} 
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 transform-gpu will-change-transform [backface-visibility:hidden]" 
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 scale-50 opacity-0 group-hover:scale-100 group-hover:opacity-100 transition-all duration-300 transform-gpu will-change-transform [perspective:1000px] [backface-visibility:hidden]">
+                          <Plus className="w-6 h-6 text-white" />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Right Column: Meta & Stack */}
-          <div className="lg:col-span-5 space-y-12">
+          <div className="lg:col-span-5 space-y-8">
             {service.technologies && service.technologies.length > 0 && (
               <GlassCard>
                 <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
                   <Layers className="w-5 h-5 text-primary" /> Technology Stack
                 </h3>
-                <div className="flex flex-wrap gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {service.technologies.map((tech, i) => (
-                    <span key={i} className="px-3 py-1.5 bg-white/5 text-xs font-mono text-muted-foreground border border-white/5 rounded-md hover:border-primary/20 hover:text-primary transition-all">
-                      {tech}
-                    </span>
+                    <div key={i} className="flex items-center gap-3 p-3 bg-white/5 border border-white/5 rounded-xl hover:border-primary/30 hover:bg-primary/5 transition-all group">
+                      <div className="text-muted-foreground group-hover:text-primary transition-colors">
+                        {getTechIcon(tech)}
+                      </div>
+                      <span className="text-sm font-sans font-medium text-muted-foreground group-hover:text-foreground transition-colors">
+                        {tech}
+                      </span>
+                    </div>
                   ))}
                 </div>
               </GlassCard>
@@ -2238,17 +2350,23 @@ export const ServiceDetailPage = () => {
               </GlassCard>
             )}
 
-            {service.cta && (
-              <div className="pt-4">
-                <Button className="w-full h-14 text-base group" onClick={() => {
-                  if (service.cta?.action === 'external' && service.cta.link) {
-                    window.open(service.cta.link, '_blank');
-                  }
-                }}>
-                  {service.cta.label} 
-                  {service.cta.action === 'external' ? <ExternalLink className="ml-2 w-5 h-5" /> : <ArrowRight className="ml-2 w-5 h-5 transition-transform" />}
-                </Button>
-              </div>
+            {service.pricing && (
+              <GlassCard className="border-primary/10 bg-primary/5 p-8">
+                <p className="text-[11px] font-bold text-primary uppercase tracking-[0.4em] mb-4">Investment Roadmap</p>
+                <div className="flex items-baseline gap-2 mb-2">
+                  <span className="text-4xl font-bold text-foreground">
+                    {service.pricing.amount ? `${service.pricing.currency || '$'}${service.pricing.amount}` : 'Quote Required'}
+                  </span>
+                  {service.pricing.unit && (
+                    <span className="text-muted-foreground text-sm font-medium">/ {service.pricing.unit}</span>
+                  )}
+                </div>
+                <p className="text-[11px] text-muted-foreground uppercase tracking-widest font-semibold flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-primary/40 animate-pulse" />
+                  {service.pricing.type === 'starting_from' ? 'Initial Estimate' : 
+                   service.pricing.type === 'fixed' ? 'Finalized Rate' : 'Bespoke Implementation'}
+                </p>
+              </GlassCard>
             )}
           </div>
         </div>
@@ -2293,6 +2411,55 @@ export const ServiceDetailPage = () => {
           </div>
         </section>
       )}
+
+      {/* Global CTA Section at bottom */}
+      <section className="py-24 border-t border-white/5">
+        <div className="container mx-auto px-6 text-center">
+          <div className="max-w-4xl mx-auto">
+            <h2 className="text-4xl md:text-6xl font-bold mb-8 tracking-tight">Ready to initiate your next project?</h2>
+            <p className="text-xl text-muted-foreground mb-12 max-w-2xl mx-auto leading-relaxed">
+              Connect with our engineering team to discuss how we can bring your concept to reality 
+              with our specialized {service.name.toLowerCase()} expertise.
+            </p>
+            
+            <div className="flex items-center justify-center">
+              {service.cta ? (
+                <Button 
+                  size="lg" 
+                  className="rounded-full px-12 h-14 font-bold hover:shadow-glow transition-all duration-300 group"
+                  onClick={() => {
+                    if (service.cta?.link) {
+                      if (service.cta.link.startsWith('http')) {
+                        window.open(service.cta.link, '_blank');
+                      } else {
+                        navigate(service.cta.link);
+                      }
+                    } else {
+                      navigate('/contact');
+                    }
+                  }}
+                >
+                  {service.cta.label}
+                  {service.cta.link?.startsWith('http') ? (
+                    <ExternalLink className="ml-2 w-5 h-5" />
+                  ) : (
+                    <ArrowRight className="ml-2 w-5 h-5 transition-transform group-hover:translate-x-1" />
+                  )}
+                </Button>
+              ) : (
+                <Button 
+                  size="lg" 
+                  className="rounded-full px-12 h-14 font-bold hover:shadow-glow transition-all duration-300 group"
+                  onClick={() => navigate('/contact')}
+                >
+                  Initialize Consultation
+                  <ArrowRight className="ml-2 w-5 h-5 transition-transform group-hover:translate-x-1" />
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+      </section>
     </div>
   );
 };
@@ -2313,8 +2480,8 @@ export const ProductDetailPage = () => {
         </div>
         <h1 className="text-4xl font-bold mb-4">Product Instance Not Found</h1>
         <p className="text-muted-foreground max-w-md mb-8">The requested product node could not be retrieved from the engineering showcase.</p>
-        <Button onClick={() => navigate('/products')}>
-          <ArrowLeft className="mr-2 w-4 h-4" /> Return to Showcase
+        <Button onClick={() => navigate(-1)}>
+          <ArrowLeft className="mr-2 w-4 h-4" /> Go Back
         </Button>
       </div>
     );
@@ -2324,12 +2491,12 @@ export const ProductDetailPage = () => {
     <div className="flex flex-col">
       <section className="pt-32 pb-20 border-b border-white/5">
         <div className="container mx-auto px-6">
-           <Link 
-            to="/products" 
-            className="inline-flex items-center text-xs font-mono text-muted-foreground hover:text-primary transition-colors mb-12 uppercase tracking-widest"
+          <button 
+            onClick={() => navigate(-1)}
+            className="inline-flex items-center text-xs font-sans font-medium text-muted-foreground hover:text-primary transition-colors mb-12 uppercase tracking-[0.2em] cursor-pointer transform-gpu"
           >
-            <ArrowLeft className="mr-2 w-3 h-3" /> Back to Products
-          </Link>
+            <ArrowLeft className="mr-2 w-3 h-3" /> Back
+          </button>
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 items-center">
             <div className="lg:col-span-6">

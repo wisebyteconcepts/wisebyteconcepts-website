@@ -299,7 +299,7 @@ export const IconPicker = ({
                     title={name}
                   >
                     <Icon className={cn(
-                      "w-6 h-6 transition-transform group-hover:scale-110",
+                      "w-6 h-6 transition-transform group-hover:scale-110 transform-gpu [backface-visibility:hidden]",
                       isSelected ? "text-white" : "text-muted-foreground group-hover:text-primary"
                     )} />
                     

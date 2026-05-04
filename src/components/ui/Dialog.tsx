@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { X } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -10,40 +11,38 @@ interface DialogProps {
 }
 
 export const Dialog = ({ open, children }: DialogProps) => {
-  if (!open) return null;
-  return <>{children}</>;
+  return <AnimatePresence>{open && children}</AnimatePresence>;
 };
 
 export const DialogContent = ({ children, className, onOpenChange }: { children: React.ReactNode, className?: string, onOpenChange?: (v: boolean) => void }) => {
-  return (
-    <AnimatePresence>
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black/80 backdrop-blur-sm"
+  return createPortal(
+    <div className="fixed inset-0 z-[999] flex items-center justify-center p-4">
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 bg-black/80 backdrop-blur-sm"
+        onClick={() => onOpenChange?.(false)}
+      />
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 10 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 10 }}
+        className={cn(
+          "relative z-50 w-full max-w-lg rounded-3xl border border-border bg-background shadow-2xl overflow-hidden",
+          className
+        )}
+      >
+        <button
           onClick={() => onOpenChange?.(false)}
-        />
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 10 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 10 }}
-          className={cn(
-            "relative z-50 w-full max-w-lg rounded-3xl border border-border bg-background shadow-2xl overflow-hidden",
-            className
-          )}
+          className="absolute right-4 top-[14px] rounded-full p-2 text-muted-foreground hover:bg-muted transition-all z-50"
         >
-          <button
-            onClick={() => onOpenChange?.(false)}
-            className="absolute right-4 top-[14px] rounded-full p-2 text-muted-foreground hover:bg-muted transition-all z-50"
-          >
-            <X className="h-4 w-4" />
-          </button>
-          {children}
-        </motion.div>
-      </div>
-    </AnimatePresence>
+          <X className="h-4 w-4" />
+        </button>
+        {children}
+      </motion.div>
+    </div>,
+    document.body
   );
 };
 
