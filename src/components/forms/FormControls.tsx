@@ -30,14 +30,14 @@ export const FormField = ({ label, error, children, id, required }: FormFieldPro
 
 export const Input = ({ className = '', ...props }) => (
   <input
-    className={`w-full px-4 py-3 bg-background/95 border border-border rounded-xl text-sm transition-all focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none disabled:opacity-50 font-sans ${className}`}
+    className={`w-full px-4 py-3 bg-muted/30 border border-border rounded-xl text-sm transition-all focus:ring-2 focus:ring-primary/20 focus:border-primary/50 outline-none disabled:opacity-50 font-sans ${className}`}
     {...props}
   />
 );
 
 export const Textarea = ({ className = '', ...props }) => (
   <textarea
-    className={`w-full px-4 py-3 bg-background/95 border border-border rounded-xl text-sm transition-all focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none min-h-[100px] font-sans ${className}`}
+    className={`w-full px-4 py-3 bg-muted/30 border border-border rounded-xl text-sm transition-all focus:ring-2 focus:ring-primary/20 focus:border-primary/50 outline-none min-h-[100px] font-sans ${className}`}
     {...props}
   />
 );
@@ -45,7 +45,7 @@ export const Textarea = ({ className = '', ...props }) => (
 export const Select = ({ className = '', children, ...props }: { className?: string; children: ReactNode; [key: string]: any }) => (
   <div className="relative">
     <select
-      className={`w-full px-4 py-3 bg-background/95 border border-border rounded-xl text-sm transition-all focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none appearance-none font-sans ${className}`}
+      className={`w-full px-4 py-3 bg-muted/30 border border-border rounded-xl text-sm transition-all focus:ring-2 focus:ring-primary/20 focus:border-primary/50 outline-none appearance-none font-sans ${className}`}
       {...props}
     >
       {children}

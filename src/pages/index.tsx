@@ -1235,15 +1235,15 @@ export const AdminServicesPage = () => {
           </DialogHeader>
 
           <Tabs defaultValue="content" className="w-full">
-            <TabsList className="w-full justify-start h-auto flex-wrap gap-1 bg-transparent p-0 mb-6 border-b border-border/20 rounded-none">
-              <TabsTrigger value="content" className="rounded-none px-4 py-3 text-sm font-semibold transition-colors hover:text-foreground/90">Content</TabsTrigger>
-              <TabsTrigger value="media" className="rounded-none px-4 py-3 text-sm font-semibold transition-colors hover:text-foreground/90">Media</TabsTrigger>
-              <TabsTrigger value="organize" className="rounded-none px-4 py-3 text-sm font-semibold transition-colors hover:text-foreground/90">Organize</TabsTrigger>
-              <TabsTrigger value="value" className="rounded-none px-4 py-3 text-sm font-semibold transition-colors hover:text-foreground/90">Value</TabsTrigger>
-              <TabsTrigger value="commercial" className="rounded-none px-4 py-3 text-sm font-semibold transition-colors hover:text-foreground/90">Commercial</TabsTrigger>
-              <TabsTrigger value="tech" className="rounded-none px-4 py-3 text-sm font-semibold transition-colors hover:text-foreground/90">Stack</TabsTrigger>
-              <TabsTrigger value="seo" className="rounded-none px-4 py-3 text-sm font-semibold transition-colors hover:text-foreground/90">SEO</TabsTrigger>
-              <TabsTrigger value="control" className="rounded-none px-4 py-3 text-sm font-semibold transition-colors hover:text-foreground/90">System</TabsTrigger>
+            <TabsList className="w-full justify-start h-auto flex-wrap gap-1 bg-transparent p-0 mb-8 border-b border-white/5 rounded-none">
+              <TabsTrigger value="content" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 py-4">Content</TabsTrigger>
+              <TabsTrigger value="media" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 py-4">Media</TabsTrigger>
+              <TabsTrigger value="organize" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 py-4">Organize</TabsTrigger>
+              <TabsTrigger value="value" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 py-4">Value</TabsTrigger>
+              <TabsTrigger value="commercial" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 py-4">Commercial</TabsTrigger>
+              <TabsTrigger value="tech" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 py-4">Stack</TabsTrigger>
+              <TabsTrigger value="seo" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 py-4">SEO</TabsTrigger>
+              <TabsTrigger value="control" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 py-4">System</TabsTrigger>
             </TabsList>
 
             <TabsContent value="content" className="space-y-6">
