@@ -24,8 +24,11 @@ import {
 import { Badge } from '@/components/ui/Badge';
 import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
-import { Switch } from '@/components/ui/Switch';
-import { Textarea } from '@/components/ui/Textarea';
+import {
+  FormField,
+  InputBlock,
+  PasswordInputBlock,
+} from '@/components/forms/FormControls';
 import {
   Select,
   SelectContent,
@@ -33,7 +36,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/Select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/Tabs';
 import {
   Dialog,
   DialogContent,
@@ -42,9 +44,6 @@ import {
   DialogTitle,
 } from '@/components/ui/Dialog';
 import { CrudPageShell } from '@/components/admin/CrudPageShell';
-import { ListInput } from '@/components/admin/ListInput';
-import { ImageInput } from '@/components/admin/ImageInput';
-import { ImagesInput } from '@/components/admin/ImagesInput';
 import { IconPicker } from '@/components/admin/IconPicker';
 import { SortableList, SortableRow } from '@/components/admin/SortableTable';
 import * as LucideIcons from 'lucide-react';
@@ -95,11 +94,7 @@ import {
   Service, 
   Product, 
   Skill,
-  ServiceCategory,
-  SkillCategory,
-  PricingType,
-  PricingUnit,
-  CtaAction
+  SkillCategory
 } from '@/types';
 import { useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
@@ -870,44 +865,41 @@ export const AdminLoginPage = () => {
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="text-left space-y-3">
-            <Label className="text-primary ml-1">Identity Vector (Email)</Label>
-            <Input 
-              type="email" 
-              value={email} 
-              onChange={(e: any) => setEmail(e.target.value)}
-              placeholder="operator@wisebyte.concepts"
-              disabled={loading}
-              className="glass py-6"
-              autoFocus
-            />
-          </div>
-          <div className="text-left space-y-3">
-            <div className="flex justify-between items-center px-1">
-              <Label className="text-primary mb-0">Access Cipher (Password)</Label>
+        <form onSubmit={handleSubmit} className="space-y-5 text-left">
+          <InputBlock
+            label="Identity Vector (Email)"
+            type="email"
+            value={email}
+            onChange={(e: any) => setEmail(e.target.value)}
+            placeholder="operator@wisebyte.concepts"
+            disabled={loading}
+            startIcon={<Mail className="w-4 h-4" />}
+            autoFocus
+          />
+          <div className="space-y-1.5">
+            <div className="flex justify-between items-center px-0.5">
+              <Label className="mb-0 text-xs font-semibold">Access Cipher (Password)</Label>
               <button 
                 type="button"
                 onClick={handleForgotPassword}
                 disabled={resetLoading}
-                className="text-[9px] uppercase font-bold text-muted-foreground hover:text-primary transition-colors disabled:opacity-50 tracking-tighter"
+                className="text-[10px] uppercase font-bold text-muted-foreground hover:text-primary transition-colors disabled:opacity-50 tracking-wider"
               >
                 {resetLoading ? 'Decrypting...' : 'Reset Key'}
               </button>
             </div>
-            <Input 
-              type="password" 
-              value={password} 
+            <PasswordInputBlock
+              value={password}
               onChange={(e: any) => setPassword(e.target.value)}
               placeholder="••••••••"
               disabled={loading}
-              className="glass py-6"
+              startIcon={<Lock className="w-4 h-4" />}
             />
           </div>
           <Button
             type="submit"
             isLoading={loading}
-            className="w-full py-6 text-base font-bold shadow-glow-primary"
+            className="w-full h-12 text-sm font-bold shadow-glow-primary rounded-xl mt-2"
           >
             {loading ? 'Authenticating...' : 'Authorize Access'}
           </Button>
@@ -1046,96 +1038,17 @@ export const AdminDashboardPage = () => {
   );
 };
 
-const slugify = (s: string) =>
-  s
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "");
-
-const emptyService = (): Service => ({
-  id: "",
-  slug: "",
-  name: "",
-  icon: "Briefcase",
-  caption: "",
-  header: "",
-  shortDescription: "",
-  fullDescription: "",
-  thumbnail: "",
-  bannerImage: "",
-  gallery: [],
-  category: ServiceCategory.DEVELOPMENT,
-  tags: [],
-  features: [],
-  deliverables: [],
-  pricing: { type: 'custom', note: 'Contact for quote' } as any,
-  estimatedDuration: "",
-  technologies: [],
-  relatedProjects: [],
-  cta: { label: "Schedule a consultation", action: 'contact' },
-  seo: {},
-  isActive: true,
-  isFeatured: false,
-  order: 0,
-  createdAt: new Date().toISOString(),
-  updatedAt: new Date().toISOString(),
-});
-
 export const AdminServicesPage = () => {
-  const { services, products, addService, updateService, deleteService, reorderServices } = useAppStore();
+  const { services, deleteService, reorderServices } = useAppStore();
   const addToast = useToastStore((state) => state.addToast);
-  const [open, setOpen] = useState(false);
-  const [editing, setEditing] = useState<Service | null>(null);
-  const [form, setForm] = useState<Service>(emptyService());
-
-  const update = <K extends keyof Service>(key: K, val: Service[K]) =>
-    setForm((prev) => ({ ...prev, [key]: val }));
+  const navigate = useNavigate();
 
   const openAdd = () => {
-    setEditing(null);
-    setForm(emptyService());
-    setOpen(true);
+    navigate('/admin/services/new');
   };
 
   const openEdit = (s: Service) => {
-    setEditing(s);
-    setForm({ ...s });
-    setOpen(true);
-  };
-
-  const handleSave = async () => {
-    if (!form.name.trim()) {
-      addToast("Name is required", "error");
-      return;
-    }
-    const slug = (form.slug || slugify(form.name)).trim();
-    const id = editing?.id || form.id || slug;
-    const payload: Service = {
-      ...form,
-      id,
-      slug,
-      header: form.header || form.name,
-      caption: form.caption || form.shortDescription,
-      updatedAt: new Date().toISOString(),
-    };
-
-    try {
-      if (editing) {
-        await updateService(payload);
-        addToast("Service updated", "success");
-      } else {
-        if (services.some((s) => s.id === id)) {
-          addToast("A service with this ID already exists", "error");
-          return;
-        }
-        await addService(payload);
-        addToast("Service added", "success");
-      }
-      setOpen(false);
-    } catch (error: any) {
-      addToast(error.message || "Operation failed", "error");
-    }
+    navigate(`/admin/services/edit/${s.id}`);
   };
 
   const handleDelete = async (s: Service) => {
@@ -1237,430 +1150,21 @@ export const AdminServicesPage = () => {
           </TableBody>
         </SortableList>
       </CrudPageShell>
-
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-4xl" onOpenChange={setOpen}>
-          <DialogHeader>
-            <DialogTitle>{editing ? "Edit Service Module" : "Initialize Service Node"}</DialogTitle>
-          </DialogHeader>
-
-          <Tabs defaultValue="content" className="w-full">
-            <TabsList className="w-full justify-start h-auto flex-wrap gap-1 bg-transparent p-0 mb-8 border-b border-white/5 rounded-none">
-              <TabsTrigger value="content" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 py-4">Content</TabsTrigger>
-              <TabsTrigger value="media" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 py-4">Media</TabsTrigger>
-              <TabsTrigger value="organize" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 py-4">Organize</TabsTrigger>
-              <TabsTrigger value="value" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 py-4">Value</TabsTrigger>
-              <TabsTrigger value="commercial" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 py-4">Commercial</TabsTrigger>
-              <TabsTrigger value="tech" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 py-4">Stack</TabsTrigger>
-              <TabsTrigger value="seo" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 py-4">SEO</TabsTrigger>
-              <TabsTrigger value="control" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 py-4">System</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="content" className="space-y-6">
-              <div className="grid grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label>Name (Title)</Label>
-                  <Input
-                    value={form.name}
-                    onChange={(e) => {
-                      const name = e.target.value;
-                      setForm((p) => ({
-                        ...p,
-                        name,
-                        slug: editing ? p.slug : slugify(name),
-                        header: p.header || name,
-                      }));
-                    }}
-                    placeholder="E.g. Web Development"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Slug (URL Identifier)</Label>
-                  <Input
-                    value={form.slug}
-                    onChange={(e) => update("slug", slugify(e.target.value))}
-                    placeholder="web-development"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <IconPicker 
-                  value={form.icon || ""} 
-                  onChange={(val) => update("icon", val)} 
-                  label="Service Visual Identity"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Header (Detail Title)</Label>
-                <Input
-                  value={form.header}
-                  onChange={(e) => update("header", e.target.value)}
-                  placeholder="The Ultimate Web Solution"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Caption (Hero Hook)</Label>
-                <Input
-                  value={form.caption}
-                  onChange={(e) => update("caption", e.target.value)}
-                  placeholder="Building for the next generation"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Short Description</Label>
-                <Textarea
-                  rows={2}
-                  value={form.shortDescription}
-                  onChange={(e) => update("shortDescription", e.target.value)}
-                  placeholder="Brief summary for indexing..."
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Full Description (Markdown Compatible)</Label>
-                <Textarea
-                  rows={6}
-                  value={form.fullDescription}
-                  onChange={(e) => update("fullDescription", e.target.value)}
-                  placeholder="Detailed engineering specifications..."
-                />
-              </div>
-            </TabsContent>
-
-            <TabsContent value="media" className="space-y-8">
-              <ImageInput
-                label="Thumbnail (Grid Image)"
-                value={form.thumbnail}
-                onChange={(v) => update("thumbnail", v || "")}
-              />
-              <ImageInput
-                label="Banner (Hero Image)"
-                value={form.bannerImage || ""}
-                onChange={(v) => update("bannerImage", v || "")}
-              />
-              <ImagesInput
-                label="Gallery (Showcase)"
-                value={form.gallery || []}
-                onChange={(v) => update("gallery", v)}
-              />
-            </TabsContent>
-
-            <TabsContent value="organize" className="space-y-6">
-              <div className="space-y-2">
-                <Label>Category</Label>
-                <Select
-                  value={form.category}
-                  onValueChange={(v) => update("category", v as ServiceCategory)}
-                >
-                  <SelectTrigger><SelectValue placeholder="Select Category" /></SelectTrigger>
-                  <SelectContent>
-                    {Object.values(ServiceCategory).map(cat => (
-                      <SelectItem key={cat} value={cat}>{cat.charAt(0).toUpperCase() + cat.slice(1)}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <ListInput
-                label="Tags"
-                value={form.tags || []}
-                onChange={(v) => update("tags", v)}
-                placeholder="tech, react, modern"
-              />
-            </TabsContent>
-
-            <TabsContent value="value" className="space-y-6">
-              <ListInput
-                label="Core Features"
-                value={form.features || []}
-                onChange={(v) => update("features", v)}
-                placeholder="Add a core feature..."
-              />
-              <ListInput
-                label="Concrete Deliverables"
-                value={form.deliverables || []}
-                onChange={(v) => update("deliverables", v)}
-                placeholder="Add a deliverable..."
-              />
-            </TabsContent>
-
-            <TabsContent value="commercial" className="space-y-6">
-              <div className="grid grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label>Pricing Model</Label>
-                  <Select
-                    value={form.pricing?.type || 'custom'}
-                    onValueChange={(v) =>
-                      update("pricing", { ...form.pricing, type: v as PricingType } as any)
-                    }
-                  >
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="fixed">Fixed</SelectItem>
-                      <SelectItem value="starting_from">Starting at</SelectItem>
-                      <SelectItem value="custom">Custom Quote</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Currency</Label>
-                  <Input
-                    value={form.pricing?.currency ?? ""}
-                    onChange={(e) => update("pricing", { ...form.pricing, currency: e.target.value } as any)}
-                    placeholder="USD"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Amount</Label>
-                  <Input
-                    type="number"
-                    value={form.pricing?.amount ?? ""}
-                    onChange={(e) =>
-                      update("pricing", {
-                        ...form.pricing,
-                        amount: e.target.value === "" ? 0 : Number(e.target.value),
-                      } as any)
-                    }
-                    placeholder="1500"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Billing Unit</Label>
-                   <Select
-                    value={form.pricing?.unit || 'project'}
-                    onValueChange={(v) =>
-                      update("pricing", { ...form.pricing, unit: v as PricingUnit } as any)
-                    }
-                  >
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="project">Per Project</SelectItem>
-                      <SelectItem value="month">Per Month</SelectItem>
-                      <SelectItem value="hour">Per Hour</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Est. Timeline</Label>
-                <Input
-                  value={form.estimatedDuration || ""}
-                  onChange={(e) => update("estimatedDuration", e.target.value)}
-                  placeholder="2–4 weeks"
-                />
-              </div>
-
-              <div className="pt-6 border-t border-white/5 space-y-4">
-                <Label>Call to Action (CTA)</Label>
-                <div className="grid grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label className="normal-case">Label</Label>
-                    <Input
-                      value={form.cta?.label || ""}
-                      onChange={(e) => update("cta", { ...form.cta, label: e.target.value } as any)}
-                      placeholder="Discuss Project"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="normal-case">Action</Label>
-                    <Select
-                      value={form.cta?.action || 'contact'}
-                      onValueChange={(v) => update("cta", { ...form.cta, action: v as CtaAction } as any)}
-                    >
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="contact">Contact Page</SelectItem>
-                        <SelectItem value="quote">Request Quote</SelectItem>
-                        <SelectItem value="external">External Link</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="tech" className="space-y-6">
-              <ListInput
-                label="Technologies (Stack)"
-                value={form.technologies || []}
-                onChange={(v) => update("technologies", v)}
-                placeholder="React, TypeScript, AWS..."
-              />
-
-              <div className="space-y-3">
-                <Label>Portfolio Integration</Label>
-                <p className="text-[10px] font-mono text-muted-foreground uppercase opacity-50">Map existing product nodes to this service</p>
-                <div className="flex flex-wrap gap-2">
-                  {products.map((p) => {
-                    const active = (form.relatedProjects || []).includes(p.id);
-                    return (
-                      <button
-                        key={p.id}
-                        type="button"
-                        onClick={() =>
-                          update(
-                            "relatedProjects",
-                            active
-                              ? form.relatedProjects!.filter((id) => id !== p.id)
-                              : [...(form.relatedProjects || []), p.id],
-                          )
-                        }
-                        className={cn(
-                          "px-4 py-2 rounded-xl text-xs font-bold transition-all border",
-                          active
-                            ? "bg-primary border-primary text-white shadow-glow-primary"
-                            : "bg-white/5 border-white/10 text-muted-foreground hover:border-white/20"
-                        )}
-                      >
-                        {p.name}
-                      </button>
-                    );
-                  })}
-                  {products.length === 0 && (
-                    <p className="text-xs text-muted-foreground italic bg-white/5 p-4 rounded-xl w-full">No products available in registry.</p>
-                  )}
-                </div>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="seo" className="space-y-6">
-              <div className="space-y-2">
-                <Label>Meta Title</Label>
-                <Input
-                  value={form.seo?.metaTitle ?? ""}
-                  onChange={(e) => update("seo", { ...form.seo, metaTitle: e.target.value })}
-                  placeholder="Page SEO Title..."
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Meta Description</Label>
-                <Textarea
-                  rows={3}
-                  value={form.seo?.metaDescription ?? ""}
-                  onChange={(e) => update("seo", { ...form.seo, metaDescription: e.target.value })}
-                  placeholder="Brief summary for search engines..."
-                />
-              </div>
-              <ListInput
-                label="SEO Keywords"
-                value={form.seo?.keywords ?? []}
-                onChange={(v) => update("seo", { ...form.seo, keywords: v })}
-                placeholder="kw1, kw2..."
-              />
-            </TabsContent>
-
-            <TabsContent value="control" className="space-y-6">
-               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="flex items-center justify-between p-6 rounded-2xl bg-white/5 border border-white/10 group hover:border-primary/50 transition-all">
-                  <div className="space-y-1">
-                    <Label className="mb-0">Active Status</Label>
-                    <p className="text-[10px] text-muted-foreground font-mono uppercase">Production Visibility</p>
-                  </div>
-                  <Switch
-                    checked={form.isActive}
-                    onCheckedChange={(v) => update("isActive", v)}
-                  />
-                </div>
-                <div className="flex items-center justify-between p-6 rounded-2xl bg-white/5 border border-white/10 group hover:border-primary/50 transition-all">
-                  <div className="space-y-1">
-                    <Label className="mb-0">Featured Node</Label>
-                    <p className="text-[10px] text-muted-foreground font-mono uppercase">Priority Ranking</p>
-                  </div>
-                  <Switch
-                    checked={form.isFeatured || false}
-                    onCheckedChange={(v) => update("isFeatured", v)}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2 max-w-xs">
-                <Label>Node Display Order</Label>
-                <Input
-                  type="number"
-                  value={form.order || 0}
-                  onChange={(e) => update("order", Number(e.target.value) || 0)}
-                  className="font-mono text-center"
-                />
-              </div>
-            </TabsContent>
-          </Tabs>
-
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setOpen(false)} className="rounded-xl">Cancel</Button>
-            <Button onClick={handleSave} className="rounded-xl px-8 shadow-glow-primary">
-              {editing ? "Save Refactor" : "Deploy Node"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };
 
-const emptyProduct = (): Product => ({
-  id: "",
-  name: "",
-  description: "",
-  serviceId: "",
-  icon: "ShoppingBag",
-  imageUrl: "",
-  demoUrl: "",
-  repoUrl: "",
-  tags: [],
-  createdAt: new Date().toISOString(),
-  updatedAt: new Date().toISOString(),
-});
-
 export const AdminProductsPage = () => {
-  const { products, services, addProduct, updateProduct, deleteProduct, reorderProducts } = useAppStore();
+  const { products, services, deleteProduct, reorderProducts } = useAppStore();
   const addToast = useToastStore((state) => state.addToast);
-  const [open, setOpen] = useState(false);
-  const [editing, setEditing] = useState<Product | null>(null);
-  const [form, setForm] = useState<Product>(emptyProduct());
-
-  const update = <K extends keyof Product>(key: K, val: Product[K]) =>
-    setForm((prev) => ({ ...prev, [key]: val }));
+  const navigate = useNavigate();
 
   const openAdd = () => {
-    setEditing(null);
-    setForm(emptyProduct());
-    setOpen(true);
+    navigate('/admin/products/new');
   };
 
   const openEdit = (p: Product) => {
-    setEditing(p);
-    setForm({ ...p });
-    setOpen(true);
-  };
-
-  const handleSave = async () => {
-    if (!form.name.trim()) {
-      addToast("Name is required", "error");
-      return;
-    }
-    const id = editing?.id || Math.random().toString(36).substring(7);
-    const payload: Product = {
-      ...form,
-      id,
-      updatedAt: new Date().toISOString(),
-    };
-
-    try {
-      if (editing) {
-        await updateProduct(payload);
-        addToast("Product updated", "success");
-      } else {
-        await addProduct(payload);
-        addToast("Product registered", "success");
-      }
-      setOpen(false);
-    } catch (error: any) {
-      addToast("Operation failed", "error");
-    }
+    navigate(`/admin/products/edit/${p.id}`);
   };
 
   const handleDelete = async (p: Product) => {
@@ -1756,119 +1260,6 @@ export const AdminProductsPage = () => {
           </TableBody>
         </SortableList>
       </CrudPageShell>
-
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-2xl" onOpenChange={setOpen}>
-          <DialogHeader>
-            <DialogTitle>{editing ? "Edit Product node" : "Register Product node"}</DialogTitle>
-          </DialogHeader>
-
-          <Tabs defaultValue="base" className="w-full">
-            <TabsList className="w-full justify-start h-auto flex-wrap gap-1 bg-transparent p-0 mb-8 border-b border-white/5 rounded-none">
-              <TabsTrigger value="base" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 py-4">Identity</TabsTrigger>
-              <TabsTrigger value="assets" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 py-4">Assets</TabsTrigger>
-              <TabsTrigger value="links" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 py-4">Deployment</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="base" className="space-y-6">
-              <div className="grid grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label>Product Name</Label>
-                  <Input
-                    value={form.name}
-                    onChange={(e) => update("name", e.target.value)}
-                    placeholder="Wise Cloud Dashboard"
-                  />
-                </div>
-                <div className="space-y-4">
-                  <IconPicker 
-                    value={form.icon || ""} 
-                    onChange={(val) => update("icon", val)} 
-                    label="Product Symbol"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Architecture Mapping</Label>
-                <Select
-                  value={form.serviceId}
-                  onValueChange={(v) => update("serviceId", v)}
-                >
-                  <SelectTrigger><SelectValue placeholder="Select Parent Service" /></SelectTrigger>
-                  <SelectContent>
-                    {services.map(s => (
-                      <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Description</Label>
-                <Textarea
-                  rows={4}
-                  value={form.description}
-                  onChange={(e) => update("description", e.target.value)}
-                  placeholder="Full engineering summary..."
-                />
-              </div>
-
-              <ListInput
-                label="Product Tags"
-                value={form.tags || []}
-                onChange={(v) => update("tags", v)}
-                placeholder="react, tailwind, node"
-              />
-            </TabsContent>
-
-            <TabsContent value="assets" className="space-y-6">
-              <ImageInput
-                label="Main Preview Image"
-                value={form.imageUrl || ""}
-                onChange={(v) => update("imageUrl", v || "")}
-              />
-            </TabsContent>
-
-            <TabsContent value="links" className="space-y-6">
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Live Project URL</Label>
-                  <div className="relative">
-                    <Input
-                      value={form.demoUrl || ""}
-                      onChange={(e) => update("demoUrl", e.target.value)}
-                      placeholder="https://example.com"
-                      className="pl-10"
-                    />
-                    <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Repository URL</Label>
-                  <div className="relative">
-                    <Input
-                      value={form.repoUrl || ""}
-                      onChange={(e) => update("repoUrl", e.target.value)}
-                      placeholder="https://github.com/..."
-                      className="pl-10"
-                    />
-                    <Github className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  </div>
-                </div>
-              </div>
-            </TabsContent>
-          </Tabs>
-
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setOpen(false)} className="rounded-xl">Cancel</Button>
-            <Button onClick={handleSave} className="rounded-xl px-8 shadow-glow-primary">
-              {editing ? "Update Registry" : "Initialize Register"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };
@@ -2018,25 +1409,23 @@ export const AdminSkillsPage = () => {
             <DialogTitle>{editing ? "Refactor Skill Node" : "Index Skill Node"}</DialogTitle>
           </DialogHeader>
 
-          <div className="space-y-6 py-4">
-            <div className="space-y-6">
-              <div className="space-y-2">
-                <Label>Skill Name</Label>
-                <Input
-                  value={form.name}
-                  onChange={(e) => update("name", e.target.value)}
-                  placeholder="E.g. TypeScript"
-                />
-              </div>
-              <IconPicker 
-                value={form.icon || ""} 
-                onChange={(val) => update("icon", val)} 
-                label="Capability Node Icon"
-              />
-            </div>
+          <div className="space-y-5 py-4">
+            <InputBlock
+              label="Skill Name"
+              required
+              value={form.name}
+              onChange={(e) => update("name", e.target.value)}
+              placeholder="E.g. TypeScript"
+              startIcon={<Code2 className="w-4 h-4" />}
+            />
 
-            <div className="space-y-2">
-              <Label>Classification</Label>
+            <IconPicker 
+              value={form.icon || ""} 
+              onChange={(val) => update("icon", val)} 
+              label="Capability Node Icon"
+            />
+
+            <FormField label="Classification" required>
               <Select
                 value={form.category}
                 onValueChange={(v) => update("category", v as SkillCategory)}
@@ -2048,26 +1437,29 @@ export const AdminSkillsPage = () => {
                   ))}
                 </SelectContent>
               </Select>
-            </div>
+            </FormField>
 
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <Label>Proficiency Level</Label>
-                <span className="text-xs font-mono font-bold text-primary">{form.level}%</span>
+            <FormField
+              label="Proficiency Level"
+              badge={`${form.level}%`}
+              description="Adjust rating on the engineering stack matrix"
+            >
+              <div className="space-y-3 pt-1">
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={form.level}
+                  onChange={(e) => update("level", Number(e.target.value))}
+                  className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
+                />
+                <div className="flex justify-between text-[10px] text-muted-foreground font-mono">
+                  <span>Beginner (0%)</span>
+                  <span>Proficient (50%)</span>
+                  <span>Mastery (100%)</span>
+                </div>
               </div>
-              <input
-                type="range"
-                min="0"
-                max="100"
-                value={form.level}
-                onChange={(e) => update("level", Number(e.target.value))}
-                className="w-full h-1.5 bg-white/5 rounded-full appearance-none cursor-pointer accent-primary"
-              />
-              <div className="flex justify-between text-[10px] text-muted-foreground font-mono uppercase">
-                <span>Beginner</span>
-                <span>Expert</span>
-              </div>
-            </div>
+            </FormField>
           </div>
 
           <DialogFooter>
@@ -2747,4 +2139,7 @@ export const ContactPage = () => {
 };
 
 export * from './NotFoundPage';
+export * from './AdminMediaPage';
+export * from './AdminServiceEditPage';
+export * from './AdminProductEditPage';
 

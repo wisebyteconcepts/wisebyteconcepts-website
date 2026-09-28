@@ -39,14 +39,14 @@ export const Modal = ({ isOpen, onClose, title, children }: ModalProps) => {
             exit={{ opacity: 0, y: 10 }}
             className="relative w-full max-w-2xl bg-card border border-border shadow-2xl rounded-2xl z-50 overflow-hidden flex flex-col max-h-[90vh]"
           >
-            <div className="flex items-center justify-between p-6 border-b border-border bg-gradient-brand/5">
-              <h3 className="text-xl font-bold text-foreground">{title}</h3>
+            <div className="flex items-center justify-between p-5 sm:p-6 border-b border-border bg-gradient-brand/5 gap-3">
+              <h3 className="text-lg sm:text-xl font-bold text-foreground flex-1 min-w-0 break-words">{title}</h3>
               <button
                 onClick={onClose}
-                className="p-2 hover:bg-secondary rounded-full transition-colors group"
+                className="h-8 w-8 inline-flex items-center justify-center hover:bg-secondary rounded-xl transition-colors group shrink-0 cursor-pointer border border-border/40"
                 aria-label="Close modal"
               >
-                <X className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
+                <X className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
               </button>
             </div>
             <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">

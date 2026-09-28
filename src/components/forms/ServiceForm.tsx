@@ -3,8 +3,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { serviceSchema } from '@/utils/schemas';
 import { Service, ServiceCategory } from '@/types';
-import { FormField, Input, Textarea, Select } from './FormControls';
-import { Plus, Trash2 } from 'lucide-react';
+import { InputBlock, TextareaBlock, SelectBlock, SwitchBlock, Input } from './FormControls';
+import { Plus, Trash2, Sparkles, CheckCircle2 } from 'lucide-react';
 
 type ServiceFormData = z.infer<typeof serviceSchema>;
 
@@ -19,6 +19,8 @@ export const ServiceForm = ({ initialData, onSubmit, isLoading }: ServiceFormPro
     register,
     handleSubmit,
     control,
+    watch,
+    setValue,
     formState: { errors },
   } = useForm<ServiceFormData>({
     resolver: zodResolver(serviceSchema),
@@ -38,6 +40,7 @@ export const ServiceForm = ({ initialData, onSubmit, isLoading }: ServiceFormPro
       order: initialData.order || 0,
     } : {
       isActive: true,
+      isFeatured: false,
       category: ServiceCategory.DEVELOPMENT,
       features: [''],
     },
@@ -48,120 +51,170 @@ export const ServiceForm = ({ initialData, onSubmit, isLoading }: ServiceFormPro
     name: 'features' as never,
   });
 
+  const isActive = watch('isActive');
+  const isFeatured = watch('isFeatured');
+
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-7">
       {/* Basic Registry Info */}
       <section className="space-y-4">
-        <div className="flex items-center gap-2 mb-4">
-          <div className="h-px flex-1 bg-border" />
-          <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest px-2">Registry Configuration</span>
-          <div className="h-px flex-1 bg-border" />
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <FormField label="Service Name" error={errors.name?.message} id="name" required>
-            <Input {...register('name')} id="name" placeholder="e.g. Web Development" disabled={isLoading} />
-          </FormField>
-
-          <FormField label="Slug (URL Segment)" error={errors.slug?.message} id="slug" required>
-            <Input {...register('slug')} id="slug" placeholder="e.g. web-development" disabled={isLoading} />
-          </FormField>
+        <div className="flex items-center gap-3">
+          <div className="h-px flex-1 bg-border/60" />
+          <span className="text-[11px] font-mono text-muted-foreground uppercase tracking-widest px-1">
+            Registry Configuration
+          </span>
+          <div className="h-px flex-1 bg-border/60" />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <FormField label="Category" error={errors.category?.message} id="category" required>
-            <Select {...register('category')} id="category" disabled={isLoading}>
-              {Object.values(ServiceCategory).map((cat) => (
-                <option key={cat} value={cat}>
-                  {cat.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ')}
-                </option>
-              ))}
-            </Select>
-          </FormField>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <InputBlock
+            label="Service Name"
+            error={errors.name?.message}
+            required
+            placeholder="e.g. Web Development"
+            disabled={isLoading}
+            {...register('name')}
+          />
 
-          <FormField label="Display Header" error={errors.header?.message} id="header" required>
-            <Input {...register('header')} id="header" placeholder="Main landing header" disabled={isLoading} />
-          </FormField>
+          <InputBlock
+            label="Slug (URL Segment)"
+            error={errors.slug?.message}
+            required
+            placeholder="e.g. web-development"
+            disabled={isLoading}
+            {...register('slug')}
+          />
+        </div>
 
-          <FormField label="Tagline" error={errors.caption?.message} id="caption" required>
-            <Input {...register('caption')} id="caption" placeholder="Short thematic tagline" disabled={isLoading} />
-          </FormField>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          <SelectBlock
+            label="Category Classification"
+            error={errors.category?.message}
+            required
+            disabled={isLoading}
+            {...register('category')}
+          >
+            {Object.values(ServiceCategory).map((cat) => (
+              <option key={cat} value={cat}>
+                {cat.split('_').map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ')}
+              </option>
+            ))}
+          </SelectBlock>
+
+          <InputBlock
+            label="Display Header"
+            error={errors.header?.message}
+            required
+            placeholder="Main landing headline"
+            disabled={isLoading}
+            {...register('header')}
+          />
+
+          <InputBlock
+            label="Tagline / Hero Hook"
+            error={errors.caption?.message}
+            required
+            placeholder="Short thematic tagline"
+            disabled={isLoading}
+            {...register('caption')}
+          />
         </div>
       </section>
 
       {/* Content Specification */}
       <section className="space-y-4">
-        <div className="flex items-center gap-2 mb-4">
-          <div className="h-px flex-1 bg-border" />
-          <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest px-2">Content Specification</span>
-          <div className="h-px flex-1 bg-border" />
+        <div className="flex items-center gap-3">
+          <div className="h-px flex-1 bg-border/60" />
+          <span className="text-[11px] font-mono text-muted-foreground uppercase tracking-widest px-1">
+            Content Specification
+          </span>
+          <div className="h-px flex-1 bg-border/60" />
         </div>
 
-        <FormField label="Short Description (Registry Card)" error={errors.shortDescription?.message} id="shortDescription" required>
-          <Input {...register('shortDescription')} id="shortDescription" placeholder="1-2 line module summary" disabled={isLoading} />
-        </FormField>
+        <InputBlock
+          label="Short Description"
+          description="Concise 1-2 line summary displayed in registry cards and search results."
+          error={errors.shortDescription?.message}
+          required
+          placeholder="1-2 line module summary..."
+          disabled={isLoading}
+          {...register('shortDescription')}
+        />
 
-        <FormField label="Full Technical Description" error={errors.fullDescription?.message} id="fullDescription" required>
-          <Textarea 
-            {...register('fullDescription')} 
-            id="fullDescription" 
-            placeholder="Detailed engineering specification and process explanation..." 
-            className="min-h-[150px]"
-            disabled={isLoading} 
-          />
-        </FormField>
+        <TextareaBlock
+          label="Full Technical Description"
+          description="Comprehensive engineering specification, methodologies, and technical stack details."
+          error={errors.fullDescription?.message}
+          required
+          placeholder="Detailed engineering specification and process explanation..."
+          className="min-h-[140px]"
+          disabled={isLoading}
+          {...register('fullDescription')}
+        />
       </section>
 
       {/* Visual Assets */}
       <section className="space-y-4">
-        <div className="flex items-center gap-2 mb-4">
-          <div className="h-px flex-1 bg-border" />
-          <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest px-2">Visual Mapping</span>
-          <div className="h-px flex-1 bg-border" />
+        <div className="flex items-center gap-3">
+          <div className="h-px flex-1 bg-border/60" />
+          <span className="text-[11px] font-mono text-muted-foreground uppercase tracking-widest px-1">
+            Visual Mapping
+          </span>
+          <div className="h-px flex-1 bg-border/60" />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <FormField label="Thumbnail Artifact URL" error={errors.thumbnail?.message} id="thumbnail" required>
-            <Input {...register('thumbnail')} id="thumbnail" placeholder="https://..." disabled={isLoading} />
-          </FormField>
-          
-          <FormField label="Hero Banner Asset URL" error={errors.bannerImage?.message} id="bannerImage">
-            <Input {...register('bannerImage')} id="bannerImage" placeholder="https://..." disabled={isLoading} />
-          </FormField>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <InputBlock
+            label="Thumbnail Asset URL"
+            error={errors.thumbnail?.message}
+            required
+            placeholder="https://..."
+            disabled={isLoading}
+            {...register('thumbnail')}
+          />
+
+          <InputBlock
+            label="Hero Banner Asset URL"
+            error={errors.bannerImage?.message}
+            placeholder="https://..."
+            disabled={isLoading}
+            {...register('bannerImage')}
+          />
         </div>
       </section>
 
       {/* Capabilities Array */}
       <section className="space-y-4">
-        <div className="flex items-center justify-between mb-2">
-          <label className="text-[10px] font-mono text-muted-foreground uppercase tracking-[0.2em] flex items-center gap-2">
-            <div className="w-1 h-1 bg-primary rounded-full animate-pulse" />
-            Core Capabilities List
-          </label>
+        <div className="flex items-center justify-between">
+          <div>
+            <span className="text-xs font-semibold text-foreground/90 flex items-center gap-2">
+              <span className="w-1.5 h-1.5 bg-primary rounded-full animate-pulse" />
+              Core Capabilities List
+            </span>
+            <p className="text-[11px] text-muted-foreground mt-0.5">Key deliverable items and skill milestones included.</p>
+          </div>
           <button
             type="button"
             onClick={() => append('')}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 text-primary hover:bg-primary/20 text-[10px] font-bold rounded-full transition-all uppercase tracking-widest"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 text-primary hover:bg-primary/20 text-xs font-bold rounded-lg transition-all"
           >
-            <Plus className="w-3 h-3" /> Add_Capability
+            <Plus className="w-3.5 h-3.5" /> Add Capability
           </button>
         </div>
-        
-        <div className="space-y-3">
+
+        <div className="space-y-2.5">
           {fields.map((field, index) => (
-            <div key={field.id} className="flex gap-3 animate-fade-in group">
-              <div className="flex-1">
-                <Input
-                  {...register(`features.${index}` as const)}
-                  placeholder="Capability descriptor..."
-                  disabled={isLoading}
-                  className="bg-muted/10 border-border focus:bg-muted/20"
-                />
-              </div>
+            <div key={field.id} className="flex gap-2 items-center">
+              <Input
+                {...register(`features.${index}` as const)}
+                placeholder={`Capability node #${index + 1}...`}
+                disabled={isLoading}
+                className="bg-muted/30"
+              />
               <button
                 type="button"
                 onClick={() => remove(index)}
-                className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-all"
+                className="p-2.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-xl transition-all shrink-0"
                 disabled={isLoading || fields.length === 1}
                 title="Remove node"
               >
@@ -169,45 +222,45 @@ export const ServiceForm = ({ initialData, onSubmit, isLoading }: ServiceFormPro
               </button>
             </div>
           ))}
-          {errors.features && <p className="text-[10px] text-destructive font-mono">{errors.features.message}</p>}
+          {errors.features && (
+            <p className="text-[11px] text-destructive font-medium">{errors.features.message}</p>
+          )}
         </div>
       </section>
 
       {/* Status Matrix */}
-      <div className="flex items-center gap-8 p-6 bg-muted/30 rounded-2xl border border-border/50">
-        <label className="flex items-center gap-3 cursor-pointer group">
-          <div className="relative flex items-center">
-            <input type="checkbox" {...register('isActive')} className="peer sr-only" />
-            <div className="w-4 h-4 border border-border rounded transition-all peer-checked:bg-primary peer-checked:border-primary flex items-center justify-center">
-              <div className="w-1.5 h-1.5 bg-white rounded-full opacity-0 peer-checked:opacity-100 transition-opacity" />
-            </div>
-          </div>
-          <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground group-hover:text-foreground transition-colors">Node_Active</span>
-        </label>
-        
-        <label className="flex items-center gap-3 cursor-pointer group">
-          <div className="relative flex items-center">
-            <input type="checkbox" {...register('isFeatured')} className="peer sr-only" />
-            <div className="w-4 h-4 border border-border rounded transition-all peer-checked:bg-primary peer-checked:border-primary flex items-center justify-center">
-              <div className="w-1.5 h-1.5 bg-white rounded-full opacity-0 peer-checked:opacity-100 transition-opacity" />
-            </div>
-          </div>
-          <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground group-hover:text-foreground transition-colors">Promote_Featured</span>
-        </label>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <SwitchBlock
+          label="Production Visibility"
+          description="Make service node accessible on public facing registry."
+          checked={Boolean(isActive)}
+          onCheckedChange={(val) => setValue('isActive', val)}
+          icon={<CheckCircle2 className="w-4 h-4" />}
+          disabled={isLoading}
+        />
+
+        <SwitchBlock
+          label="Featured Promotion"
+          description="Highlight this service on the home hero and top lists."
+          checked={Boolean(isFeatured)}
+          onCheckedChange={(val) => setValue('isFeatured', val)}
+          icon={<Sparkles className="w-4 h-4" />}
+          disabled={isLoading}
+        />
       </div>
 
-      <div className="pt-4 sticky bottom-0 bg-background/95 backdrop-blur-md pb-2 -mx-2 px-2 border-t border-border mt-12 z-20">
+      <div className="pt-5 sticky bottom-0 bg-background/95 backdrop-blur-md pb-2 -mx-2 px-2 border-t border-border mt-8 z-20">
         <button
           type="submit"
           disabled={isLoading}
-          className="w-full h-14 bg-primary text-primary-foreground font-bold rounded-xl shadow-elegant hover:shadow-glow transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+          className="w-full h-12 bg-primary text-primary-foreground font-bold rounded-xl shadow-elegant hover:shadow-glow transition-all disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
         >
           {isLoading ? (
             <div className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
           ) : (
-            <Plus className="w-5 h-5" />
+            <Plus className="w-4 h-4" />
           )}
-          {initialData ? 'Update Technical Service' : 'Initialize Service Module'}
+          <span>{initialData ? 'Update Technical Service' : 'Initialize Service Module'}</span>
         </button>
       </div>
     </form>

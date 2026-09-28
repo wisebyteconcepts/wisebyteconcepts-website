@@ -182,8 +182,8 @@ export const IconPicker = ({
         onOpenChange={onOpenChange}
       >
         {/* Minimal Header - Aligned at 52px height */}
-        <div className="px-5 h-[52px] border-b border-border/5 bg-muted/20 flex items-center shrink-0">
-          <h2 className="text-xs font-bold tracking-tight text-foreground uppercase opacity-80">Select Icon</h2>
+        <div className="px-5 pr-14 h-[52px] border-b border-border/5 bg-muted/20 flex items-center shrink-0">
+          <h2 className="text-xs font-bold tracking-tight text-foreground uppercase opacity-80 truncate">Select Icon</h2>
         </div>
 
         {/* Tab Switcher - Single Line, Minimal Padding */}

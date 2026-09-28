@@ -18,8 +18,11 @@ const SkillsPage = lazy(() => import('./pages').then(m => ({ default: m.SkillsPa
 const AdminLoginPage = lazy(() => import('./pages').then(m => ({ default: m.AdminLoginPage })));
 const AdminDashboardPage = lazy(() => import('./pages').then(m => ({ default: m.AdminDashboardPage })));
 const AdminServicesPage = lazy(() => import('./pages').then(m => ({ default: m.AdminServicesPage })));
+const AdminServiceEditPage = lazy(() => import('./pages').then(m => ({ default: m.AdminServiceEditPage })));
 const AdminProductsPage = lazy(() => import('./pages').then(m => ({ default: m.AdminProductsPage })));
+const AdminProductEditPage = lazy(() => import('./pages').then(m => ({ default: m.AdminProductEditPage })));
 const AdminSkillsPage = lazy(() => import('./pages').then(m => ({ default: m.AdminSkillsPage })));
+const AdminMediaPage = lazy(() => import('./pages').then(m => ({ default: m.AdminMediaPage })));
 const ServiceDetailPage = lazy(() => import('./pages').then(m => ({ default: m.ServiceDetailPage })));
 const ProductDetailPage = lazy(() => import('./pages').then(m => ({ default: m.ProductDetailPage })));
 const ContactPage = lazy(() => import('./pages').then(m => ({ default: m.ContactPage })));
@@ -73,8 +76,15 @@ export default function App() {
             <Route path="/admin" element={<ProtectedRoute />}>
               <Route element={<AdminLayout />}>
                 <Route path="dashboard" element={<AdminDashboardPage />} />
+                <Route path="media" element={<AdminMediaPage />} />
                 <Route path="services" element={<AdminServicesPage />} />
+                <Route path="services/new" element={<AdminServiceEditPage />} />
+                <Route path="services/edit/:id" element={<AdminServiceEditPage />} />
+                <Route path="services/:id/edit" element={<AdminServiceEditPage />} />
                 <Route path="products" element={<AdminProductsPage />} />
+                <Route path="products/new" element={<AdminProductEditPage />} />
+                <Route path="products/edit/:id" element={<AdminProductEditPage />} />
+                <Route path="products/:id/edit" element={<AdminProductEditPage />} />
                 <Route path="skills" element={<AdminSkillsPage />} />
                 <Route index element={<Navigate to="/admin/dashboard" replace />} />
                 <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />

@@ -1,21 +1,32 @@
-import { Service, Product, Skill } from '@/types';
+import { Service, Product, Skill, MediaItem, MediaFolder, MediaCollection, MediaAuditLog } from '@/types';
 import { StorageService } from './storageService';
+import { DEFAULT_FOLDERS, DEFAULT_MEDIA_ITEMS, DEFAULT_COLLECTIONS } from '@/data/defaultMedia';
 
 const KEYS = {
   SERVICES: 'wbc_services',
   PRODUCTS: 'wbc_products',
   SKILLS: 'wbc_skills',
+  MEDIA: 'wbc_media',
+  FOLDERS: 'wbc_media_folders',
+  COLLECTIONS: 'wbc_media_collections',
+  AUDIT_LOGS: 'wbc_media_audit_logs',
 } as const;
 
 export class LocalStorageAdapter implements StorageService {
-  private getItem<T>(key: string): T[] {
+  private getItem<T>(key: string, defaultData: T[] = []): T[] {
     const data = localStorage.getItem(key);
-    if (!data) return [];
+    if (!data) {
+      if (defaultData.length > 0) {
+        this.setItem(key, defaultData);
+        return defaultData;
+      }
+      return [];
+    }
     try {
       return JSON.parse(data);
     } catch (e) {
       console.error(`[LocalStorageAdapter] Error parsing key: ${key}`, e);
-      return [];
+      return defaultData;
     }
   }
 
@@ -108,10 +119,110 @@ export class LocalStorageAdapter implements StorageService {
     this.setItem(KEYS.SKILLS, filtered);
   }
 
+  // Media Gallery Items
+  async getMediaItems(): Promise<MediaItem[]> {
+    return this.getItem<MediaItem>(KEYS.MEDIA, DEFAULT_MEDIA_ITEMS);
+  }
+
+  async createMediaItem(item: MediaItem): Promise<MediaItem> {
+    const items = this.getItem<MediaItem>(KEYS.MEDIA, DEFAULT_MEDIA_ITEMS);
+    items.unshift(item);
+    this.setItem(KEYS.MEDIA, items);
+    return item;
+  }
+
+  async updateMediaItem(item: MediaItem): Promise<MediaItem> {
+    const items = this.getItem<MediaItem>(KEYS.MEDIA, DEFAULT_MEDIA_ITEMS);
+    const index = items.findIndex(m => m.id === item.id);
+    if (index !== -1) {
+      items[index] = item;
+      this.setItem(KEYS.MEDIA, items);
+    }
+    return item;
+  }
+
+  async deleteMediaItem(id: string): Promise<void> {
+    const items = this.getItem<MediaItem>(KEYS.MEDIA, DEFAULT_MEDIA_ITEMS);
+    const filtered = items.filter(m => m.id !== id);
+    this.setItem(KEYS.MEDIA, filtered);
+  }
+
+  // Media Folders
+  async getMediaFolders(): Promise<MediaFolder[]> {
+    return this.getItem<MediaFolder>(KEYS.FOLDERS, DEFAULT_FOLDERS);
+  }
+
+  async createMediaFolder(folder: MediaFolder): Promise<MediaFolder> {
+    const folders = this.getItem<MediaFolder>(KEYS.FOLDERS, DEFAULT_FOLDERS);
+    folders.push(folder);
+    this.setItem(KEYS.FOLDERS, folders);
+    return folder;
+  }
+
+  async updateMediaFolder(folder: MediaFolder): Promise<MediaFolder> {
+    const folders = this.getItem<MediaFolder>(KEYS.FOLDERS, DEFAULT_FOLDERS);
+    const index = folders.findIndex(f => f.id === folder.id);
+    if (index !== -1) {
+      folders[index] = folder;
+      this.setItem(KEYS.FOLDERS, folders);
+    }
+    return folder;
+  }
+
+  async deleteMediaFolder(id: string): Promise<void> {
+    const folders = this.getItem<MediaFolder>(KEYS.FOLDERS, DEFAULT_FOLDERS);
+    const filtered = folders.filter(f => f.id !== id);
+    this.setItem(KEYS.FOLDERS, filtered);
+  }
+
+  // Media Collections
+  async getMediaCollections(): Promise<MediaCollection[]> {
+    return this.getItem<MediaCollection>(KEYS.COLLECTIONS, DEFAULT_COLLECTIONS);
+  }
+
+  async createMediaCollection(collection: MediaCollection): Promise<MediaCollection> {
+    const collections = this.getItem<MediaCollection>(KEYS.COLLECTIONS, DEFAULT_COLLECTIONS);
+    collections.push(collection);
+    this.setItem(KEYS.COLLECTIONS, collections);
+    return collection;
+  }
+
+  async updateMediaCollection(collection: MediaCollection): Promise<MediaCollection> {
+    const collections = this.getItem<MediaCollection>(KEYS.COLLECTIONS, DEFAULT_COLLECTIONS);
+    const index = collections.findIndex(c => c.id === collection.id);
+    if (index !== -1) {
+      collections[index] = collection;
+      this.setItem(KEYS.COLLECTIONS, collections);
+    }
+    return collection;
+  }
+
+  async deleteMediaCollection(id: string): Promise<void> {
+    const collections = this.getItem<MediaCollection>(KEYS.COLLECTIONS, DEFAULT_COLLECTIONS);
+    const filtered = collections.filter(c => c.id !== id);
+    this.setItem(KEYS.COLLECTIONS, filtered);
+  }
+
+  // Media Audit Logs
+  async getMediaAuditLogs(): Promise<MediaAuditLog[]> {
+    return this.getItem<MediaAuditLog>(KEYS.AUDIT_LOGS, []);
+  }
+
+  async createMediaAuditLog(log: MediaAuditLog): Promise<MediaAuditLog> {
+    const logs = this.getItem<MediaAuditLog>(KEYS.AUDIT_LOGS, []);
+    logs.unshift(log);
+    // keep max 500 audit logs
+    if (logs.length > 500) logs.pop();
+    this.setItem(KEYS.AUDIT_LOGS, logs);
+    return log;
+  }
+
   async batchUpdate(collectionName: string, updates: any[]): Promise<void> {
-    const key = collectionName === 'services' ? KEYS.SERVICES : 
-                collectionName === 'products' ? KEYS.PRODUCTS : 
-                collectionName === 'skills' ? KEYS.SKILLS : null;
+    let key: string | null = null;
+    if (collectionName === 'services') key = KEYS.SERVICES;
+    else if (collectionName === 'products') key = KEYS.PRODUCTS;
+    else if (collectionName === 'skills') key = KEYS.SKILLS;
+    else if (collectionName === 'media') key = KEYS.MEDIA;
     
     if (!key) return;
 

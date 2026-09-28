@@ -3,8 +3,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { skillSchema } from '@/utils/schemas';
 import { Skill, SkillCategory } from '@/types';
-import { FormField, Input, Select } from './FormControls';
-import { Plus } from 'lucide-react';
+import { InputBlock, SelectBlock, FormField } from './FormControls';
+import { Plus, Code2, Sparkles } from 'lucide-react';
 
 type SkillFormData = z.infer<typeof skillSchema>;
 
@@ -18,6 +18,8 @@ export const SkillForm = ({ initialData, onSubmit, isLoading }: SkillFormProps) 
   const {
     register,
     handleSubmit,
+    watch,
+    setValue,
     formState: { errors },
   } = useForm<SkillFormData>({
     resolver: zodResolver(skillSchema),
@@ -27,76 +29,97 @@ export const SkillForm = ({ initialData, onSubmit, isLoading }: SkillFormProps) 
       level: initialData.level,
       icon: initialData.icon,
     } : {
-      level: 0,
+      level: 80,
       category: SkillCategory.FRONTEND,
     },
   });
 
+  const levelValue = watch('level') ?? 80;
+
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
-      <div className="space-y-6">
-        <div className="flex items-center gap-2 mb-4">
-          <div className="h-px flex-1 bg-border" />
-          <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest px-2">Skill Profile Mapping</span>
-          <div className="h-px flex-1 bg-border" />
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <div className="space-y-5">
+        <div className="flex items-center gap-3">
+          <div className="h-px flex-1 bg-border/60" />
+          <span className="text-[11px] font-mono text-muted-foreground uppercase tracking-widest px-1">
+            Skill Profile Mapping
+          </span>
+          <div className="h-px flex-1 bg-border/60" />
         </div>
 
-        <FormField label="Capability Name" error={errors.name?.message} id="name" required>
-          <Input {...register('name')} id="name" placeholder="e.g. React.js" disabled={isLoading} />
-        </FormField>
+        <InputBlock
+          label="Capability / Skill Name"
+          error={errors.name?.message}
+          required
+          startIcon={<Code2 />}
+          placeholder="e.g. React.js, TypeScript, Docker"
+          disabled={isLoading}
+          {...register('name')}
+        />
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <FormField label="Skill Matrix Category" error={errors.category?.message} id="category" required>
-            <Select {...register('category')} id="category" disabled={isLoading}>
-              {Object.values(SkillCategory).map((cat) => (
-                <option key={cat} value={cat}>
-                  {cat.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ')}
-                </option>
-              ))}
-            </Select>
-          </FormField>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <SelectBlock
+            label="Skill Category"
+            error={errors.category?.message}
+            required
+            disabled={isLoading}
+            {...register('category')}
+          >
+            {Object.values(SkillCategory).map((cat) => (
+              <option key={cat} value={cat}>
+                {cat.split('_').map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ')}
+              </option>
+            ))}
+          </SelectBlock>
 
-          <FormField label="Proficiency Level (0-100)" error={errors.level?.message} id="level" required>
-            <div className="relative">
-              <Input 
-                {...register('level', { valueAsNumber: true })} 
-                id="level" 
-                type="number" 
-                min="0" 
-                max="100" 
-                disabled={isLoading} 
-                className="pr-12"
+          <FormField
+            label="Proficiency Level"
+            badge={`${levelValue}%`}
+            error={errors.level?.message}
+            description="Adjust proficiency rating on the capability matrix."
+          >
+            <div className="space-y-3 pt-1">
+              <input
+                type="range"
+                min="0"
+                max="100"
+                value={levelValue}
+                onChange={(e) => setValue('level', Number(e.target.value))}
+                disabled={isLoading}
+                className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
               />
-              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-mono text-muted-foreground">%</span>
+              <div className="flex justify-between text-[10px] text-muted-foreground font-mono">
+                <span>0% Beginner</span>
+                <span>50% Intermediate</span>
+                <span>100% Expert</span>
+              </div>
             </div>
           </FormField>
         </div>
 
-        <FormField label="Asset Vector / Icon Identifier" error={errors.icon?.message} id="icon">
-          <Input 
-            {...register('icon')} 
-            id="icon" 
-            placeholder="Lucide class identifier or artifact URL..." 
-            disabled={isLoading} 
-          />
-          <p className="text-[9px] font-mono text-muted-foreground mt-1 uppercase tracking-tighter opacity-70">
-            Accepts: Lucide identifier (e.g. "code") or direct URL.
-          </p>
-        </FormField>
+        <InputBlock
+          label="Vector Icon Identifier or URL"
+          description='Accepts Lucide icon name (e.g. "code", "database", "palette") or direct image URL.'
+          error={errors.icon?.message}
+          startIcon={<Sparkles />}
+          placeholder="e.g. Code, Database, or https://..."
+          disabled={isLoading}
+          {...register('icon')}
+        />
       </div>
 
-      <div className="pt-6 border-t border-border mt-8">
+      <div className="pt-5 border-t border-border mt-8">
         <button
           type="submit"
           disabled={isLoading}
-          className="w-full h-14 bg-primary text-primary-foreground font-bold rounded-xl shadow-elegant hover:shadow-glow transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+          className="w-full h-12 bg-primary text-primary-foreground font-bold rounded-xl shadow-elegant hover:shadow-glow transition-all disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
         >
           {isLoading ? (
             <div className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
           ) : (
-            <Plus className="w-5 h-5" />
+            <Plus className="w-4 h-4" />
           )}
-          {initialData ? 'Sync Capability Profile' : 'Commit Skill Profile'}
+          <span>{initialData ? 'Sync Capability Profile' : 'Commit Skill Profile'}</span>
         </button>
       </div>
     </form>

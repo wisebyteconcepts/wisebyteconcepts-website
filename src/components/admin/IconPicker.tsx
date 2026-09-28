@@ -2,9 +2,9 @@ import React, { useState } from 'react';
 import * as LucideIcons from 'lucide-react';
 import * as RiIcons from 'react-icons/ri';
 import * as HiIcons from 'react-icons/hi2';
-import { X, Grid3x3 } from 'lucide-react';
+import { X, Grid3x3, Sparkles } from 'lucide-react';
 import { Button } from '@/components/Button';
-import { Label } from '@/components/ui/Label';
+import { FormLabel } from '@/components/forms/FormControls';
 import { cn } from '@/lib/utils';
 import { ImageInput } from './ImageInput';
 import { IconPicker as UniversalIconPicker } from '@/components/IconPicker';
@@ -44,59 +44,64 @@ export const IconPicker: React.FC<IconPickerProps> = ({ value, onChange, label =
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2.5 w-full">
       <div className="flex items-center justify-between">
-        <Label className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">{label}</Label>
-        <div className="flex gap-2">
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className={cn("h-7 px-3 text-[10px] uppercase font-bold", mode === 'library' && "bg-muted text-primary")}
+        <FormLabel className="text-xs font-semibold">{label}</FormLabel>
+        <div className="flex gap-1.5 p-0.5 rounded-lg bg-muted/50 border border-border/50">
+          <button 
+            type="button"
+            className={cn(
+              "px-2.5 py-1 text-[11px] font-semibold rounded-md transition-all cursor-pointer",
+              mode === 'library' ? "bg-background text-foreground shadow-xs font-bold" : "text-muted-foreground hover:text-foreground"
+            )}
             onClick={() => setMode('library')}
           >
             Library
-          </Button>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className={cn("h-7 px-3 text-[10px] uppercase font-bold", mode === 'url' && "bg-muted text-primary")}
+          </button>
+          <button 
+            type="button"
+            className={cn(
+              "px-2.5 py-1 text-[11px] font-semibold rounded-md transition-all cursor-pointer",
+              mode === 'url' ? "bg-background text-foreground shadow-xs font-bold" : "text-muted-foreground hover:text-foreground"
+            )}
             onClick={() => setMode('url')}
           >
             Custom
-          </Button>
+          </button>
         </div>
       </div>
 
       <div className={cn(
-        "p-4 rounded-2xl border transition-all relative overflow-hidden group/picker",
-        mode === 'library' ? "bg-white/5 border-white/10" : "bg-muted/30 border-dashed border-border"
+        "p-3.5 rounded-xl border transition-all relative overflow-hidden group/picker shadow-xs",
+        mode === 'library' ? "bg-background/80 dark:bg-zinc-950/70 border-input" : "bg-muted/20 border-dashed border-input"
       )}>
         <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover/picker:opacity-100 transition-opacity pointer-events-none" />
         
-        <div className="flex items-center gap-4 relative z-10">
-          <div className="w-14 h-14 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0 text-primary shadow-glow-sm">
-            {value ? renderPreview(value, "w-7 h-7") : <div className="w-7 h-7 rounded-md border border-dashed border-white/20" />}
+        <div className="flex items-center gap-3.5 relative z-10">
+          <div className="w-12 h-12 rounded-xl bg-muted/60 border border-border/60 flex items-center justify-center shrink-0 text-primary shadow-xs">
+            {value ? renderPreview(value, "w-6 h-6") : <Sparkles className="w-5 h-5 text-muted-foreground/40" />}
           </div>
-          <div className="flex-grow">
-            <p className="text-xs font-bold truncate max-w-[200px] text-foreground">
-              {value && !isUrl ? value : isUrl ? "Custom Artifact" : "No icon selected"}
+          <div className="flex-grow min-w-0">
+            <p className="text-xs font-semibold truncate text-foreground">
+              {value && !isUrl ? value : isUrl ? "Custom Asset Vector" : "No icon selected"}
             </p>
-            <p className="text-[10px] text-muted-foreground font-mono uppercase tracking-tighter">
-              {isUrl ? "External Resource" : "System Node Library"}
+            <p className="text-[10px] text-muted-foreground font-mono">
+              {isUrl ? "External Resource URL" : "Built-in System Icons"}
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             {value && (
-              <Button variant="ghost" size="icon" onClick={() => onChange('')} className="shrink-0 h-8 w-8 hover:text-destructive">
+              <Button variant="ghost" size="icon" onClick={() => onChange('')} className="shrink-0 h-8 w-8 hover:text-destructive rounded-lg">
                 <X className="h-4 w-4" />
               </Button>
             )}
             {mode === 'library' && (
               <Button 
+                type="button"
                 onClick={() => setIsPickerOpen(true)}
-                className="h-9 px-4 rounded-xl gap-2 font-bold text-xs uppercase"
+                className="h-8 px-3 rounded-lg gap-1.5 font-semibold text-xs shadow-xs"
               >
-                <Grid3x3 className="w-4 h-4" />
+                <Grid3x3 className="w-3.5 h-3.5" />
                 Browse
               </Button>
             )}
@@ -104,7 +109,7 @@ export const IconPicker: React.FC<IconPickerProps> = ({ value, onChange, label =
         </div>
 
         {mode === 'url' && (
-          <div className="mt-6 pt-6 border-t border-white/5">
+          <div className="mt-4 pt-4 border-t border-border/50">
             <ImageInput 
               label="Icon URL or Data URI"
               value={isUrl ? (value || null) : null}

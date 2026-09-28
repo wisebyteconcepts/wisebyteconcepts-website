@@ -62,5 +62,28 @@ service cloud.firestore {
       allow read: if true;
       allow create, update, delete: if isAdmin();
     }
+
+    // Unified Media Gallery collection
+    match /media/{mediaId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Media Folders collection
+    match /mediaFolders/{folderId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Media Collections
+    match /mediaCollections/{collectionId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Media Audit Logs (Admin only)
+    match /mediaAuditLogs/{logId} {
+      allow read, create: if isAdmin();
+    }
   }
 }

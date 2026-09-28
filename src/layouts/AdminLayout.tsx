@@ -1,8 +1,9 @@
 import { Link, useLocation, useNavigate, Outlet } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
-import { LayoutDashboard, ShoppingBag, Briefcase, Code, LogOut, Terminal, ExternalLink } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag, Briefcase, Code, LogOut, Terminal, ExternalLink, Image as ImageIcon } from 'lucide-react';
 import { GlowOrb, Button } from '@/components';
 import { motion, AnimatePresence } from 'motion/react';
+import { cn } from '@/lib/utils';
 
 export const AdminLayout = () => {
   const location = useLocation();
@@ -20,6 +21,8 @@ export const AdminLayout = () => {
     { name: 'Products', path: '/admin/products', icon: ShoppingBag },
     { name: 'Skills', path: '/admin/skills', icon: Code },
   ];
+
+  const isMediaActive = location.pathname === '/admin/media' || location.pathname.startsWith('/admin/media');
 
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground selection:bg-primary/30">
@@ -58,54 +61,73 @@ export const AdminLayout = () => {
         </div>
       </header>
 
-      <main className="flex-1 container mx-auto px-6 grid grid-cols-12 gap-8 pt-28 pb-12">
-        {/* Sidebar */}
-        <aside className="col-span-12 lg:col-span-3 flex flex-col gap-6">
-          <div className="glass rounded-2xl p-6 border-border/50">
-            <h2 className="text-[10px] font-bold text-primary mb-4 uppercase tracking-[0.2em] flex items-center gap-2 font-mono">
-              <Terminal className="w-3 h-3" /> System Control
-            </h2>
-            <nav className="flex flex-col gap-2">
-              {navItems.map((item) => {
-                const active = location.pathname === item.path;
-                return (
-                  <Link
-                    key={item.path}
-                    to={item.path}
-                    className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
-                      active 
-                        ? 'bg-primary text-primary-foreground shadow-glow' 
-                        : 'text-muted-foreground hover:bg-primary/5 hover:text-foreground'
-                    }`}
-                  >
-                    <item.icon className="w-4 h-4" />
-                    <span className="text-sm font-medium">{item.name}</span>
-                  </Link>
-                );
-              })}
-            </nav>
-          </div>
+      <main className="flex-1 container mx-auto px-4 sm:px-6 pt-24 pb-12 flex flex-col gap-6">
+        {/* Top Navigation Tabs Bar */}
+        <aside className="w-full flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-2 rounded-2xl glass border border-border/50 backdrop-blur-md">
+          <nav
+            role="tablist"
+            aria-label="Admin Navigation Tabs"
+            className="inline-flex h-11 max-h-11 items-center gap-1.5 p-1 rounded-xl bg-muted/80 text-muted-foreground border border-border/40 shadow-inner overflow-x-auto overflow-y-hidden scrollbar-none w-full sm:w-auto shrink-0"
+          >
+            {navItems.map((item) => {
+              const active = location.pathname === item.path || (item.path !== '/admin/dashboard' && location.pathname.startsWith(item.path));
+              return (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  role="tab"
+                  aria-selected={active}
+                  data-state={active ? 'active' : 'inactive'}
+                  className={cn(
+                    "inline-flex h-9 items-center gap-2.5 whitespace-nowrap rounded-lg px-3.5 text-xs sm:text-sm font-medium ring-offset-background transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 shrink-0 select-none",
+                    active
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:bg-background/40 hover:text-foreground"
+                  )}
+                >
+                  <item.icon className={cn("w-4 h-4 shrink-0", active ? "text-primary" : "text-muted-foreground")} />
+                  <span>{item.name}</span>
+                </Link>
+              );
+            })}
+          </nav>
 
-          <div className="glass rounded-2xl p-6 border-border/50 mt-auto">
-            <div className="space-y-3">
-               <div>
-                 <p className="text-[10px] font-mono text-muted-foreground uppercase mb-1">Session Identity</p>
-                 <p className="text-xs font-mono text-foreground/80">{user?.email}</p>
-               </div>
-               <div className="pt-4 border-t border-border/50">
-                 <p className="text-[10px] font-mono text-muted-foreground uppercase mb-1">Authenticated</p>
-                 <div className="flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-                    <span className="text-xs font-mono text-green-500 font-bold">Secure Access</span>
-                 </div>
-               </div>
+          {/* Right Side: Media Gallery & Session Status */}
+          <div className="flex items-center gap-3 shrink-0 self-end sm:self-center">
+            <Link
+              to="/admin/media"
+              role="tab"
+              aria-selected={isMediaActive}
+              data-state={isMediaActive ? 'active' : 'inactive'}
+              className={cn(
+                "inline-flex h-11 items-center gap-2 whitespace-nowrap rounded-xl px-4 text-xs sm:text-sm font-medium border transition-colors duration-150 shrink-0 select-none",
+                isMediaActive
+                  ? "bg-primary text-primary-foreground border-primary shadow-glow"
+                  : "bg-muted/70 hover:bg-muted text-foreground border-border/50 hover:border-primary/40 shadow-xs"
+              )}
+            >
+              <ImageIcon className={cn("w-4 h-4 shrink-0", isMediaActive ? "text-primary-foreground" : "text-primary")} />
+              <span>Media Gallery</span>
+            </Link>
+
+            {/* Session Status Pill */}
+            <div className="hidden md:flex items-center gap-3 px-3 py-1.5 text-xs font-mono rounded-xl bg-background/40 border border-border/40">
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] text-muted-foreground uppercase">Identity:</span>
+                <span className="text-foreground/80 font-medium truncate max-w-[170px]">{user?.email}</span>
+              </div>
+              <div className="h-3.5 w-px bg-border/50" />
+              <div className="flex items-center gap-1.5 text-emerald-500 font-semibold text-[11px]">
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span>Secure Access</span>
+              </div>
             </div>
           </div>
         </aside>
 
-        {/* Content */}
-        <div className="col-span-12 lg:col-span-9 flex flex-col min-h-[600px]">
-          <div className="glass rounded-2xl p-8 border-border/50 flex-1 relative overflow-hidden backdrop-blur-md">
+        {/* Content Area - Now takes full width */}
+        <div className="w-full flex flex-col min-h-[600px]">
+          <div className="glass rounded-2xl p-6 sm:p-8 border-border/50 flex-1 relative overflow-hidden backdrop-blur-md">
              <div className="absolute top-0 right-0 p-6 opacity-5 pointer-events-none">
                 <Terminal className="w-32 h-32 text-foreground" />
              </div>

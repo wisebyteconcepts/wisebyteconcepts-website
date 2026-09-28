@@ -60,6 +60,70 @@
         "createdAt": { "type": "string" },
         "updatedAt": { "type": "string" }
       }
+    },
+    "MediaItem": {
+      "title": "Media Item",
+      "description": "Image, video, or document asset in unified gallery",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "type": { "type": "string", "enum": ["image", "video", "file"] },
+        "url": { "type": "string" },
+        "thumbnailUrl": { "type": "string" },
+        "altText": { "type": "string" },
+        "caption": { "type": "string" },
+        "folderId": { "type": "string" },
+        "tags": { "type": "array", "items": { "type": "string" } },
+        "size": { "type": "number" },
+        "mimeType": { "type": "string" },
+        "uploadedBy": { "type": "string" },
+        "uploadedAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "name", "type", "url"]
+    },
+    "MediaFolder": {
+      "title": "Media Folder",
+      "description": "Organizational category folder for media assets",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "parentId": { "type": "string" },
+        "color": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "name"]
+    },
+    "MediaCollection": {
+      "title": "Media Collection",
+      "description": "Curated collection of media items",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "mediaIds": { "type": "array", "items": { "type": "string" } },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "name"]
+    },
+    "MediaAuditLog": {
+      "title": "Media Audit Log",
+      "description": "Audit record for media upload, replacement, move, or deletion",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "action": { "type": "string" },
+        "mediaId": { "type": "string" },
+        "mediaName": { "type": "string" },
+        "performedBy": { "type": "string" },
+        "timestamp": { "type": "string" },
+        "details": { "type": "string" }
+      },
+      "required": ["id", "action", "performedBy", "timestamp"]
     }
   },
   "firestore": {
@@ -78,6 +142,22 @@
     "skills/{skillId}": {
       "schema": "Skill",
       "description": "Skill matrix items"
+    },
+    "media/{mediaId}": {
+      "schema": "MediaItem",
+      "description": "Unified media files, images, videos, and documents"
+    },
+    "mediaFolders/{folderId}": {
+      "schema": "MediaFolder",
+      "description": "Media folder organizational tree"
+    },
+    "mediaCollections/{collectionId}": {
+      "schema": "MediaCollection",
+      "description": "Named collections of media assets"
+    },
+    "mediaAuditLogs/{logId}": {
+      "schema": "MediaAuditLog",
+      "description": "Security and activity audit logs for media actions"
     }
   }
 }
