@@ -1,4 +1,4 @@
-import { Service, Product, Skill, MediaItem, MediaFolder, MediaCollection, MediaAuditLog } from '@/types';
+import { Service, Product, Skill, TechStack, MediaItem, MediaFolder, MediaCollection, MediaAuditLog } from '@/types';
 
 export interface StorageService {
   // Services
@@ -6,6 +6,8 @@ export interface StorageService {
   createService(service: Service): Promise<Service>;
   updateService(service: Service): Promise<Service>;
   deleteService(id: string): Promise<void>;
+  getServiceCategories(): Promise<string[]>;
+  addServiceCategory(name: string): Promise<string>;
 
   // Products
   getProducts(): Promise<Product[]>;
@@ -13,11 +15,22 @@ export interface StorageService {
   updateProduct(product: Product): Promise<Product>;
   deleteProduct(id: string): Promise<void>;
 
-  // Skills
+  // Tech Stacks
+  getTechStacks(): Promise<TechStack[]>;
+  createTechStack(techStack: TechStack): Promise<TechStack>;
+  updateTechStack(techStack: TechStack): Promise<TechStack>;
+  deleteTechStack(id: string): Promise<void>;
+
+  // Legacy Skills methods for backwards compatibility
   getSkills(): Promise<Skill[]>;
   createSkill(skill: Skill): Promise<Skill>;
   updateSkill(skill: Skill): Promise<Skill>;
   deleteSkill(id: string): Promise<void>;
+
+  // Classifications lookup
+  getClassifications(): Promise<string[]>;
+  addClassification(name: string): Promise<string>;
+  deleteClassification(name: string): Promise<void>;
 
   // Media Gallery Items
   getMediaItems(): Promise<MediaItem[]>;

@@ -1,11 +1,18 @@
 import { create } from 'zustand';
-import { Service, Product, Skill } from '@/types';
+import { Service, Product, Skill, TechStack } from '@/types';
 import { api } from '@/services/api';
+import { DEFAULT_CLASSIFICATIONS } from '@/utils/techStackMigration';
+import { DEFAULT_SERVICE_CATEGORIES } from '@/utils/serviceMigration';
+import { DEFAULT_PROJECT_CATEGORIES, normalizeProject } from '@/utils/projectMigration';
 
 interface AppState {
   services: Service[];
+  serviceCategories: string[];
   products: Product[];
-  skills: Skill[];
+  projectCategories: string[];
+  techStacks: TechStack[];
+  skills: TechStack[]; // Backwards compatibility alias
+  classifications: string[];
   isLoaded: boolean;
 
   // Actions for Services
@@ -13,18 +20,32 @@ interface AppState {
   updateService: (service: Service) => Promise<void>;
   deleteService: (id: string) => Promise<void>;
   reorderServices: (items: Service[]) => Promise<void>;
+  addServiceCategory: (name: string) => Promise<string>;
+  loadServiceCategories: () => Promise<void>;
 
-  // Actions for Products
+  // Actions for Products / Projects
   addProduct: (product: Product) => Promise<void>;
   updateProduct: (product: Product) => Promise<void>;
   deleteProduct: (id: string) => Promise<void>;
   reorderProducts: (items: Product[]) => Promise<void>;
+  addProjectCategory: (name: string) => Promise<string>;
 
-  // Actions for Skills
+  // Actions for Tech Stacks
+  addTechStack: (techStack: TechStack) => Promise<void>;
+  updateTechStack: (techStack: TechStack) => Promise<void>;
+  deleteTechStack: (id: string) => Promise<void>;
+  reorderTechStacks: (items: TechStack[]) => Promise<void>;
+
+  // Legacy Actions for Skills
   addSkill: (skill: Skill) => Promise<void>;
   updateSkill: (skill: Skill) => Promise<void>;
   deleteSkill: (id: string) => Promise<void>;
   reorderSkills: (items: Skill[]) => Promise<void>;
+
+  // Classifications
+  addClassification: (name: string) => Promise<string>;
+  deleteClassification: (name: string) => Promise<void>;
+  loadClassifications: () => Promise<void>;
 
   // Reset functionality
   resetToDefaults: () => Promise<void>;
@@ -35,14 +56,15 @@ interface AppState {
 
 export const useAppStore = create<AppState>((set, get) => ({
   services: [],
+  serviceCategories: DEFAULT_SERVICE_CATEGORIES,
   products: [],
+  projectCategories: DEFAULT_PROJECT_CATEGORIES,
+  techStacks: [],
   skills: [],
+  classifications: DEFAULT_CLASSIFICATIONS,
   isLoaded: false,
 
   resetToDefaults: async () => {
-    // In a real app this would call a seed API. 
-    // Here we'll just clear and re-init (which might need a backend seed check)
-    // For now, let's just refresh state.
     await get().init();
   },
 
@@ -60,9 +82,18 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   deleteService: async (id) => {
     await api.data.deleteService(id);
+    // When deleting a service, uncouple any projects referencing it as parentService to prevent orphan crashes
+    const updatedProducts = get().products.map((p) => {
+      if (p.parentService === id || p.serviceId === id) {
+        return { ...p, parentService: '', serviceId: '' };
+      }
+      return p;
+    });
     set((state) => ({
       services: state.services.filter((s) => s.id !== id),
+      products: updatedProducts,
     }));
+    await api.data.batchUpdate('products', updatedProducts);
   },
 
   reorderServices: async (items) => {
@@ -71,13 +102,31 @@ export const useAppStore = create<AppState>((set, get) => ({
     await api.data.batchUpdate('services', updates);
   },
 
+  addServiceCategory: async (name) => {
+    const created = await api.data.addServiceCategory(name);
+    set((state) => {
+      if (state.serviceCategories.some(c => c.toLowerCase() === created.toLowerCase())) {
+        return state;
+      }
+      return { serviceCategories: [...state.serviceCategories, created] };
+    });
+    return created;
+  },
+
+  loadServiceCategories: async () => {
+    const list = await api.data.getServiceCategories();
+    set({ serviceCategories: list });
+  },
+
   addProduct: async (product) => {
-    const newProduct = await api.data.createProduct(product);
+    const normalized = normalizeProject(product);
+    const newProduct = await api.data.createProduct(normalized);
     set((state) => ({ products: [...state.products, newProduct] }));
   },
 
   updateProduct: async (product) => {
-    const updated = await api.data.updateProduct(product);
+    const normalized = normalizeProject(product);
+    const updated = await api.data.updateProduct(normalized);
     set((state) => ({
       products: state.products.map((p) => (p.id === updated.id ? updated : p)),
     }));
@@ -96,29 +145,96 @@ export const useAppStore = create<AppState>((set, get) => ({
     await api.data.batchUpdate('products', updates);
   },
 
+  addProjectCategory: async (name: string) => {
+    const trimmed = name.trim();
+    set((state) => {
+      if (state.projectCategories.some(c => c.toLowerCase() === trimmed.toLowerCase())) {
+        return state;
+      }
+      return { projectCategories: [...state.projectCategories, trimmed] };
+    });
+    return trimmed;
+  },
+
+  // Tech Stacks Actions
+  addTechStack: async (techStack) => {
+    const newStack = await api.data.createTechStack(techStack);
+    set((state) => ({ 
+      techStacks: [...state.techStacks, newStack],
+      skills: [...state.techStacks, newStack]
+    }));
+  },
+
+  updateTechStack: async (techStack) => {
+    const updated = await api.data.updateTechStack(techStack);
+    set((state) => {
+      const updatedList = state.techStacks.map((s) => (s.id === updated.id ? updated : s));
+      return {
+        techStacks: updatedList,
+        skills: updatedList
+      };
+    });
+  },
+
+  deleteTechStack: async (id) => {
+    await api.data.deleteTechStack(id);
+    set((state) => {
+      const filtered = state.techStacks.filter((s) => s.id !== id);
+      return {
+        techStacks: filtered,
+        skills: filtered
+      };
+    });
+  },
+
+  reorderTechStacks: async (items) => {
+    const updates = items.map((item, index) => ({ ...item, order: index }));
+    set({ 
+      techStacks: updates,
+      skills: updates
+    });
+    await api.data.batchUpdate('tech_stacks', updates);
+  },
+
+  // Legacy Skills methods for backwards compatibility
   addSkill: async (skill) => {
-    const newSkill = await api.data.createSkill(skill);
-    set((state) => ({ skills: [...state.skills, newSkill] }));
+    await get().addTechStack(skill);
   },
 
   updateSkill: async (skill) => {
-    const updated = await api.data.updateSkill(skill);
-    set((state) => ({
-      skills: state.skills.map((s) => (s.id === updated.id ? updated : s)),
-    }));
+    await get().updateTechStack(skill);
   },
 
   deleteSkill: async (id) => {
-    await api.data.deleteSkill(id);
-    set((state) => ({
-      skills: state.skills.filter((s) => s.id !== id),
-    }));
+    await get().deleteTechStack(id);
   },
 
   reorderSkills: async (items) => {
-    const updates = items.map((item, index) => ({ ...item, order: index }));
-    set({ skills: updates });
-    await api.data.batchUpdate('skills', updates);
+    await get().reorderTechStacks(items);
+  },
+
+  // Classifications Actions
+  addClassification: async (name) => {
+    const created = await api.data.addClassification(name);
+    set((state) => {
+      if (state.classifications.some(c => c.toLowerCase() === created.toLowerCase())) {
+        return state;
+      }
+      return { classifications: [...state.classifications, created] };
+    });
+    return created;
+  },
+
+  deleteClassification: async (name) => {
+    await api.data.deleteClassification(name);
+    set((state) => ({
+      classifications: state.classifications.filter(c => c.toLowerCase() !== name.toLowerCase())
+    }));
+  },
+
+  loadClassifications: async () => {
+    const list = await api.data.getClassifications();
+    set({ classifications: list });
   },
 
   init: async () => {
@@ -126,13 +242,15 @@ export const useAppStore = create<AppState>((set, get) => ({
     if (isLoaded) return;
 
     try {
-      const [services, products, skills] = await Promise.all([
+      const [services, products, techStacks, classifications, storedServiceCategories] = await Promise.all([
         api.data.getServices(),
         api.data.getProducts(),
-        api.data.getSkills(),
+        api.data.getTechStacks(),
+        api.data.getClassifications(),
+        api.data.getServiceCategories(),
       ]);
 
-      // Final safety deduplication before setting state
+      // Deduplicate
       const seenServiceIds = new Set();
       const uniqueServices = services.filter(s => {
         if (!s.id || seenServiceIds.has(s.id)) return false;
@@ -147,17 +265,45 @@ export const useAppStore = create<AppState>((set, get) => ({
         return true;
       });
 
-      const seenSkillIds = new Set();
-      const uniqueSkills = skills.filter(sk => {
-        if (!sk.id || seenSkillIds.has(sk.id)) return false;
-        seenSkillIds.add(sk.id);
+      const seenStackIds = new Set();
+      const uniqueStacks = techStacks.filter(sk => {
+        if (!sk.id || seenStackIds.has(sk.id)) return false;
+        seenStackIds.add(sk.id);
         return true;
       });
 
+      // Also gather any classifications already present on tech stack items
+      const itemClassifications = uniqueStacks.map(s => s.classification).filter(Boolean);
+      const mergedClassifications = Array.from(new Set([
+        ...DEFAULT_CLASSIFICATIONS,
+        ...classifications,
+        ...itemClassifications
+      ]));
+
+      // Gather any categories already present on services
+      const itemServiceCategories = uniqueServices.map(s => s.category).filter(Boolean);
+      const mergedServiceCategories = Array.from(new Set([
+        ...DEFAULT_SERVICE_CATEGORIES,
+        ...storedServiceCategories,
+        ...itemServiceCategories
+      ]));
+
+      // Normalize products and gather project categories
+      const normalizedProducts = uniqueProducts.map(p => normalizeProject(p));
+      const itemProjectCategories = normalizedProducts.map(p => p.category).filter(Boolean);
+      const mergedProjectCategories = Array.from(new Set([
+        ...DEFAULT_PROJECT_CATEGORIES,
+        ...itemProjectCategories
+      ]));
+
       set({ 
-        services: uniqueServices, 
-        products: uniqueProducts, 
-        skills: uniqueSkills, 
+        services: uniqueServices,
+        serviceCategories: mergedServiceCategories,
+        products: normalizedProducts, 
+        projectCategories: mergedProjectCategories,
+        techStacks: uniqueStacks,
+        skills: uniqueStacks,
+        classifications: mergedClassifications,
         isLoaded: true 
       });
     } catch (error) {

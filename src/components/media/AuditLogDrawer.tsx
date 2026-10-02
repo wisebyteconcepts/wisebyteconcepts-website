@@ -45,13 +45,13 @@ export const AuditLogDrawer: React.FC<AuditLogDrawerProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto bg-background/95 backdrop-blur-2xl border-white/10">
+      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <div className="flex items-center gap-2 text-primary">
+          <div className="flex items-center gap-2 text-accent">
             <History className="w-5 h-5" />
-            <DialogTitle className="text-lg font-bold">Media Audit & Activity Log</DialogTitle>
+            <DialogTitle className="text-lg font-bold text-text-primary">Media Audit & Activity Log</DialogTitle>
           </div>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-text-muted">
             Complete compliance trail tracking who uploaded, replaced, moved, or deleted media files.
           </p>
         </DialogHeader>
@@ -60,23 +60,23 @@ export const AuditLogDrawer: React.FC<AuditLogDrawerProps> = ({
           {auditLogs.map((log) => (
             <div
               key={log.id}
-              className="p-3 rounded-xl border border-border/50 bg-card/60 flex items-start justify-between gap-3 text-xs"
+              className="p-3 rounded-xl border border-border bg-surface-2 flex items-start justify-between gap-3 text-xs shadow-xs"
             >
               <div className="flex items-start gap-3">
-                <div className="p-2 rounded-lg bg-muted/60 border border-border/40 shrink-0 mt-0.5">
+                <div className="p-2 rounded-lg bg-surface-4 border border-border shrink-0 mt-0.5">
                   {getActionIcon(log.action)}
                 </div>
                 <div className="space-y-0.5">
                   <div className="flex items-center gap-2">
-                    <span className="font-semibold text-foreground">{log.mediaName}</span>
-                    <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-muted text-muted-foreground uppercase tracking-wider">
+                    <span className="font-semibold text-text-primary">{log.mediaName}</span>
+                    <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-surface-4 text-text-muted uppercase tracking-wider">
                       {log.action}
                     </span>
                   </div>
                   {log.details && (
-                    <div className="text-[11px] text-muted-foreground">{log.details}</div>
+                    <div className="text-[11px] text-text-muted">{log.details}</div>
                   )}
-                  <div className="flex items-center gap-3 text-[10px] text-muted-foreground font-mono pt-1">
+                  <div className="flex items-center gap-3 text-[10px] text-text-muted font-mono pt-1">
                     <span className="flex items-center gap-1">
                       <User className="w-3 h-3" /> {log.performedBy}
                     </span>
@@ -91,7 +91,7 @@ export const AuditLogDrawer: React.FC<AuditLogDrawerProps> = ({
           ))}
 
           {auditLogs.length === 0 && (
-            <div className="text-center py-10 text-xs text-muted-foreground italic">
+            <div className="text-center py-10 text-xs text-text-muted italic">
               No audit logs recorded yet.
             </div>
           )}

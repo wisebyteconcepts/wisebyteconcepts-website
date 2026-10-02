@@ -33,35 +33,35 @@ export const StorageDashboard: React.FC<StorageDashboardProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl bg-background/95 backdrop-blur-2xl border-white/10">
+      <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <div className="flex items-center gap-2 text-primary">
+          <div className="flex items-center gap-2 text-accent">
             <HardDrive className="w-5 h-5" />
             <DialogTitle className="text-lg font-bold">Storage & Asset Analytics</DialogTitle>
           </div>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-text-muted">
             Overview of total storage consumption, file type distributions, and orphaned assets report.
           </p>
         </DialogHeader>
 
         <div className="space-y-6 my-2">
           {/* Main Storage Bar */}
-          <div className="p-4 rounded-xl border border-white/10 bg-white/5 space-y-3">
+          <div className="p-4 rounded-xl border border-border bg-surface-1 space-y-3">
             <div className="flex justify-between items-end">
               <div>
-                <span className="text-xs text-muted-foreground font-semibold">Total Cloud Storage Used</span>
-                <div className="text-2xl font-bold font-mono text-foreground mt-0.5">
+                <span className="text-xs text-text-muted font-semibold">Total Cloud Storage Used</span>
+                <div className="text-2xl font-bold font-mono text-text-primary mt-0.5">
                   {formatBytes(totalUsed)}{' '}
-                  <span className="text-xs font-normal text-muted-foreground font-sans">
+                  <span className="text-xs font-normal text-text-muted font-sans">
                     of {formatBytes(MAX_STORAGE_QUOTA_BYTES)} quota
                   </span>
                 </div>
               </div>
-              <span className="text-sm font-mono font-bold text-primary">{quotaUsedPct}%</span>
+              <span className="text-sm font-mono font-bold text-accent">{quotaUsedPct}%</span>
             </div>
 
             {/* Segmented bar */}
-            <div className="h-3 w-full bg-white/10 rounded-full overflow-hidden flex">
+            <div className="h-3 w-full bg-surface-4 rounded-full overflow-hidden flex">
               <div
                 style={{ width: `${imagePct}%` }}
                 className="bg-blue-500 h-full transition-all"
@@ -79,7 +79,7 @@ export const StorageDashboard: React.FC<StorageDashboardProps> = ({
               />
             </div>
 
-            <div className="flex flex-wrap items-center justify-between text-[11px] text-muted-foreground pt-1">
+            <div className="flex flex-wrap items-center justify-between text-[11px] text-text-muted pt-1">
               <div className="flex items-center gap-1.5">
                 <div className="w-2.5 h-2.5 rounded-full bg-blue-500" />
                 <span>Images ({stats.imageCount} files • {formatBytes(stats.imageBytes)})</span>
@@ -97,21 +97,21 @@ export const StorageDashboard: React.FC<StorageDashboardProps> = ({
 
           {/* Breakdown Cards */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
-            <div className="p-3 rounded-xl border border-white/10 bg-white/5">
-              <div className="text-[10px] font-mono uppercase text-muted-foreground">Total Files</div>
-              <div className="text-lg font-bold font-mono text-foreground mt-1">{stats.totalFiles}</div>
+            <div className="p-3 rounded-xl border border-border bg-surface-2 shadow-xs">
+              <div className="text-[10px] font-mono uppercase text-text-muted">Total Files</div>
+              <div className="text-lg font-bold font-mono text-text-primary mt-1">{stats.totalFiles}</div>
             </div>
-            <div className="p-3 rounded-xl border border-white/10 bg-white/5">
-              <div className="text-[10px] font-mono uppercase text-muted-foreground">Active Folders</div>
-              <div className="text-lg font-bold font-mono text-foreground mt-1">{folders.length}</div>
+            <div className="p-3 rounded-xl border border-border bg-surface-2 shadow-xs">
+              <div className="text-[10px] font-mono uppercase text-text-muted">Active Folders</div>
+              <div className="text-lg font-bold font-mono text-text-primary mt-1">{folders.length}</div>
             </div>
-            <div className="p-3 rounded-xl border border-white/10 bg-white/5">
-              <div className="text-[10px] font-mono uppercase text-muted-foreground">Avg File Size</div>
-              <div className="text-lg font-bold font-mono text-foreground mt-1">
+            <div className="p-3 rounded-xl border border-border bg-surface-2 shadow-xs">
+              <div className="text-[10px] font-mono uppercase text-text-muted">Avg File Size</div>
+              <div className="text-lg font-bold font-mono text-text-primary mt-1">
                 {stats.totalFiles > 0 ? formatBytes(Math.round(totalUsed / stats.totalFiles)) : '0 B'}
               </div>
             </div>
-            <div className="p-3 rounded-xl border border-white/10 bg-white/5">
+            <div className="p-3 rounded-xl border border-border bg-surface-2 shadow-xs">
               <div className="text-[10px] font-mono uppercase text-amber-500 font-bold">Orphaned Files</div>
               <div className="text-lg font-bold font-mono text-amber-500 mt-1">{stats.orphanedCount}</div>
             </div>

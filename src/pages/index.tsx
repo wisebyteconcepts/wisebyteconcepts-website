@@ -13,7 +13,6 @@ import {
 import { 
   Card 
 } from '@/components/ui/Card';
-import { cn } from '@/lib/utils';
 import {
   TableBody,
   TableCell,
@@ -25,26 +24,17 @@ import { Badge } from '@/components/ui/Badge';
 import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
 import {
-  FormField,
   InputBlock,
   PasswordInputBlock,
 } from '@/components/forms/FormControls';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/Select';
-import {
   Dialog,
   DialogContent,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/Dialog';
 import { CrudPageShell } from '@/components/admin/CrudPageShell';
-import { IconPicker } from '@/components/admin/IconPicker';
+import { Icon } from '@/components/ui/Icon';
 import { SortableList, SortableRow } from '@/components/admin/SortableTable';
 import * as LucideIcons from 'lucide-react';
 import { 
@@ -93,25 +83,16 @@ import {
 import { 
   Service, 
   Product, 
-  Skill,
-  SkillCategory
+  TechStack
 } from '@/types';
+import { TechStackForm } from '@/components/forms/TechStackForm';
+import { TechStackIcon } from '@/components/TechStackIcon';
+import { MarkdownContent } from '@/components/ui/MarkdownEditor';
 import { useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 
-const DynamicIcon = ({ name, className, fallback: Fallback }: { name?: string; className?: string; fallback: LucideIcon }) => {
-  if (!name) return <Fallback className={className} />;
-  
-  // Check if it's a URL
-  const isUrl = name.startsWith('http') || name.startsWith('data:') || name.includes('/');
-  
-  if (isUrl) {
-    return <img src={name} alt="icon" className={cn("object-contain", className)} referrerPolicy="no-referrer" />;
-  }
-
-  const Icon = (LucideIcons as any)[name] as LucideIcon;
-  if (!Icon) return <Fallback className={className} />;
-  return <Icon className={className} />;
+const DynamicIcon = ({ name, className, fallback: Fallback }: { name?: any; className?: string; fallback: LucideIcon }) => {
+  return <Icon value={name} className={className} fallback={Fallback} />;
 };
 
 // Animation variants for pages
@@ -231,52 +212,71 @@ export const HomePage = () => {
       <Section 
         title="Core Services" 
         description="Our specialized technical services are engineered to scale your operations and deliver measurable results."
-        className="bg-muted/10 border-y border-border/50"
+        className="bg-surface-1 border-y border-border"
       >
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {[...services].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)).map((s) => (
-            <GlassCard key={s.id} className="p-0 overflow-hidden group flex flex-col h-full border-white/5 hover:border-primary/20">
-              <div className="relative">
-                <div className="aspect-video relative overflow-hidden bg-muted">
-                  {s.thumbnail ? (
-                    <img 
-                      src={s.thumbnail} 
-                      alt={s.name} 
-                      className="w-full h-full object-cover transition-transform duration-700" 
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/5 to-transparent">
-                      <DynamicIcon name={s.icon} className="w-12 h-12 text-primary/20" fallback={Code} />
-                    </div>
-                  )}
-                  <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent opacity-60" />
-                </div>
-                <div className="absolute -bottom-6 right-6 z-20">
-                  <div className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center transition-all duration-500 group-hover:scale-110 group-hover:-translate-y-1 transform-gpu will-change-transform [backface-visibility:hidden] [perspective:1000px]">
-                    <DynamicIcon name={s.icon} className="w-6 h-6 text-white" fallback={Code} />
+          {(() => {
+            const activeServices = services.filter((s) => s.active !== false && s.isActive !== false);
+            const featuredServices = activeServices.filter((s) => s.featured || s.isFeatured);
+            const displayServices = (featuredServices.length > 0 ? featuredServices : activeServices)
+              .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+
+            return (
+              <>
+                {displayServices.map((s) => {
+                  const title = s.title || s.name;
+                  const img = s.displayPicture || s.thumbnail;
+                  return (
+                    <GlassCard key={s.id} className="p-0 overflow-hidden group flex flex-col h-full hover:border-accent/40">
+                      <div className="relative">
+                        <div className="aspect-video relative overflow-hidden bg-muted">
+                          {img ? (
+                            <img 
+                              src={img} 
+                              alt={title} 
+                              className="w-full h-full object-cover transition-transform duration-700" 
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/5 to-transparent">
+                              <DynamicIcon name={s.icon} className="w-12 h-12 text-primary/20" fallback={Code} />
+                            </div>
+                          )}
+                          <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent opacity-60" />
+                        </div>
+                        <div className="absolute -bottom-6 right-6 z-20">
+                          <div className="w-12 h-12 rounded-2xl bg-accent-strong flex items-center justify-center transition-all duration-500 group-hover:scale-110 group-hover:-translate-y-1 transform-gpu will-change-transform [backface-visibility:hidden] [perspective:1000px] overflow-hidden shadow-xs">
+                            {s.iconType === 'image' && s.iconImage ? (
+                              <img src={s.iconImage} alt={title} className="w-6 h-6 object-contain" />
+                            ) : (
+                              <DynamicIcon name={s.icon} className="w-6 h-6 text-on-accent" fallback={Code} />
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="p-8 pt-10 flex-grow flex flex-col">
+                        <Link to={`/services/${s.slug || s.id}`}>
+                          <h3 className="text-2xl font-display font-bold mb-3 group-hover:text-primary transition-colors cursor-pointer">{title}</h3>
+                        </Link>
+                        <p className="text-muted-foreground text-sm leading-relaxed mb-8 line-clamp-3">{s.shortDescription}</p>
+                        
+                        <Link to={`/services/${s.slug || s.id}`} className="mt-auto">
+                          <Button variant="ghost" className="justify-start px-0 hover:bg-transparent hover:text-primary gap-2 transition-all group/btn text-xs uppercase tracking-widest font-bold cursor-pointer">
+                            Engineering Details
+                            <ArrowRight className="w-4 h-4 transition-transform group-hover/btn:translate-x-1" />
+                          </Button>
+                        </Link>
+                      </div>
+                    </GlassCard>
+                  );
+                })}
+                {displayServices.length === 0 && (
+                  <div className="col-span-full">
+                     <EmptyState icon={Briefcase} title="Registry Offline" description="Service nodes are currently being synchronized." />
                   </div>
-                </div>
-              </div>
-              <div className="p-8 pt-10 flex-grow flex flex-col">
-                <Link to={`/services/${s.id}`}>
-                  <h3 className="text-2xl font-display font-bold mb-3 group-hover:text-primary transition-colors cursor-pointer">{s.name}</h3>
-                </Link>
-                <p className="text-muted-foreground text-sm leading-relaxed mb-8 line-clamp-3">{s.shortDescription}</p>
-                
-                <Link to={`/services/${s.id}`} className="mt-auto">
-                  <Button variant="ghost" className="justify-start px-0 hover:bg-transparent hover:text-primary gap-2 transition-all group/btn text-xs uppercase tracking-widest font-bold cursor-pointer">
-                    Engineering Details
-                    <ArrowRight className="w-4 h-4 transition-transform group-hover/btn:translate-x-1" />
-                  </Button>
-                </Link>
-              </div>
-            </GlassCard>
-          ))}
-          {services.length === 0 && (
-            <div className="col-span-full">
-               <EmptyState icon={Briefcase} title="Registry Offline" description="Service nodes are currently being synchronized." />
-            </div>
-          )}
+                )}
+              </>
+            );
+          })()}
         </div>
         <div className="mt-12 text-center">
           <Button variant="glass" size="sm" onClick={() => navigate('/services')}>Access All Services</Button>
@@ -339,58 +339,90 @@ export const HomePage = () => {
         title="Project Showcase" 
         description="Demonstrating our ability to deliver robust digital solutions across various domains."
       >
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-8">
-          {[...products].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)).slice(0, 3).map((p) => {
+        {(() => {
+          const activeProjects = products.filter((p) => p.active !== false && p.isActive !== false);
+          const featured = activeProjects.filter((p) => p.featured || p.isFeatured);
+          const displayProjects = (featured.length > 0 ? featured : activeProjects)
+            .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+            .slice(0, 3);
+
+          if (displayProjects.length === 0) {
             return (
-              <GlassCard key={p.id} className="p-0 overflow-hidden group border-white/5 hover:border-primary/20 h-full flex flex-col">
-                <div className="relative">
-                  <div className="aspect-[16/10] relative overflow-hidden bg-muted">
-                    {p.imageUrl ? (
-                      <img 
-                        src={p.imageUrl} 
-                        alt={p.name} 
-                        loading="lazy"
-                        className="absolute inset-0 h-full w-full object-cover transition-transform duration-700" 
-                      />
-                    ) : (
-                      <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-primary/5">
-                        <div className="w-12 h-12 rounded-xl bg-background/80 backdrop-blur flex items-center justify-center shadow-soft transition-transform duration-500 transform-gpu [backface-visibility:hidden]">
-                          <DynamicIcon name={p.icon} className="w-6 h-6 text-primary/40" fallback={ShoppingBag} />
+              <div className="col-span-full py-12">
+                <EmptyState icon={ShoppingBag} title="Showcase Offline" description="Output entries are currently being prepared." />
+              </div>
+            );
+          }
+
+          return (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-8">
+              {displayProjects.map((p) => {
+                const title = p.title || p.name || 'Untitled Project';
+                const desc = p.shortDescription || p.description || '';
+                const img = p.displayPicture || p.imageUrl;
+                const link = `/products/${p.slug || p.id}`;
+                return (
+                  <GlassCard key={p.id} className="p-0 overflow-hidden group hover:border-accent/40 h-full flex flex-col">
+                    <div className="relative">
+                      <div className="aspect-[16/10] relative overflow-hidden bg-surface-1">
+                        {img ? (
+                          <img 
+                            src={img} 
+                            alt={title} 
+                            loading="lazy" 
+                            className="absolute inset-0 h-full w-full object-cover transition-transform duration-700" 
+                          />
+                        ) : (
+                          <div className="absolute inset-0 flex items-center justify-center bg-surface-3">
+                            <div className="w-12 h-12 rounded-xl bg-surface-2 flex items-center justify-center shadow-xs transition-transform duration-500 transform-gpu [backface-visibility:hidden]">
+                              {p.iconType === 'image' && p.iconImage ? (
+                                <img src={p.iconImage} alt="" className="w-6 h-6 object-contain" />
+                              ) : (
+                                <DynamicIcon name={p.icon} className="w-6 h-6 text-text-muted" fallback={ShoppingBag} />
+                              )}
+                            </div>
+                          </div>
+                        )}
+                        <div className="absolute inset-0 bg-gradient-to-t from-surface-2 via-transparent to-transparent opacity-60" />
+                      </div>
+                      <div className="absolute -bottom-6 right-6 z-20">
+                        <div className="w-12 h-12 rounded-2xl bg-accent-strong flex items-center justify-center transition-all duration-500 group-hover:scale-110 group-hover:-translate-y-1 transform-gpu will-change-transform [backface-visibility:hidden] [perspective:1000px]">
+                          {p.iconType === 'image' && p.iconImage ? (
+                            <img src={p.iconImage} alt="" className="w-6 h-6 object-contain" />
+                          ) : (
+                            <DynamicIcon name={p.icon} className="w-6 h-6 text-on-accent" fallback={ShoppingBag} />
+                          )}
                         </div>
                       </div>
-                    )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent opacity-60" />
-                  </div>
-                  <div className="absolute -bottom-6 right-6 z-20">
-                    <div className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center transition-all duration-500 group-hover:scale-110 group-hover:-translate-y-1 transform-gpu will-change-transform [backface-visibility:hidden] [perspective:1000px]">
-                      <DynamicIcon name={p.icon} className="w-6 h-6 text-white" fallback={ShoppingBag} />
                     </div>
-                  </div>
-                </div>
-                <div className="p-8 pt-10 flex-grow flex flex-col">
-                  <Link to={`/products/${p.id}`}>
-                    <h3 className="text-2xl font-display font-bold mb-3 group-hover:text-primary transition-colors cursor-pointer">
-                      {p.name}
-                    </h3>
-                  </Link>
-                  <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed mb-8">{p.description}</p>
-                  
-                  <Link to={`/products/${p.id}`} className="mt-auto">
-                    <Button variant="ghost" className="justify-start px-0 hover:bg-transparent hover:text-primary gap-2 transition-all group/btn text-xs uppercase tracking-widest font-bold cursor-pointer">
-                      Project Insight
-                      <ArrowRight className="w-4 h-4 transition-transform group-hover/btn:translate-x-1" />
-                    </Button>
-                  </Link>
-                </div>
-              </GlassCard>
-            );
-          })}
-          {products.length === 0 && (
-            <div className="col-span-full">
-               <EmptyState icon={ShoppingBag} title="Showcase Offline" description="Output entries are currently being prepared." />
+                    <div className="p-8 pt-10 flex-grow flex flex-col">
+                      {p.category && (
+                        <div className="mb-2">
+                          <span className="text-[10px] font-mono uppercase tracking-wider text-primary bg-primary/10 px-2 py-0.5 rounded font-bold">
+                            {p.category}
+                          </span>
+                        </div>
+                      )}
+                      <Link to={link}>
+                        <h3 className="text-2xl font-display font-bold mb-3 group-hover:text-accent transition-colors cursor-pointer text-text-primary">
+                          {title}
+                        </h3>
+                      </Link>
+                      <p className="text-sm text-text-secondary line-clamp-2 leading-relaxed mb-8">{desc}</p>
+                      
+                      <Link to={link} className="mt-auto">
+                        <Button variant="ghost" className="justify-start px-0 hover:bg-transparent hover:text-primary gap-2 transition-all group/btn text-xs uppercase tracking-widest font-bold cursor-pointer">
+                          Project Insight
+                          <ArrowRight className="w-4 h-4 transition-transform group-hover/btn:translate-x-1" />
+                        </Button>
+                      </Link>
+                    </div>
+                  </GlassCard>
+                );
+              })}
             </div>
-          )}
-        </div>
+          );
+        })()}
         <div className="mt-12 text-center">
           <Button variant="glass" size="sm" onClick={() => navigate('/products')}>Explore Full Registry</Button>
         </div>
@@ -411,9 +443,9 @@ export const HomePage = () => {
         </div>
       </section>
 
-      {/* Skills / Tech Stack Section */}
+      {/* Tech Stack Section */}
       <Section 
-        title="Engineering Stack" 
+        title="Engineering Tech Stack" 
         description="Our specialized technical arsenal is composed of industry-leading technologies optimized for performance, scalability, and long-term maintainability."
       >
         <div className="relative group">
@@ -433,27 +465,18 @@ export const HomePage = () => {
                 <GlassCard className="p-6 flex flex-col items-center text-center group/skill hover:border-primary/50 transition-all duration-500 relative h-full">
                   <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover/skill:opacity-100 transition-opacity duration-500" />
                   <div className="w-14 h-14 rounded-2xl bg-muted/50 flex items-center justify-center mb-4 group-hover/skill:scale-110 group-hover/skill:bg-primary/20 group-hover/skill:shadow-glow-sm transition-all duration-500 relative z-10 transform-gpu [backface-visibility:hidden]">
-                    <DynamicIcon name={skill.icon} className="w-7 h-7 text-primary" fallback={Code} />
+                    <TechStackIcon stack={skill} className="w-7 h-7 text-primary" fallback={Layers} />
                   </div>
                   <h4 className="font-bold text-sm mb-1 relative z-10">{skill.name}</h4>
-                  <div className="flex items-center gap-1 relative z-10 mt-auto">
-                    <div className="h-0.5 w-12 bg-muted rounded-full overflow-hidden">
-                      <motion.div 
-                        initial={{ width: 0 }}
-                        whileInView={{ width: `${skill.level}%` }}
-                        viewport={{ once: true }}
-                        transition={{ duration: 1, delay: 0.2 }}
-                        className="h-full bg-primary"
-                      />
-                    </div>
-                    <span className="text-[10px] font-mono text-muted-foreground">{skill.level}%</span>
+                  <div className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider relative z-10">
+                    {skill.classification || 'General'}
                   </div>
                 </GlassCard>
               </div>
             ))}
             {useAppStore().skills.length === 0 && (
               <div className="w-full flex justify-center py-12">
-                <EmptyState icon={Terminal} title="No Skills Cataloged" description="The engineering matrix is currently offline." />
+                <EmptyState icon={Layers} title="No Tech Stacks Cataloged" description="The engineering tech stack matrix is currently empty." />
               </div>
             )}
           </div>
@@ -556,7 +579,9 @@ const SubPageHero = ({ title, subtitle, badge }: { title: React.ReactNode; subti
 
 export const ServicesPage = () => {
   const servicesData = useAppStore((state) => state.services);
-  const services = [...servicesData].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  const services = [...servicesData]
+    .filter((s) => s.active !== false && s.isActive !== false)
+    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
   return (
     <div className="flex flex-col">
       <SubPageHero 
@@ -573,44 +598,52 @@ export const ServicesPage = () => {
         />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {services.map(s => (
-            <GlassCard key={s.id} className="p-0 overflow-hidden group flex flex-col h-full border-white/5 hover:border-primary/20">
-              <div className="relative">
-                <div className="aspect-video relative overflow-hidden bg-muted">
-                  {s.thumbnail ? (
-                    <img 
-                      src={s.thumbnail} 
-                      alt={s.name} 
-                      className="w-full h-full object-cover transition-transform duration-700" 
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/5 to-transparent">
-                      <DynamicIcon name={s.icon} className="w-12 h-12 text-primary/20" fallback={Briefcase} />
+          {services.map(s => {
+            const title = s.title || s.name;
+            const img = s.displayPicture || s.thumbnail;
+            return (
+              <GlassCard key={s.id} className="p-0 overflow-hidden group flex flex-col h-full hover:border-accent/40">
+                <div className="relative">
+                  <div className="aspect-video relative overflow-hidden bg-muted">
+                    {img ? (
+                      <img 
+                        src={img} 
+                        alt={title} 
+                        className="w-full h-full object-cover transition-transform duration-700" 
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/5 to-transparent">
+                        <DynamicIcon name={s.icon} className="w-12 h-12 text-primary/20" fallback={Briefcase} />
+                      </div>
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent opacity-60" />
+                  </div>
+                  <div className="absolute -bottom-6 right-6 z-20">
+                    <div className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center transition-all duration-500 group-hover:scale-110 group-hover:-translate-y-1 transform-gpu will-change-transform [backface-visibility:hidden] [perspective:1000px] overflow-hidden shadow-xs">
+                      {s.iconType === 'image' && s.iconImage ? (
+                        <img src={s.iconImage} alt={title} className="w-6 h-6 object-contain" />
+                      ) : (
+                        <DynamicIcon name={s.icon} className="w-6 h-6 text-white" fallback={Briefcase} />
+                      )}
                     </div>
-                  )}
-                  <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent opacity-60" />
-                </div>
-                <div className="absolute -bottom-6 right-6 z-20">
-                  <div className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center transition-all duration-500 group-hover:scale-110 group-hover:-translate-y-1 transform-gpu will-change-transform [backface-visibility:hidden] [perspective:1000px]">
-                    <DynamicIcon name={s.icon} className="w-6 h-6 text-white" fallback={Briefcase} />
                   </div>
                 </div>
-              </div>
-              <div className="p-8 pt-10 flex-grow flex flex-col">
-                <Link to={`/services/${s.id}`}>
-                  <h3 className="text-2xl font-display font-bold mb-3 group-hover:text-primary transition-colors cursor-pointer">{s.name}</h3>
-                </Link>
-                <p className="text-muted-foreground text-sm leading-relaxed mb-8 line-clamp-3">{s.shortDescription}</p>
-                
-                <Link to={`/services/${s.id}`} className="mt-auto">
-                  <Button variant="ghost" className="justify-start px-0 hover:bg-transparent hover:text-primary gap-2 transition-all group/btn text-xs uppercase tracking-widest font-bold cursor-pointer">
-                    Engineering Details
-                    <ArrowRight className="w-4 h-4 transition-transform group-hover/btn:translate-x-1" />
-                  </Button>
-                </Link>
-              </div>
-            </GlassCard>
-          ))}
+                <div className="p-8 pt-10 flex-grow flex flex-col">
+                  <Link to={`/services/${s.slug || s.id}`}>
+                    <h3 className="text-2xl font-display font-bold mb-3 group-hover:text-primary transition-colors cursor-pointer">{title}</h3>
+                  </Link>
+                  <p className="text-muted-foreground text-sm leading-relaxed mb-8 line-clamp-3">{s.shortDescription}</p>
+                  
+                  <Link to={`/services/${s.slug || s.id}`} className="mt-auto">
+                    <Button variant="ghost" className="justify-start px-0 hover:bg-transparent hover:text-primary gap-2 transition-all group/btn text-xs uppercase tracking-widest font-bold cursor-pointer">
+                      Engineering Details
+                      <ArrowRight className="w-4 h-4 transition-transform group-hover/btn:translate-x-1" />
+                    </Button>
+                  </Link>
+                </div>
+              </GlassCard>
+            );
+          })}
         </div>
       )}
     </Section>
@@ -623,8 +656,10 @@ export const ProductsPage = () => {
   const [filter, setFilter] = useState('all');
 
   const filteredProducts = useMemo(() => {
-    const list = filter === 'all' ? products : products.filter((p: Product) => p.serviceId === filter);
-    return [...list].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+    return products
+      .filter((p: Product) => p.active !== false && p.isActive !== false)
+      .filter((p: Product) => filter === 'all' || p.parentService === filter || p.serviceId === filter)
+      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
   }, [products, filter]);
 
   return (
@@ -646,12 +681,12 @@ export const ProductsPage = () => {
         {services.map(s => (
           <Button 
             key={s.id}
-            variant={filter === s.id ? 'primary' : 'glass'}
+            variant={filter === s.id ? 'primary' : 'glass'} 
             size="sm"
             onClick={() => setFilter(s.id)}
             className="whitespace-nowrap"
           >
-            {s.name}
+            {s.title || s.name}
           </Button>
         ))}
       </div>
@@ -659,47 +694,83 @@ export const ProductsPage = () => {
       {filteredProducts.length === 0 ? (
         <EmptyState 
           icon={ShoppingBag}
-          title="No Products Found"
-          description={filter === 'all' ? "The engineering showcase is currently empty." : "No products currently associated with this service category."}
+          title="No Projects Found"
+          description={filter === 'all' ? "The engineering showcase is currently empty." : "No projects currently associated with this service category."}
         />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-8">
           {filteredProducts.map(p => {
+            const title = p.title || p.name || 'Untitled Project';
+            const desc = p.shortDescription || p.description || '';
+            const img = p.displayPicture || p.imageUrl;
+            const link = `/products/${p.slug || p.id}`;
+            const parentSrv = services.find(s => s.id === (p.parentService || p.serviceId));
+
             return (
-              <GlassCard key={p.id} className="p-0 overflow-hidden group border-white/5 hover:border-primary/20 h-full flex flex-col">
+              <GlassCard key={p.id} className="p-0 overflow-hidden group border-border hover:border-accent/40 h-full flex flex-col shadow-card">
                 <div className="relative">
-                  <div className="aspect-[16/10] relative overflow-hidden bg-muted">
-                    {p.imageUrl ? (
+                  <div className="aspect-[16/10] relative overflow-hidden bg-surface-1">
+                    {img ? (
                       <img 
-                        src={p.imageUrl} 
-                        alt={p.name} 
+                        src={img} 
+                        alt={title} 
                         loading="lazy"
-                        className="absolute inset-0 h-full w-full object-cover transition-transform duration-700" 
+                        className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" 
                       />
                     ) : (
-                      <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-primary/5">
-                        <div className="w-12 h-12 rounded-xl bg-background/80 backdrop-blur flex items-center justify-center shadow-soft transition-transform duration-500 transform-gpu [backface-visibility:hidden]">
-                          <DynamicIcon name={p.icon} className="w-6 h-6 text-primary/40" fallback={ShoppingBag} />
+                      <div className="absolute inset-0 flex items-center justify-center bg-surface-3">
+                        <div className="w-12 h-12 rounded-xl bg-surface-2 flex items-center justify-center shadow-xs">
+                          {p.iconType === 'image' && p.iconImage ? (
+                            <img src={p.iconImage} alt="" className="w-6 h-6 object-contain" />
+                          ) : (
+                            <DynamicIcon name={p.icon} className="w-6 h-6 text-text-muted" fallback={ShoppingBag} />
+                          )}
                         </div>
                       </div>
                     )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent opacity-60" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-surface-2 via-transparent to-transparent opacity-60" />
                   </div>
                   <div className="absolute -bottom-6 right-6 z-20">
-                    <div className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center transition-all duration-500 group-hover:scale-110 group-hover:-translate-y-1 transform-gpu will-change-transform [backface-visibility:hidden] [perspective:1000px]">
-                      <DynamicIcon name={p.icon} className="w-6 h-6 text-white" fallback={ShoppingBag} />
+                    <div className="w-12 h-12 rounded-2xl bg-accent-strong flex items-center justify-center transition-all duration-500 group-hover:scale-110 group-hover:-translate-y-1 transform-gpu shadow-md">
+                      {p.iconType === 'image' && p.iconImage ? (
+                        <img src={p.iconImage} alt="" className="w-6 h-6 object-contain" />
+                      ) : (
+                        <DynamicIcon name={p.icon} className="w-6 h-6 text-on-accent" fallback={ShoppingBag} />
+                      )}
                     </div>
                   </div>
                 </div>
                 <div className="p-8 pt-10 flex-grow flex flex-col">
-                  <Link to={`/products/${p.id}`}>
-                    <h3 className="text-2xl font-display font-bold mb-3 group-hover:text-primary transition-colors cursor-pointer">
-                      {p.name}
+                  <div className="flex flex-wrap items-center gap-2 mb-2">
+                    {p.category && (
+                      <span className="text-[10px] font-mono uppercase tracking-wider text-primary bg-primary/10 px-2.5 py-0.5 rounded-md font-bold">
+                        {p.category}
+                      </span>
+                    )}
+                    {parentSrv && (
+                      <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground bg-surface-3 px-2 py-0.5 rounded-md">
+                        {parentSrv.title || parentSrv.name}
+                      </span>
+                    )}
+                  </div>
+                  <Link to={link}>
+                    <h3 className="text-2xl font-display font-bold mb-3 group-hover:text-accent transition-colors cursor-pointer text-text-primary">
+                      {title}
                     </h3>
                   </Link>
-                  <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed mb-8">{p.description}</p>
+                  <p className="text-sm text-text-secondary line-clamp-2 leading-relaxed mb-6">{desc}</p>
                   
-                  <Link to={`/products/${p.id}`} className="mt-auto">
+                  {p.tags && p.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mb-6">
+                      {p.tags.slice(0, 3).map((tag) => (
+                        <span key={tag} className="text-[10px] font-mono text-muted-foreground bg-surface-2 px-2 py-0.5 rounded">
+                          #{tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  <Link to={link} className="mt-auto">
                     <Button variant="ghost" className="justify-start px-0 hover:bg-transparent hover:text-primary gap-2 transition-all group/btn text-xs uppercase tracking-widest font-bold cursor-pointer">
                       Project Insight
                       <ArrowRight className="w-4 h-4 transition-transform group-hover/btn:translate-x-1" />
@@ -716,35 +787,35 @@ export const ProductsPage = () => {
   );
 };
 
-export const SkillsPage = () => {
-  const skills = useAppStore((state) => state.skills);
+export const TechStacksPage = () => {
+  const techStacks = useAppStore((state) => state.techStacks);
   
-  const skillGroups = useMemo(() => {
-    return skills.reduce((acc, skill) => {
-      const cat = skill.category;
+  const stackGroups = useMemo(() => {
+    return techStacks.reduce((acc, stack) => {
+      const cat = stack.classification || (stack as any).category || 'Other';
       if (!acc[cat]) acc[cat] = [];
-      acc[cat].push(skill);
+      acc[cat].push(stack);
       return acc;
-    }, {} as Record<string, Skill[]>);
-  }, [skills]);
+    }, {} as Record<string, TechStack[]>);
+  }, [techStacks]);
 
   return (
     <div className="flex flex-col">
       <SubPageHero 
-        title={<>Technical <span className="text-primary">Stack.</span></>}
+        title={<>Tech <span className="text-primary">Stacks.</span></>}
         subtitle="The foundation of our precision engineering and digital craftsmanship, powered by industry-leading core technologies."
         badge="Capability Matrix"
       />
       <Section>
-      {skills.length === 0 ? (
+      {techStacks.length === 0 ? (
         <EmptyState 
-          icon={Code}
-          title="Intelligence Matrix Empty"
-          description="Skill synchronization in progress. Loading expert capabilities."
+          icon={Layers}
+          title="No Tech Stacks Cataloged"
+          description="Tech stack synchronization in progress. Loading expert capabilities."
         />
       ) : (
         <div className="space-y-20">
-          {Object.entries(skillGroups).map(([category, items]) => (
+          {Object.entries(stackGroups).map(([category, items]) => (
             <div key={category}>
               <div className="flex items-center gap-4 mb-8">
                 <h2 className="text-[11px] font-bold text-primary uppercase tracking-[0.4em] whitespace-nowrap px-4 py-1.5 bg-primary/5 dark:bg-primary/10 border border-primary/20 rounded-full">
@@ -753,31 +824,19 @@ export const SkillsPage = () => {
                 <div className="h-px w-full bg-gradient-to-r from-primary/30 to-transparent" />
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-                {(items as Skill[]).sort((a, b) => {
+                {(items as TechStack[]).sort((a, b) => {
                   const orderA = a.order ?? 999;
                   const orderB = b.order ?? 999;
                   if (orderA !== orderB) return orderA - orderB;
-                  return b.level - a.level;
-                }).map(skill => (
-                  <GlassCard key={skill.id} className="p-6 text-center group py-8">
-                    <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:bg-primary/10 transition-colors">
-                      <DynamicIcon name={skill.icon} className="w-6 h-6 text-muted-foreground group-hover:text-primary transition-colors" fallback={Code} />
+                  return a.name.localeCompare(b.name);
+                }).map(stack => (
+                  <GlassCard key={stack.id} className="p-6 text-center group py-8">
+                    <div className="w-14 h-14 bg-surface-4 border border-border rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:bg-accent-soft transition-colors shadow-xs">
+                      <TechStackIcon stack={stack} className="w-7 h-7 text-text-muted group-hover:text-primary transition-colors" fallback={Layers} />
                     </div>
-                    <h3 className="font-bold text-lg mb-2">{skill.name}</h3>
-                    <div className="space-y-2">
-                       <div className="flex justify-between text-[10px] font-mono text-muted-foreground mb-1 px-1">
-                         <span>Proficiency</span>
-                         <span>{skill.level}%</span>
-                       </div>
-                       <div className="h-1 w-full bg-muted/50 rounded-full overflow-hidden">
-                          <motion.div 
-                            initial={{ width: 0 }}
-                            whileInView={{ width: `${skill.level}%` }}
-                            viewport={{ once: true }}
-                            transition={{ duration: 1.5, ease: "easeOut" }}
-                            className="h-full bg-gradient-brand shadow-glow"
-                          />
-                       </div>
+                    <h3 className="font-bold text-lg mb-1 text-text-primary">{stack.name}</h3>
+                    <div className="text-[11px] font-mono text-muted-foreground uppercase tracking-wider">
+                      {stack.classification || 'General'}
                     </div>
                   </GlassCard>
                 ))}
@@ -790,6 +849,8 @@ export const SkillsPage = () => {
     </div>
   );
 };
+
+export const SkillsPage = TechStacksPage;
 
 export const AdminLoginPage = () => {
   const [email, setEmail] = useState('');
@@ -905,9 +966,9 @@ export const AdminLoginPage = () => {
           </Button>
         </form>
         
-        <div className="mt-10 pt-6 border-t border-white/5 flex justify-between items-center text-[10px] font-mono text-muted-foreground uppercase tracking-widest">
+        <div className="mt-10 pt-6 border-t border-divider flex justify-between items-center text-[10px] font-mono text-text-muted uppercase tracking-widest">
           <span>SEC: FIREBASE v11+</span>
-          <button onClick={() => navigate('/')} className="hover:text-primary transition-colors flex items-center gap-1">
+          <button onClick={() => navigate('/')} className="hover:text-text-primary transition-colors flex items-center gap-1 cursor-pointer">
             <X className="w-3 h-3" /> Exit
           </button>
         </div>
@@ -959,9 +1020,9 @@ export const AdminDashboardPage = () => {
         <Card className="p-6 group hover:border-purple-400/50 transition-all">
           <div className="flex justify-between items-start mb-4">
             <h3 className="text-[10px] font-mono font-bold text-muted-foreground uppercase tracking-widest">
-              Total skills
+              Total Tech Stacks
             </h3>
-            <Code className="w-4 h-4 text-purple-400 opacity-50" />
+            <Layers className="w-4 h-4 text-purple-400 opacity-50" />
           </div>
           <p className="text-4xl font-bold tracking-tighter">{skills.length}</p>
         </Card>
@@ -1052,7 +1113,8 @@ export const AdminServicesPage = () => {
   };
 
   const handleDelete = async (s: Service) => {
-    if (!confirm(`Delete service "${s.name}"?`)) return;
+    const title = s.title || s.name || "Untitled Service";
+    if (!confirm(`Delete service "${title}"?`)) return;
     try {
       await deleteService(s.id);
       addToast("Service deleted", "success");
@@ -1077,7 +1139,7 @@ export const AdminServicesPage = () => {
             <TableRow>
               <TableHead className="w-10 pl-4"></TableHead>
               <TableHead className="w-12">#</TableHead>
-              <TableHead>Name</TableHead>
+              <TableHead>Title / Slug</TableHead>
               <TableHead className="hidden md:table-cell">Category</TableHead>
               <TableHead className="hidden lg:table-cell">Tags</TableHead>
               <TableHead className="hidden md:table-cell">Status</TableHead>
@@ -1092,61 +1154,70 @@ export const AdminServicesPage = () => {
                 </TableCell>
               </TableRow>
             )}
-            {ordered.map((s, index) => (
-              <SortableRow key={s.id} id={s.id}>
-                {() => (
-                  <>
-                    <TableCell className="text-muted-foreground font-mono text-xs">{index + 1}</TableCell>
-                    <TableCell>
-                      <div className="font-bold flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center">
-                           <DynamicIcon name={s.icon} className="w-4 h-4 text-primary opacity-50" fallback={Zap} />
+            {ordered.map((s, index) => {
+              const title = s.title || s.name || "Untitled Service";
+              const isAct = s.active !== undefined ? s.active : (s.isActive !== undefined ? s.isActive : true);
+              const isFeat = s.featured !== undefined ? s.featured : (s.isFeatured !== undefined ? s.isFeatured : false);
+              return (
+                <SortableRow key={s.id} id={s.id}>
+                  {() => (
+                    <>
+                      <TableCell className="text-muted-foreground font-mono text-xs">{index + 1}</TableCell>
+                      <TableCell>
+                        <div className="font-bold flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-lg bg-surface-4 border border-border flex items-center justify-center overflow-hidden shrink-0">
+                            {s.iconType === 'image' && s.iconImage ? (
+                              <img src={s.iconImage} alt={title} className="w-5 h-5 object-contain" />
+                            ) : (
+                              <DynamicIcon name={s.icon} className="w-4 h-4 text-accent" fallback={Zap} />
+                            )}
+                          </div>
+                          <span className="truncate">{title}</span>
+                          {isFeat && <Star className="h-3.5 w-3.5 fill-accent text-accent shrink-0" />}
                         </div>
-                        {s.name}
-                        {s.isFeatured && <Star className="h-3.5 w-3.5 fill-primary text-primary" />}
-                      </div>
-                      <div className="text-[10px] text-muted-foreground font-mono uppercase tracking-tighter opacity-50">/{s.slug}</div>
-                    </TableCell>
-                    <TableCell className="hidden md:table-cell">
-                      <Badge variant="secondary" className="capitalize font-mono text-[10px]">{s.category}</Badge>
-                    </TableCell>
-                    <TableCell className="hidden lg:table-cell">
-                      <div className="flex flex-wrap gap-1">
-                        {(s.tags ?? []).slice(0, 2).map((t) => (
-                          <span key={t} className="text-[10px] bg-white/5 border border-white/5 px-2 py-0.5 rounded text-muted-foreground">#{t}</span>
-                        ))}
-                        {(s.tags?.length ?? 0) > 2 && (
-                          <span className="text-[10px] text-muted-foreground">+{s.tags!.length - 2}</span>
+                        <div className="text-[10px] text-text-muted font-mono lowercase tracking-tighter">/{String(s.slug || s.id).toLowerCase()}</div>
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell">
+                        <Badge variant="secondary" className="capitalize font-mono text-[10px]">{s.category}</Badge>
+                      </TableCell>
+                      <TableCell className="hidden lg:table-cell">
+                        <div className="flex flex-wrap gap-1">
+                          {(s.tags ?? []).slice(0, 2).map((t) => (
+                            <span key={t} className="text-[10px] bg-surface-4 border border-border px-2 py-0.5 rounded text-text-secondary">#{t}</span>
+                          ))}
+                          {(s.tags?.length ?? 0) > 2 && (
+                            <span className="text-[10px] text-text-muted">+{s.tags!.length - 2}</span>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell">
+                        {isAct ? (
+                          <div className="flex items-center gap-2">
+                            <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                            <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-primary">Active</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2 opacity-30">
+                            <EyeOff className="h-3 w-3" />
+                            <span className="text-[10px] font-mono font-bold uppercase tracking-widest">Hidden</span>
+                          </div>
                         )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="hidden md:table-cell">
-                      {s.isActive ? (
-                        <div className="flex items-center gap-2">
-                          <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                          <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-primary">Active</span>
+                      </TableCell>
+                      <TableCell className="text-right pr-4">
+                        <div className="flex justify-end gap-1">
+                          <Button size="icon" variant="ghost" onClick={() => openEdit(s)} className="rounded-lg hover:bg-primary/10 hover:text-primary">
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button size="icon" variant="ghost" onClick={() => handleDelete(s)} className="rounded-lg hover:bg-destructive/10 hover:text-destructive">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         </div>
-                      ) : (
-                        <div className="flex items-center gap-2 opacity-30">
-                          <EyeOff className="h-3 w-3" />
-                          <span className="text-[10px] font-mono font-bold uppercase tracking-widest">Hidden</span>
-                        </div>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right pr-4">
-                      <div className="flex justify-end gap-1">
-                        <Button size="icon" variant="ghost" onClick={() => openEdit(s)} className="rounded-lg hover:bg-primary/10 hover:text-primary">
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button size="icon" variant="ghost" onClick={() => handleDelete(s)} className="rounded-lg hover:bg-destructive/10 hover:text-destructive">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </>
-                )}
-              </SortableRow>
-            ))}
+                      </TableCell>
+                    </>
+                  )}
+                </SortableRow>
+              );
+            })}
           </TableBody>
         </SortableList>
       </CrudPageShell>
@@ -1168,10 +1239,11 @@ export const AdminProductsPage = () => {
   };
 
   const handleDelete = async (p: Product) => {
-    if (!confirm(`Remove product "${p.name}"?`)) return;
+    const title = p.title || p.name || 'Untitled Project';
+    if (!confirm(`Remove project "${title}"?`)) return;
     try {
       await deleteProduct(p.id);
-      addToast("Product removed", "success");
+      addToast("Project removed", "success");
     } catch (error: any) {
       addToast("Delete failed", "error");
     }
@@ -1182,10 +1254,10 @@ export const AdminProductsPage = () => {
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
       <CrudPageShell
-        title="Products"
-        description="Register and showcase your completed projects"
+        title="Projects"
+        description="Register and showcase your completed technical projects, case studies, and live deliverables"
         onAdd={openAdd}
-        addLabel="Register Product"
+        addLabel="Register Project"
         count={products.length}
       >
         <SortableList items={ordered} onReorder={reorderProducts}>
@@ -1193,61 +1265,87 @@ export const AdminProductsPage = () => {
             <TableRow>
               <TableHead className="w-10 pl-4"></TableHead>
               <TableHead className="w-20">Preview</TableHead>
-              <TableHead>Product Identity</TableHead>
+              <TableHead>Project Title & Slug</TableHead>
+              <TableHead className="hidden md:table-cell">Category</TableHead>
               <TableHead className="hidden md:table-cell">Associated Service</TableHead>
-              <TableHead className="hidden lg:table-cell">Tags</TableHead>
+              <TableHead className="hidden sm:table-cell">Status</TableHead>
               <TableHead className="w-[120px] text-right pr-4">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {ordered.length === 0 && (
               <TableRow>
-                <TableCell colSpan={6} className="py-20 text-center text-sm text-muted-foreground font-mono uppercase tracking-widest bg-muted/10">
-                   No_Product_Nodes_Found
+                <TableCell colSpan={7} className="py-20 text-center text-sm text-muted-foreground font-mono uppercase tracking-widest bg-muted/10">
+                   No_Project_Nodes_Found
                 </TableCell>
               </TableRow>
             )}
             {ordered.map((p) => {
-              const service = services.find(s => s.id === p.serviceId);
+              const service = services.find(s => s.id === (p.parentService || p.serviceId));
+              const title = p.title || p.name || 'Untitled Project';
+              const img = p.displayPicture || p.imageUrl;
+              const isAct = p.active !== false && p.isActive !== false;
+              const isFeat = Boolean(p.featured || p.isFeatured);
+
               return (
                 <SortableRow key={p.id} id={p.id}>
                   {() => (
                     <>
                       <TableCell>
-                        <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 overflow-hidden">
-                          {p.imageUrl ? (
-                            <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                        <div className="w-12 h-12 rounded-xl bg-surface-4 border border-border overflow-hidden relative">
+                          {img ? (
+                            <img src={img} alt={title} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                           ) : (
-                            <div className="w-full h-full flex items-center justify-center bg-primary/5">
-                              <DynamicIcon name={p.icon} className="w-6 h-6 text-primary/40" fallback={ShoppingBag} />
+                            <div className="w-full h-full flex items-center justify-center bg-surface-3">
+                              {p.iconType === 'image' && p.iconImage ? (
+                                <img src={p.iconImage} alt="" className="w-6 h-6 object-contain" />
+                              ) : (
+                                <DynamicIcon name={p.icon} className="w-6 h-6 text-text-muted" fallback={ShoppingBag} />
+                              )}
                             </div>
                           )}
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="font-bold flex items-center gap-2">{p.name}</div>
-                        <div className="text-[10px] text-muted-foreground font-mono uppercase truncate max-w-[200px] opacity-50">{p.description}</div>
+                        <div className="font-bold flex items-center gap-2 text-foreground">
+                          {title}
+                          {isFeat && (
+                            <Badge variant="outline" className="text-[10px] font-mono border-amber-400/40 text-amber-500 bg-amber-400/10">
+                              <Star className="w-2.5 h-2.5 mr-1 fill-amber-400" /> Featured
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="text-[10px] text-text-muted font-mono lowercase tracking-tighter">/{String(p.slug || p.id).toLowerCase()}</div>
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell">
+                        <Badge variant="secondary" className="capitalize font-mono text-[10px]">{p.category || 'General'}</Badge>
                       </TableCell>
                       <TableCell className="hidden md:table-cell">
                         {service ? (
-                          <Badge variant="secondary" className="font-mono text-[10px] border-primary/20 text-primary">{service.name}</Badge>
+                          <Badge variant="outline" className="font-mono text-[10px] border-primary/20 text-primary">{service.title || service.name}</Badge>
                         ) : (
                           <span className="text-[10px] text-muted-foreground font-mono italic">Unmapped</span>
                         )}
                       </TableCell>
-                      <TableCell className="hidden lg:table-cell">
-                        <div className="flex flex-wrap gap-1">
-                          {(p.tags ?? []).slice(0, 2).map((t) => (
-                            <span key={t} className="text-[10px] bg-white/5 border border-white/5 px-2 py-0.5 rounded text-muted-foreground">#{t}</span>
-                          ))}
-                        </div>
+                      <TableCell className="hidden sm:table-cell">
+                        {isAct ? (
+                          <div className="flex items-center gap-2">
+                            <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                            <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-primary">Active</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2 opacity-40">
+                            <EyeOff className="h-3 w-3" />
+                            <span className="text-[10px] font-mono font-bold uppercase tracking-widest">Hidden</span>
+                          </div>
+                        )}
                       </TableCell>
                       <TableCell className="text-right pr-4">
                         <div className="flex justify-end gap-1">
-                          <Button size="icon" variant="ghost" onClick={() => openEdit(p)} className="rounded-lg hover:bg-primary/10 hover:text-primary">
+                          <Button size="icon" variant="ghost" onClick={() => openEdit(p)} className="rounded-lg hover:bg-primary/10 hover:text-primary cursor-pointer">
                             <Pencil className="h-4 w-4" />
                           </Button>
-                          <Button size="icon" variant="ghost" onClick={() => handleDelete(p)} className="rounded-lg hover:bg-destructive/10 hover:text-destructive">
+                          <Button size="icon" variant="ghost" onClick={() => handleDelete(p)} className="rounded-lg hover:bg-destructive/10 hover:text-destructive cursor-pointer">
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
@@ -1264,100 +1362,78 @@ export const AdminProductsPage = () => {
   );
 };
 
-const emptySkill = (): Skill => ({
-  id: "",
-  name: "",
-  category: SkillCategory.OTHER,
-  level: 80,
-  icon: "Code",
-  createdAt: new Date().toISOString(),
-  updatedAt: new Date().toISOString(),
-});
-
-export const AdminSkillsPage = () => {
-  const { skills, addSkill, updateSkill, deleteSkill, reorderSkills } = useAppStore();
+export const AdminTechStacksPage = () => {
+  const { techStacks, addTechStack, updateTechStack, deleteTechStack, reorderTechStacks } = useAppStore();
   const addToast = useToastStore((state) => state.addToast);
   const [open, setOpen] = useState(false);
-  const [editing, setEditing] = useState<Skill | null>(null);
-  const [form, setForm] = useState<Skill>(emptySkill());
-
-  const update = <K extends keyof Skill>(key: K, val: Skill[K]) =>
-    setForm((prev) => ({ ...prev, [key]: val }));
+  const [editing, setEditing] = useState<TechStack | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   const openAdd = () => {
     setEditing(null);
-    setForm(emptySkill());
     setOpen(true);
   };
 
-  const openEdit = (s: Skill) => {
+  const openEdit = (s: TechStack) => {
     setEditing(s);
-    setForm({ ...s });
     setOpen(true);
   };
 
-  const handleSave = async () => {
-    if (!form.name.trim()) {
-      addToast("Name is required", "error");
-      return;
-    }
-    const id = editing?.id || Math.random().toString(36).substring(7);
-    const payload: Skill = {
-      ...form,
-      id,
-      updatedAt: new Date().toISOString(),
-    };
-
+  const handleSave = async (data: TechStack) => {
+    setIsSaving(true);
     try {
       if (editing) {
-        await updateSkill(payload);
-        addToast("Skill updated", "success");
+        await updateTechStack(data);
+        addToast("Tech stack updated", "success");
       } else {
-        await addSkill(payload);
-        addToast("Skill indexed", "success");
+        await addTechStack(data);
+        addToast("Tech stack added", "success");
       }
       setOpen(false);
     } catch (error: any) {
-      addToast("Operation failed", "error");
+      addToast(error?.message || "Operation failed", "error");
+    } finally {
+      setIsSaving(false);
     }
   };
 
-  const handleDelete = async (s: Skill) => {
-    if (!confirm(`Purge skill "${s.name}"?`)) return;
+  const handleDelete = async (s: TechStack) => {
+    if (!confirm(`Delete tech stack "${s.name}"?`)) return;
     try {
-      await deleteSkill(s.id);
-      addToast("Skill purged", "success");
+      await deleteTechStack(s.id);
+      addToast("Tech stack deleted", "success");
     } catch (error: any) {
-      addToast("Delete failed", "error");
+      addToast(error?.message || "Delete failed", "error");
     }
   };
 
-  const ordered = [...skills].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  const ordered = [...techStacks].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
       <CrudPageShell
-        title="Capability Matrix"
-        description="Manage the technical and creative skill nodes"
+        title="Tech Stacks"
+        description="Manage technologies, frameworks, and engineering tools in your tech stack"
         onAdd={openAdd}
-        addLabel="Index Skill"
-        count={skills.length}
+        addLabel="Add Tech Stack"
+        count={techStacks.length}
       >
-        <SortableList items={ordered} onReorder={reorderSkills}>
+        <SortableList items={ordered} onReorder={reorderTechStacks}>
           <TableHeader>
             <TableRow>
               <TableHead className="w-10 pl-4"></TableHead>
-              <TableHead>Skill Identity</TableHead>
+              <TableHead>Tech Stack Identity</TableHead>
               <TableHead className="hidden md:table-cell">Classification</TableHead>
-              <TableHead>Proficiency (%)</TableHead>
+              <TableHead className="hidden sm:table-cell">Icon Source</TableHead>
+              <TableHead className="w-24 text-center">Order</TableHead>
               <TableHead className="w-[120px] text-right pr-4">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {ordered.length === 0 && (
               <TableRow>
-                <TableCell colSpan={5} className="py-20 text-center text-sm text-muted-foreground uppercase tracking-widest bg-muted/10">
-                   No Skills Found
+                <TableCell colSpan={6} className="py-20 text-center text-sm text-muted-foreground uppercase tracking-widest bg-muted/10">
+                   No Tech Stacks Found
                 </TableCell>
               </TableRow>
             )}
@@ -1366,24 +1442,25 @@ export const AdminSkillsPage = () => {
                 {() => (
                   <>
                     <TableCell>
-                      <div className="font-bold flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center">
-                           <DynamicIcon name={s.icon} className="w-4 h-4 text-primary opacity-50" fallback={Zap} />
+                      <div className="font-bold flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-surface-4 border border-border flex items-center justify-center shrink-0 shadow-xs">
+                           <TechStackIcon stack={s} className="w-5 h-5 text-primary" />
                         </div>
-                        {s.name}
+                        <span className="truncate max-w-[200px]">{s.name}</span>
                       </div>
                     </TableCell>
                     <TableCell className="hidden md:table-cell">
-                      <Badge variant="secondary" className="font-mono text-[10px] capitalize">{s.category}</Badge>
+                      <Badge variant="secondary" className="font-mono text-[10px]">
+                        {s.classification || s.category || 'Other'}
+                      </Badge>
                     </TableCell>
-                    <TableCell>
-                      <div className="w-full max-w-[100px] h-1.5 rounded-full bg-white/5 overflow-hidden">
-                        <div 
-                          className="h-full bg-primary shadow-glow-primary transition-all duration-1000" 
-                          style={{ width: `${s.level}%` }}
-                        />
-                      </div>
-                      <span className="text-[10px] font-mono font-bold mt-1 block">{s.level}%</span>
+                    <TableCell className="hidden sm:table-cell">
+                      <span className="text-xs text-muted-foreground capitalize font-medium">
+                        {s.iconType === 'link' ? 'Custom Link' : s.iconType === 'image' ? 'Media Image' : 'Library Icon'}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-center font-mono text-xs text-muted-foreground">
+                      #{s.order ?? 0}
                     </TableCell>
                     <TableCell className="text-right pr-4">
                       <div className="flex justify-end gap-1">
@@ -1404,75 +1481,26 @@ export const AdminSkillsPage = () => {
       </CrudPageShell>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-md" onOpenChange={setOpen}>
+        <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto" onOpenChange={setOpen}>
           <DialogHeader>
-            <DialogTitle>{editing ? "Refactor Skill Node" : "Index Skill Node"}</DialogTitle>
+            <DialogTitle>{editing ? "Edit Tech Stack" : "New Tech Stack"}</DialogTitle>
           </DialogHeader>
 
-          <div className="space-y-5 py-4">
-            <InputBlock
-              label="Skill Name"
-              required
-              value={form.name}
-              onChange={(e) => update("name", e.target.value)}
-              placeholder="E.g. TypeScript"
-              startIcon={<Code2 className="w-4 h-4" />}
+          <div className="py-2">
+            <TechStackForm
+              initialData={editing || undefined}
+              onSubmit={handleSave}
+              onCancel={() => setOpen(false)}
+              isLoading={isSaving}
             />
-
-            <IconPicker 
-              value={form.icon || ""} 
-              onChange={(val) => update("icon", val)} 
-              label="Capability Node Icon"
-            />
-
-            <FormField label="Classification" required>
-              <Select
-                value={form.category}
-                onValueChange={(v) => update("category", v as SkillCategory)}
-              >
-                <SelectTrigger><SelectValue placeholder="Select Category" /></SelectTrigger>
-                <SelectContent>
-                  {Object.values(SkillCategory).map(cat => (
-                    <SelectItem key={cat} value={cat}>{cat.charAt(0).toUpperCase() + cat.slice(1)}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </FormField>
-
-            <FormField
-              label="Proficiency Level"
-              badge={`${form.level}%`}
-              description="Adjust rating on the engineering stack matrix"
-            >
-              <div className="space-y-3 pt-1">
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  value={form.level}
-                  onChange={(e) => update("level", Number(e.target.value))}
-                  className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
-                />
-                <div className="flex justify-between text-[10px] text-muted-foreground font-mono">
-                  <span>Beginner (0%)</span>
-                  <span>Proficient (50%)</span>
-                  <span>Mastery (100%)</span>
-                </div>
-              </div>
-            </FormField>
           </div>
-
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setOpen(false)} className="rounded-xl">Cancel</Button>
-            <Button onClick={handleSave} className="rounded-xl px-8 shadow-glow-primary">
-              {editing ? "Save Refactor" : "Deploy Index"}
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
   );
 };
+
+export const AdminSkillsPage = AdminTechStacksPage;
 
 export const ServiceDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -1480,9 +1508,15 @@ export const ServiceDetailPage = () => {
   const services = useAppStore((state) => state.services);
   const products = useAppStore((state) => state.products);
   const skills = useAppStore((state) => state.skills);
+  const { user, isAuthenticated } = useAuthStore();
+  const isAdmin = Boolean(isAuthenticated && user);
   
-  const service = services.find(s => s.id === id);
+  const service = services.find(s => s.id === id || s.slug === id);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+
+  const title = service ? (service.title || service.name || "Untitled Service") : "";
+  const bannerImg = service ? (service.bannerPicture || service.displayPicture || service.bannerImage || service.thumbnail) : undefined;
+  const isVisible = Boolean(service && ((service.active !== false && service.isActive !== false) || isAdmin));
 
   useEffect(() => {
     if (selectedImage) {
@@ -1495,14 +1529,30 @@ export const ServiceDetailPage = () => {
     };
   }, [selectedImage]);
 
-  const relatedProducts = [...products]
-    .filter(p => p.serviceId === id)
-    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  useEffect(() => {
+    if (service) {
+      const metaTitle = service.metaTitle || `${title} | Wise Byte Concepts`;
+      document.title = metaTitle;
+      const metaDesc = service.metaDescription || service.shortDescription;
+      if (metaDesc) {
+        const metaTag = document.querySelector('meta[name="description"]');
+        if (metaTag) metaTag.setAttribute('content', metaDesc);
+      }
+    }
+  }, [service, title]);
+
+  const relatedProducts = useMemo(() => {
+    if (!service) return [];
+    const relatedIds = service.relatedProjects || [];
+    return [...products]
+      .filter(p => p.serviceId === service.id || relatedIds.includes(p.id))
+      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  }, [products, service]);
 
   const getTechIcon = (techName: string) => {
     const skill = skills.find(s => s.name.toLowerCase() === techName.toLowerCase());
-    if (skill?.icon) {
-      return <DynamicIcon name={skill.icon} className="w-4 h-4" fallback={CircleDot} />;
+    if (skill) {
+      return <TechStackIcon stack={skill} className="w-4 h-4" fallback={CircleDot} />;
     }
 
     const t = techName.toLowerCase();
@@ -1517,16 +1567,16 @@ export const ServiceDetailPage = () => {
     return <CircleDot className="w-4 h-4" />;
   };
 
-  if (!service) {
+  if (!service || !isVisible) {
     return (
       <div className="min-h-[70vh] flex flex-col items-center justify-center text-center px-6">
-        <div className="w-20 h-20 bg-white/5 rounded-3xl flex items-center justify-center mb-8">
-          <Briefcase className="w-10 h-10 text-muted-foreground" />
+        <div className="w-20 h-20 bg-surface-4 border border-border rounded-3xl flex items-center justify-center mb-8">
+          <Briefcase className="w-10 h-10 text-text-muted" />
         </div>
-        <h1 className="text-4xl font-bold mb-4">Service Node Not Found</h1>
-        <p className="text-muted-foreground max-w-md mb-8">The requested technical service module could not be located in our registry.</p>
-        <Button onClick={() => navigate(-1)}>
-          <ArrowLeft className="mr-2 w-4 h-4" /> Go Back
+        <h1 className="text-4xl font-bold mb-4 text-text-primary">Service Node Not Found</h1>
+        <p className="text-text-muted max-w-md mb-8">The requested technical service module could not be located in our registry.</p>
+        <Button onClick={() => navigate('/services')}>
+          <ArrowLeft className="mr-2 w-4 h-4" /> Go to Services
         </Button>
       </div>
     );
@@ -1559,7 +1609,7 @@ export const ServiceDetailPage = () => {
             >
               <button 
                 onClick={() => setSelectedImage(null)}
-                className="absolute -top-12 right-0 md:-right-12 md:top-0 p-2 text-white/50 hover:text-white transition-colors z-20"
+                className="absolute -top-12 right-0 md:-right-12 md:top-0 p-2 text-white/50 hover:text-white transition-colors z-20 cursor-pointer"
                 id="close-modal-btn"
                 aria-label="Close modal"
               >
@@ -1570,7 +1620,7 @@ export const ServiceDetailPage = () => {
                 <img 
                   src={selectedImage} 
                   alt="Enlarged technical view"
-                  className="w-full h-auto max-h-[85vh] object-contain rounded-xl shadow-[0_0_50px_rgba(0,0,0,0.5)] border border-white/10"
+                  className="w-full h-auto max-h-[85vh] object-contain rounded-xl shadow-[0_0_50px_rgba(0,0,0,0.5)] border border-border"
                 />
                 
                 <div className="mt-6 text-center">
@@ -1578,7 +1628,7 @@ export const ServiceDetailPage = () => {
                     Technical Implementation Record
                   </p>
                   <p className="text-white/80 text-sm font-medium">
-                    {service.name} System Preview
+                    {title} System Preview
                   </p>
                 </div>
               </div>
@@ -1587,17 +1637,23 @@ export const ServiceDetailPage = () => {
         )}
       </AnimatePresence>
 
-      {/* Hero Section */}
-      <section className="relative pt-32 pb-0 overflow-hidden border-b border-white/5">
+      {/* Hero Section with Banner Picture fallback */}
+      <section className="relative pt-32 pb-12 overflow-hidden border-b border-border">
+        {bannerImg && (
+          <div className="absolute inset-0 -z-20 opacity-20">
+            <img src={bannerImg} alt={title} className="w-full h-full object-cover blur-xs" />
+            <div className="absolute inset-0 bg-gradient-to-t from-background via-background/90 to-background/60" />
+          </div>
+        )}
         <GlowOrb color="primary" size="lg" className="top-[-10%] right-[-10%] opacity-20" />
         <GlowOrb color="secondary" size="md" className="bottom-[-20%] left-[-10%] opacity-10" />
         <div className="absolute top-0 right-0 w-1/2 h-full bg-primary/5 blur-[120px] -z-10" />
         <div className="container mx-auto px-6">
           <button 
-            onClick={() => navigate(-1)}
+            onClick={() => navigate('/services')}
             className="inline-flex items-center text-xs font-sans font-medium text-muted-foreground hover:text-primary transition-colors mb-12 uppercase tracking-[0.2em] cursor-pointer transform-gpu"
           >
-            <ArrowLeft className="mr-2 w-3 h-3" /> Back
+            <ArrowLeft className="mr-2 w-3 h-3" /> All Services
           </button>
 
           <div className="flex flex-col gap-6 mb-8">
@@ -1606,16 +1662,24 @@ export const ServiceDetailPage = () => {
                 <span className="px-4 py-1.5 bg-primary/10 text-primary text-[11px] font-bold tracking-[0.4em] uppercase rounded-full font-display">
                   {service.category}
                 </span>
+                {!service.active && (
+                  <span className="px-3 py-1 bg-amber-500/10 text-amber-500 border border-amber-500/20 text-[10px] font-mono uppercase tracking-wider rounded-md font-bold">
+                    Admin Preview (Inactive)
+                  </span>
+                )}
               </div>
               
               <div className="flex flex-col md:flex-row md:items-center gap-8 mb-0">
-                 <div className="w-20 h-20 bg-primary/10 rounded-2xl flex items-center justify-center border border-primary/20 backdrop-blur-xl relative group overflow-hidden shrink-0">
-                    <div className="absolute inset-0 bg-primary/20 blur-xl opacity-0 group-hover:opacity-100 transition-opacity" />
-                    <DynamicIcon name={service.icon} className="w-10 h-10 text-primary relative z-10" fallback={Briefcase} />
+                 <div className="w-20 h-20 bg-primary/10 rounded-2xl flex items-center justify-center border border-primary/20 backdrop-blur-xl relative group overflow-hidden shrink-0 shadow-glow-sm">
+                    {service.iconType === 'image' && service.iconImage ? (
+                      <img src={service.iconImage} alt={title} className="w-12 h-12 object-contain" />
+                    ) : (
+                      <DynamicIcon name={service.icon} className="w-10 h-10 text-primary relative z-10" fallback={Briefcase} />
+                    )}
                  </div>
                  <div>
-                   <h1 className="text-[48.8px] font-bold mb-1 tracking-tight leading-tight">
-                    {service.name}
+                   <h1 className="text-3xl md:text-5xl font-bold mb-2 tracking-tight leading-tight">
+                    {title}
                    </h1>
                    <p className="text-base text-muted-foreground leading-relaxed max-w-2xl">
                     {service.caption || service.shortDescription}
@@ -1628,54 +1692,64 @@ export const ServiceDetailPage = () => {
       </section>
 
       {/* Main Content */}
-      <div className="container mx-auto px-6 py-20">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-16">
-          {/* Left Column: Description & Features */}
-          <div className="lg:col-span-7 space-y-16">
+      <div className="container mx-auto px-6 py-16 md:py-20">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16">
+          {/* Left Column: Description & Value Props */}
+          <div className="lg:col-span-7 space-y-14">
             <div>
-              <h2 className="text-2xl font-bold mb-8 flex items-center gap-3">
+              <h2 className="text-2xl font-bold mb-6 flex items-center gap-3 text-foreground">
                 <Terminal className="w-6 h-6 text-primary" /> Service Specifications
               </h2>
-              <div className="prose prose-invert max-w-none text-muted-foreground leading-relaxed text-lg space-y-6">
-                {(service.fullDescription || service.shortDescription).split('\n').map((para, i) => (
-                   para.trim() ? <p key={i}>{para}</p> : null
-                ))}
+              <div className="p-6 md:p-8 rounded-2xl bg-surface-1 border border-border/60">
+                <MarkdownContent 
+                  content={service.fullDescription || service.shortDescription || ''} 
+                />
               </div>
             </div>
 
-            {service.features && service.features.length > 0 && (
+            {/* Core Features: { icon, title, description } */}
+            {((service.coreFeatures && service.coreFeatures.length > 0) || (service.features && service.features.length > 0)) && (
               <div>
-                <h2 className="text-2xl font-bold mb-8 flex items-center gap-3">
-                  <Cpu className="w-6 h-6 text-primary" /> Core Capabilities
+                <h2 className="text-2xl font-bold mb-6 flex items-center gap-3 text-foreground">
+                  <Cpu className="w-6 h-6 text-primary" /> Core Features
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {service.features.map((feature, i) => (
-                    <div key={i} className="p-4 bg-white/5 border border-white/5 rounded-xl flex items-start gap-4 group hover:border-primary/30 transition-colors">
-                      <div className="mt-1 w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary/20 transition-colors">
-                        <CheckCircle2 className="w-3 h-3 text-primary" />
+                  {(service.coreFeatures && service.coreFeatures.length > 0 ? service.coreFeatures : (service.features || []).map(f => ({ icon: 'CheckCircle2', title: f, description: '' }))).map((feat: any, i: number) => {
+                    const featTitle = typeof feat === 'string' ? feat : feat.title;
+                    const featDesc = typeof feat === 'object' ? feat.description : '';
+                    const featIcon = typeof feat === 'object' ? feat.icon : 'CheckCircle2';
+                    return (
+                      <div key={i} className="p-4 bg-surface-2 border border-border shadow-xs rounded-xl flex items-start gap-4 group hover:border-accent/40 transition-colors">
+                        <div className="mt-0.5 w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                          <DynamicIcon name={featIcon} className="w-4 h-4 text-primary" fallback={CheckCircle2} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <span className="text-sm font-bold text-text-primary block mb-1 group-hover:text-primary transition-colors">{featTitle}</span>
+                          {featDesc && <p className="text-xs text-muted-foreground leading-relaxed">{featDesc}</p>}
+                        </div>
                       </div>
-                      <span className="text-muted-foreground group-hover:text-foreground transition-colors">{feature}</span>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}
 
+            {/* Gallery Collection */}
             {service.gallery && service.gallery.length > 0 && (
               <div className="mt-12">
-                <h2 className="text-2xl font-bold mb-8 flex items-center gap-3">
+                <h2 className="text-2xl font-bold mb-6 flex items-center gap-3 text-foreground">
                   <Camera className="w-6 h-6 text-primary" /> Visual Repository
                 </h2>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                   {service.gallery.map((img, i) => (
                     <div 
                       key={i} 
-                      className="group relative aspect-square rounded-xl overflow-hidden bg-primary/5 border border-white/5 cursor-pointer"
+                      className="group relative aspect-square rounded-xl overflow-hidden bg-surface-1 border border-border cursor-pointer shadow-xs"
                       onClick={() => setSelectedImage(img)}
                     >
                       <img 
                         src={img} 
-                        alt={`${service.name} gallery ${i}`} 
+                        alt={`${title} gallery ${i}`} 
                         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 transform-gpu will-change-transform [backface-visibility:hidden]" 
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
@@ -1690,88 +1764,136 @@ export const ServiceDetailPage = () => {
             )}
           </div>
 
-          {/* Right Column: Meta & Stack */}
-          <div className="lg:col-span-5 space-y-8">
-            {service.technologies && service.technologies.length > 0 && (
-              <GlassCard>
-                <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
-                  <Layers className="w-5 h-5 text-primary" /> Technology Stack
-                </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {service.technologies.map((tech, i) => (
-                    <div key={i} className="flex items-center gap-3 p-3 bg-white/5 border border-white/5 rounded-xl hover:border-primary/30 hover:bg-primary/5 transition-all group">
-                      <div className="text-muted-foreground group-hover:text-primary transition-colors">
-                        {getTechIcon(tech)}
-                      </div>
-                      <span className="text-sm font-sans font-medium text-muted-foreground group-hover:text-foreground transition-colors">
-                        {tech}
-                      </span>
-                    </div>
-                  ))}
+          {/* Right Column: Pricing, Value proposition & Tech Stack */}
+          <div className="lg:col-span-5 space-y-6">
+            {/* Pricing Card: Custom Quote shows "Contact Us" instead of a price */}
+            <GlassCard className="border-primary/20 bg-primary/5 p-7">
+              <p className="text-[11px] font-bold text-primary uppercase tracking-[0.4em] mb-4">Investment Roadmap</p>
+              {service.pricingModel === 'Custom Quote' || (service.pricing && service.pricing.type === 'custom') ? (
+                <div className="space-y-3">
+                  <div className="text-3xl font-bold text-foreground">Contact Us</div>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Scope, deliverables, and specifications are determined on a consultation basis.
+                  </p>
+                  <Button 
+                    variant="glass" 
+                    size="sm" 
+                    onClick={() => navigate(service.ctaButtonLink || '/contact')}
+                    className="w-full mt-2 font-bold cursor-pointer"
+                  >
+                    Request Custom Quote
+                  </Button>
                 </div>
-              </GlassCard>
-            )}
+              ) : service.pricingModel === 'Range' ? (
+                <div>
+                  <div className="flex items-baseline gap-2 mb-2">
+                    <span className="text-3xl font-bold text-foreground">
+                      {service.currency || '$'}{service.minAmount?.toLocaleString() ?? 0} – {service.currency || '$'}{service.maxAmount?.toLocaleString() ?? 0}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground uppercase tracking-widest font-semibold flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary/40 animate-pulse" />
+                    Estimated Investment Range
+                  </p>
+                </div>
+              ) : (
+                <div>
+                  <div className="flex items-baseline gap-2 mb-2">
+                    <span className="text-3xl md:text-4xl font-bold text-foreground">
+                      {service.pricingModel === 'Starting At' ? 'From ' : ''}
+                      {service.currency || '$'}{(service.amount !== undefined ? service.amount : service.pricing?.amount)?.toLocaleString() ?? 'Quote Required'}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground uppercase tracking-widest font-semibold flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary/40 animate-pulse" />
+                    {service.pricingModel === 'Fixed' ? 'Finalized Fixed Rate' : 'Initial Estimate'}
+                  </p>
+                </div>
+              )}
+            </GlassCard>
 
+            {/* Expected Deliverables: { icon, title, description } */}
             {service.deliverables && service.deliverables.length > 0 && (
               <GlassCard>
-                <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
-                  <CheckCircle2 className="w-5 h-5 text-primary" /> Expected Deliverables
+                <h3 className="text-base font-bold mb-4 flex items-center gap-2 text-foreground">
+                  <CheckCircle2 className="w-5 h-5 text-primary" /> Tangible Deliverables
                 </h3>
-                <ul className="space-y-4">
-                  {service.deliverables.map((item, i) => (
-                    <li key={i} className="flex items-center gap-3 text-sm text-muted-foreground">
-                      <ChevronRight className="w-3 h-3 text-primary" />
-                      {item}
-                    </li>
-                  ))}
+                <ul className="space-y-3.5">
+                  {service.deliverables.map((item: any, i: number) => {
+                    const delivTitle = typeof item === 'string' ? item : item.title;
+                    const delivDesc = typeof item === 'object' ? item.description : '';
+                    const delivIcon = typeof item === 'object' ? item.icon : 'CheckCircle2';
+                    return (
+                      <li key={i} className="flex items-start gap-3">
+                        <div className="mt-0.5 w-6 h-6 rounded-md bg-accent-soft text-accent flex items-center justify-center shrink-0">
+                          <DynamicIcon name={delivIcon} className="w-3.5 h-3.5 text-accent" fallback={ChevronRight} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-semibold text-text-primary">{delivTitle}</div>
+                          {delivDesc && <div className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{delivDesc}</div>}
+                        </div>
+                      </li>
+                    );
+                  })}
                 </ul>
               </GlassCard>
             )}
 
-            {service.estimatedDuration && (
+            {/* Delivered Within */}
+            {service.deliveredWithin && (
               <GlassCard>
                 <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
                     <Clock className="w-5 h-5 text-primary" />
                   </div>
                   <div>
-                    <p className="text-[11px] font-bold text-primary uppercase tracking-[0.4em] mb-1">Est. Duration</p>
-                    <p className="font-bold">{service.estimatedDuration}</p>
+                    <p className="text-[11px] font-bold text-primary uppercase tracking-[0.4em] mb-1">Delivered Within</p>
+                    <p className="font-bold text-foreground">
+                      {service.deliveredWithin.unit === 'Depends Upon Project'
+                        ? 'Depends Upon Project'
+                        : `${service.deliveredWithin.range || ''} ${service.deliveredWithin.unit}`.trim()}
+                    </p>
                   </div>
                 </div>
               </GlassCard>
             )}
 
-            {service.pricing && (
-              <GlassCard className="border-primary/10 bg-primary/5 p-8">
-                <p className="text-[11px] font-bold text-primary uppercase tracking-[0.4em] mb-4">Investment Roadmap</p>
-                <div className="flex items-baseline gap-2 mb-2">
-                  <span className="text-4xl font-bold text-foreground">
-                    {service.pricing.amount ? `${service.pricing.currency || '$'}${service.pricing.amount}` : 'Quote Required'}
-                  </span>
-                  {service.pricing.unit && (
-                    <span className="text-muted-foreground text-sm font-medium">/ {service.pricing.unit}</span>
-                  )}
+            {/* Technologies Employed (Tech Stack model) */}
+            {((service.techStacks && service.techStacks.length > 0) || (service.technologies && service.technologies.length > 0)) && (
+              <GlassCard>
+                <h3 className="text-base font-bold mb-4 flex items-center gap-2 text-foreground">
+                  <Layers className="w-5 h-5 text-primary" /> Technologies Used
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  {(service.techStacks && service.techStacks.length > 0 ? service.techStacks : service.technologies || []).map((techIdOrName, i) => {
+                    const stack = skills.find(s => s.id === techIdOrName || s.name.toLowerCase() === techIdOrName.toLowerCase());
+                    const displayName = stack ? stack.name : techIdOrName;
+                    return (
+                      <div key={i} className="flex items-center gap-2.5 p-2.5 bg-surface-4 border border-border rounded-xl hover:border-accent/40 hover:bg-surface-3 transition-all group">
+                        <div className="text-text-muted group-hover:text-accent transition-colors shrink-0">
+                          {stack ? <TechStackIcon stack={stack} className="w-4 h-4" /> : getTechIcon(displayName)}
+                        </div>
+                        <span className="text-xs font-sans font-medium text-text-secondary group-hover:text-text-primary transition-colors truncate">
+                          {displayName}
+                        </span>
+                      </div>
+                    );
+                  })}
                 </div>
-                <p className="text-[11px] text-muted-foreground uppercase tracking-widest font-semibold flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-primary/40 animate-pulse" />
-                  {service.pricing.type === 'starting_from' ? 'Initial Estimate' : 
-                   service.pricing.type === 'fixed' ? 'Finalized Rate' : 'Bespoke Implementation'}
-                </p>
               </GlassCard>
             )}
           </div>
         </div>
       </div>
 
-      {/* Featured Output */}
+      {/* Related Projects Output */}
       {relatedProducts.length > 0 && (
-        <section className="bg-white/[0.02] py-16 md:py-24">
+        <section className="bg-surface-1 border-y border-border py-16 md:py-24">
           <div className="container mx-auto px-6">
             <div className="flex items-end justify-between mb-12">
               <div>
-                <h2 className="text-3xl font-bold mb-4 tracking-tight">Derived Output</h2>
-                <p className="text-muted-foreground">Recent products engineered using this service module.</p>
+                <h2 className="text-3xl font-bold mb-4 tracking-tight text-text-primary">Related Projects</h2>
+                <p className="text-text-secondary">Project deliverables engineered using this service capability.</p>
               </div>
               <Button variant="ghost" onClick={() => navigate('/products')}>
                 View Entire Showcase <ArrowRight className="ml-2 w-4 h-4" />
@@ -1780,7 +1902,7 @@ export const ServiceDetailPage = () => {
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {relatedProducts.map(p => (
-                <GlassCard key={p.id} className="p-0 overflow-hidden group border-white/5 hover:border-white/10">
+                <GlassCard key={p.id} className="p-0 overflow-hidden group hover:border-accent/40">
                    <div className="aspect-video relative overflow-hidden bg-muted">
                     {p.imageUrl ? (
                       <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover transition-transform duration-500" />
@@ -1805,50 +1927,47 @@ export const ServiceDetailPage = () => {
       )}
 
       {/* Global CTA Section at bottom */}
-      <section className="py-24 border-t border-white/5">
+      <section className="py-24 border-t border-border relative overflow-hidden">
         <div className="container mx-auto px-6 text-center">
-          <div className="max-w-4xl mx-auto">
-            <h2 className="text-4xl md:text-6xl font-bold mb-8 tracking-tight">Ready to initiate your next project?</h2>
-            <p className="text-xl text-muted-foreground mb-12 max-w-2xl mx-auto leading-relaxed">
+          <div className="max-w-4xl mx-auto flex flex-col items-center">
+            {service.ctaVisual && (
+              <div className="mb-6 flex justify-center">
+                {service.ctaVisual.type === 'image' && service.ctaVisual.value ? (
+                  <img 
+                    src={String(service.ctaVisual.value)} 
+                    alt="CTA visual accent" 
+                    className="w-16 h-16 rounded-2xl object-cover border border-border shadow-md" 
+                  />
+                ) : (
+                  <div className="w-16 h-16 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shadow-glow-sm">
+                    <DynamicIcon name={service.ctaVisual.value} className="w-8 h-8" fallback={Sparkles} />
+                  </div>
+                )}
+              </div>
+            )}
+            <h2 className="text-3xl md:text-5xl font-bold mb-6 tracking-tight text-foreground">
+              {service.ctaText || "Ready to initiate your next project?"}
+            </h2>
+            <p className="text-lg text-muted-foreground mb-10 max-w-2xl mx-auto leading-relaxed">
               Connect with our engineering team to discuss how we can bring your concept to reality 
-              with our specialized {service.name.toLowerCase()} expertise.
+              with our specialized {title.toLowerCase()} expertise.
             </p>
             
-            <div className="flex items-center justify-center">
-              {service.cta ? (
-                <Button 
-                  size="lg" 
-                  className="rounded-full px-12 h-14 font-bold hover:shadow-glow transition-all duration-300 group"
-                  onClick={() => {
-                    if (service.cta?.link) {
-                      if (service.cta.link.startsWith('http')) {
-                        window.open(service.cta.link, '_blank');
-                      } else {
-                        navigate(service.cta.link);
-                      }
-                    } else {
-                      navigate('/contact');
-                    }
-                  }}
-                >
-                  {service.cta.label}
-                  {service.cta.link?.startsWith('http') ? (
-                    <ExternalLink className="ml-2 w-5 h-5" />
-                  ) : (
-                    <ArrowRight className="ml-2 w-5 h-5 transition-transform group-hover:translate-x-1" />
-                  )}
-                </Button>
-              ) : (
-                <Button 
-                  size="lg" 
-                  className="rounded-full px-12 h-14 font-bold hover:shadow-glow transition-all duration-300 group"
-                  onClick={() => navigate('/contact')}
-                >
-                  Initialize Consultation
-                  <ArrowRight className="ml-2 w-5 h-5 transition-transform group-hover:translate-x-1" />
-                </Button>
-              )}
-            </div>
+            <Button 
+              size="lg" 
+              className="rounded-full px-12 h-14 font-bold hover:shadow-glow transition-all duration-300 group cursor-pointer"
+              onClick={() => {
+                const dest = service.ctaButtonLink || service.cta?.link || '/contact';
+                if (dest.startsWith('http')) {
+                  window.open(dest, '_blank');
+                } else {
+                  navigate(dest);
+                }
+              }}
+            >
+              {service.ctaButtonText || service.cta?.label || "Contact Us"}
+              <ArrowRight className="ml-2 w-5 h-5 transition-transform group-hover:translate-x-1" />
+            </Button>
           </div>
         </div>
       </section>
@@ -1859,160 +1978,475 @@ export const ServiceDetailPage = () => {
 export const ProductDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { products, services } = useAppStore();
+  const { products, services, techStacks } = useAppStore();
+  const { user } = useAuthStore();
+  const isAdmin = Boolean(user);
   
-  const product = products.find(p => p.id === id);
-  const service = services.find(s => s.id === product?.serviceId);
+  const product = products.find(p => p.id === id || p.slug === id);
+  const service = services.find(s => s.id === (product?.parentService || product?.serviceId));
 
-  if (!product) {
+  const [activeGalleryIndex, setActiveGalleryIndex] = useState<number | null>(null);
+
+  // SEO Synchronization
+  useEffect(() => {
+    if (product) {
+      const projTitle = product.title || product.name || 'Project Details';
+      document.title = `${projTitle} | Project Showcase | Wise Byte Concepts`;
+      const meta = document.querySelector('meta[name="description"]');
+      if (meta && (product.shortDescription || product.description)) {
+        meta.setAttribute('content', product.shortDescription || product.description || '');
+      }
+    }
+  }, [product]);
+
+  const isInactive = product?.active === false || product?.isActive === false;
+
+  if (!product || (isInactive && !isAdmin)) {
     return (
       <div className="min-h-[70vh] flex flex-col items-center justify-center text-center px-6">
-        <div className="w-20 h-20 bg-white/5 rounded-3xl flex items-center justify-center mb-8">
+        <div className="w-20 h-20 bg-surface-4 border border-border rounded-3xl flex items-center justify-center mb-8 shadow-xs">
           <ShoppingBag className="w-10 h-10 text-muted-foreground" />
         </div>
-        <h1 className="text-4xl font-bold mb-4">Product Instance Not Found</h1>
-        <p className="text-muted-foreground max-w-md mb-8">The requested product node could not be retrieved from the engineering showcase.</p>
-        <Button onClick={() => navigate(-1)}>
-          <ArrowLeft className="mr-2 w-4 h-4" /> Go Back
+        <h1 className="text-3xl md:text-4xl font-bold mb-4 text-foreground">Project Not Found</h1>
+        <p className="text-muted-foreground max-w-md mb-8 text-sm">
+          The requested project instance could not be retrieved or is currently not published to the public showcase.
+        </p>
+        <Button onClick={() => navigate('/products')} className="gap-2 rounded-xl cursor-pointer">
+          <ArrowLeft className="w-4 h-4" /> Back to Project Showcase
         </Button>
       </div>
     );
   }
 
-  return (
-    <div className="flex flex-col">
-      <section className="pt-32 pb-20 border-b border-white/5">
-        <div className="container mx-auto px-6">
-          <button 
-            onClick={() => navigate(-1)}
-            className="inline-flex items-center text-xs font-sans font-medium text-muted-foreground hover:text-primary transition-colors mb-12 uppercase tracking-[0.2em] cursor-pointer transform-gpu"
-          >
-            <ArrowLeft className="mr-2 w-3 h-3" /> Back
-          </button>
+  const title = product.title || product.name || 'Untitled Project';
+  const heroBanner = product.bannerPicture || product.displayPicture || product.imageUrl;
+  const isImageBadge = product.iconType === 'image' && Boolean(product.iconImage);
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 items-center">
-            <div className="lg:col-span-6">
-               <motion.div 
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                className="space-y-6"
-              >
-                <div className="flex items-center gap-3 mb-6">
-                  <span className="px-4 py-1.5 bg-primary/10 text-primary text-[11px] font-bold tracking-[0.4em] uppercase rounded-full font-display">
-                    Product Node
-                  </span>
-                  {service && (
-                    <Link to={`/services/${service.id}`} className="text-[11px] font-bold text-muted-foreground hover:text-primary transition-colors tracking-[0.4em] uppercase font-display">
-                      Mapped to: {service.name}
-                    </Link>
+  // Value props metrics
+  const deliveredWithin = product.deliveredWithin || { unit: 'Weeks', range: '3–6' };
+  const deliveredWithinText = deliveredWithin.unit === 'Depends Upon Project'
+    ? 'Depends Upon Project'
+    : `${deliveredWithin.range ? `${deliveredWithin.range} ` : ''}${deliveredWithin.unit}`.trim();
+
+  // Core Features & Deliverables
+  const coreFeatures = Array.isArray(product.coreFeatures) ? product.coreFeatures : [];
+  const deliverables = Array.isArray(product.deliverables) ? product.deliverables : [];
+
+  // Technologies
+  const projectTechStackIds = product.techStacks || product.technologies || [];
+  const mappedTechStacks = projectTechStackIds.map(ref => {
+    return techStacks.find(t => t.id === ref || t.name === ref) || {
+      id: ref,
+      name: ref,
+      classification: 'Stack Component',
+      iconType: 'icon' as const,
+      icon: 'Cpu'
+    };
+  });
+
+  // Showcase Gallery
+  const gallery = Array.isArray(product.gallery) ? product.gallery.filter(Boolean) : [];
+  const liveLink = product.liveLink || product.demoUrl;
+  const gitRepo = product.gitRepository || product.repoUrl;
+
+  return (
+    <div className="flex flex-col min-h-screen">
+      {/* Hero Section */}
+      <section className="relative pt-28 pb-16 md:pt-36 md:pb-24 border-b border-border/60 overflow-hidden bg-surface-1/40">
+        {heroBanner && (
+          <div className="absolute inset-0 z-0 opacity-15 dark:opacity-20 pointer-events-none">
+            <img 
+              src={heroBanner} 
+              alt={title} 
+              className="w-full h-full object-cover blur-md scale-105" 
+            />
+            <div className="absolute inset-0 bg-gradient-to-b from-background/40 via-background/80 to-background" />
+          </div>
+        )}
+
+        <div className="container mx-auto px-6 relative z-10">
+          <div className="flex items-center justify-between mb-8">
+            <button 
+              onClick={() => navigate('/products')}
+              className="inline-flex items-center text-xs font-semibold text-muted-foreground hover:text-primary transition-colors uppercase tracking-[0.2em] cursor-pointer"
+            >
+              <ArrowLeft className="mr-2 w-3.5 h-3.5" /> Back to Showcase
+            </button>
+
+            {isInactive && (
+              <Badge variant="outline" className="border-amber-500/30 text-amber-500 bg-amber-500/10 text-[11px] font-mono">
+                Admin Preview (Inactive Project)
+              </Badge>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+            <div className="lg:col-span-7 space-y-6">
+              <div className="flex flex-wrap items-center gap-2.5">
+                <span className="px-3 py-1 bg-primary/10 text-primary text-[10px] font-bold tracking-[0.25em] uppercase rounded-full font-mono">
+                  Project Case Study
+                </span>
+                {product.category && (
+                  <Badge variant="secondary" className="font-mono text-[10px] uppercase tracking-wider font-semibold">
+                    {product.category}
+                  </Badge>
+                )}
+                {service && (
+                  <Link 
+                    to={`/services/${service.slug || service.id}`}
+                    className="text-[11px] font-semibold text-muted-foreground hover:text-primary transition-colors uppercase font-mono tracking-wider flex items-center gap-1"
+                  >
+                    <span>Discipline:</span>
+                    <strong className="text-foreground hover:underline">{service.title || service.name}</strong>
+                  </Link>
+                )}
+              </div>
+
+              <div className="flex items-start gap-4">
+                <div className="w-14 h-14 rounded-2xl bg-surface-2 border border-border flex items-center justify-center shrink-0 shadow-glow-sm">
+                  {isImageBadge ? (
+                    <img src={product.iconImage} alt="" className="w-7 h-7 object-contain rounded-lg" />
+                  ) : (
+                    <DynamicIcon name={product.icon} className="w-7 h-7 text-primary shadow-glow-primary" fallback={ShoppingBag} />
                   )}
                 </div>
-                <h1 className="text-5xl md:text-6xl font-bold tracking-tight leading-tight">
-                  {product.name}
-                </h1>
-                <div className="flex items-center gap-4 mb-8">
-                   <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center border border-primary/20">
-                      <DynamicIcon name={product.icon} className="w-8 h-8 text-primary shadow-glow-primary" fallback={ShoppingBag} />
-                   </div>
+                <div>
+                  <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-foreground leading-tight">
+                    {title}
+                  </h1>
+                  {product.caption && (
+                    <p className="text-base md:text-lg font-medium text-primary/90 mt-2 font-display">
+                      {product.caption}
+                    </p>
+                  )}
                 </div>
-                <p className="text-xl text-muted-foreground leading-relaxed max-w-2xl">
-                  {product.description}
-                </p>
-                
-                <div className="flex flex-wrap gap-4 pt-6">
-                  {product.demoUrl && (
-                    <Button size="lg" className="px-8" onClick={() => window.open(product.demoUrl, '_blank')}>
-                      Live Demo <Globe className="ml-2 w-5 h-5" />
+              </div>
+
+              <p className="text-base md:text-lg text-muted-foreground leading-relaxed max-w-2xl">
+                {product.shortDescription || product.description}
+              </p>
+
+              {/* Deployment Action Buttons */}
+              <div className="flex flex-wrap items-center gap-3.5 pt-2">
+                {liveLink && (
+                  <a href={liveLink} target="_blank" rel="noopener noreferrer">
+                    <Button size="lg" className="rounded-xl px-7 gap-2 shadow-glow-primary font-semibold cursor-pointer">
+                      <Globe className="w-4 h-4" /> Live Application <ExternalLink className="w-3.5 h-3.5 opacity-70" />
                     </Button>
-                  )}
-                  {product.repoUrl && (
-                    <Button variant="glass" size="lg" className="px-8" onClick={() => window.open(product.repoUrl, '_blank')}>
-                      Repository <Github className="ml-2 w-5 h-5" />
+                  </a>
+                )}
+                {gitRepo && (
+                  <a href={gitRepo} target="_blank" rel="noopener noreferrer">
+                    <Button variant="glass" size="lg" className="rounded-xl px-6 gap-2 font-semibold cursor-pointer">
+                      <Github className="w-4 h-4" /> Source Repository <ExternalLink className="w-3.5 h-3.5 opacity-70" />
                     </Button>
-                  )}
-                </div>
-              </motion.div>
+                  </a>
+                )}
+              </div>
             </div>
 
-            <div className="lg:col-span-6">
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.2 }}
-                className="relative"
-              >
-                <div className="absolute -inset-4 bg-primary/20 blur-[80px] -z-10 rounded-full" />
-                <div className="aspect-[16/10] bg-white/5 border border-white/10 rounded-2xl overflow-hidden shadow-2xl">
-                  {product.imageUrl ? (
+            {/* Hero Main Screenshot Display */}
+            <div className="lg:col-span-5">
+              <div className="relative group">
+                <div className="absolute -inset-2 bg-gradient-to-r from-primary/20 via-accent/20 to-primary/10 rounded-3xl blur-xl opacity-60 group-hover:opacity-80 transition duration-700" />
+                <div className="aspect-[16/10] bg-surface-2 border border-border/80 rounded-2xl overflow-hidden shadow-card relative">
+                  {heroBanner ? (
                     <img 
-                      src={product.imageUrl} 
-                      alt={product.name} 
-                      className="w-full h-full object-cover"
+                      src={heroBanner} 
+                      alt={title} 
+                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                     />
                   ) : (
-                    <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground">
-                      <DynamicIcon name={product.icon} className="w-16 h-16 mb-4 opacity-10" fallback={ShoppingBag} />
-                      <p className="text-xs font-mono uppercase tracking-widest italic">Visual node data missing</p>
+                    <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center text-muted-foreground bg-surface-3">
+                      <DynamicIcon name={product.icon} className="w-12 h-12 mb-3 text-muted-foreground/40" fallback={ShoppingBag} />
+                      <p className="text-xs font-mono uppercase tracking-wider">No Preview Image Uploaded</p>
                     </div>
                   )}
                 </div>
-              </motion.div>
+              </div>
+            </div>
+          </div>
+
+          {/* Quick Metrics Bar */}
+          <div className="mt-12 pt-8 border-t border-border/50 grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="p-4 rounded-xl bg-surface-2/60 border border-border/40">
+              <div className="text-[11px] font-mono text-muted-foreground uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                <Clock className="w-3.5 h-3.5 text-primary" /> Delivery Timeframe
+              </div>
+              <div className="text-sm font-bold text-foreground">{deliveredWithinText}</div>
+            </div>
+
+            <div className="p-4 rounded-xl bg-surface-2/60 border border-border/40">
+              <div className="text-[11px] font-mono text-muted-foreground uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                <Layers className="w-3.5 h-3.5 text-accent" /> Category
+              </div>
+              <div className="text-sm font-bold text-foreground">{product.category || 'Web Application'}</div>
+            </div>
+
+            <div className="p-4 rounded-xl bg-surface-2/60 border border-border/40">
+              <div className="text-[11px] font-mono text-muted-foreground uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                <Cpu className="w-3.5 h-3.5 text-primary" /> Tech Components
+              </div>
+              <div className="text-sm font-bold text-foreground">{mappedTechStacks.length} Modules</div>
+            </div>
+
+            <div className="p-4 rounded-xl bg-surface-2/60 border border-border/40">
+              <div className="text-[11px] font-mono text-muted-foreground uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> Deliverables
+              </div>
+              <div className="text-sm font-bold text-foreground">{deliverables.length} Key Outputs</div>
             </div>
           </div>
         </div>
       </section>
 
-      {product.tags && product.tags.length > 0 && (
-         <div className="container mx-auto px-6 py-12">
-            <div className="mb-6 inline-flex items-center px-4 py-1.5 bg-primary/5 dark:bg-primary/10 border border-primary/20 rounded-full">
-              <h3 className="text-[11px] font-bold text-primary uppercase tracking-[0.4em]">Project Tags</h3>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {product.tags.map(tag => (
-                <span key={tag} className="px-3 py-1 bg-white/5 border border-white/5 rounded-full text-xs text-muted-foreground hover:border-primary/20 hover:text-primary transition-all cursor-default">
-                  #{tag}
-                </span>
-              ))}
-            </div>
-         </div>
-      )}
-
-      {service && (
-        <section className="py-16 md:py-24 border-t border-white/5">
-          <div className="container mx-auto px-6">
-            <div className="flex flex-col md:flex-row items-center gap-12 p-12 bg-white/[0.02] rounded-3xl border border-white/5 relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 blur-[100px] -z-10" />
-              
-              <div className="md:w-1/3 text-center md:text-left">
-                <div className="w-16 h-16 bg-primary/20 rounded-2xl flex items-center justify-center mb-6 mx-auto md:mx-0">
-                  <DynamicIcon name={service.icon} className="w-8 h-8 text-primary" fallback={Briefcase} />
+      {/* Main Content & Architecture Specifications */}
+      <section className="py-16 md:py-24">
+        <div className="container mx-auto px-6">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+            {/* Left 8 Columns: Markdown Case Study, Core Features, Deliverables, Gallery */}
+            <div className="lg:col-span-8 space-y-14">
+              {/* Markdown Documentation */}
+              <div className="space-y-4">
+                <div className="inline-flex items-center gap-2 pb-2 border-b border-border/60 w-full">
+                  <span className="text-xs font-mono font-bold uppercase tracking-widest text-primary">01 / Specifications</span>
+                  <h2 className="text-xl md:text-2xl font-bold text-foreground">Project Case Study & Documentation</h2>
                 </div>
-                <h3 className="text-2xl font-bold mb-2">Powered By</h3>
-                <p className="text-muted-foreground">This product is an outcome of our {service.name} capability module.</p>
+
+                <div className="p-6 md:p-8 rounded-2xl bg-surface-1 border border-border/60">
+                  <MarkdownContent 
+                    content={product.fullDescription || product.shortDescription || product.description || ''} 
+                    className="text-foreground/90 leading-relaxed text-sm md:text-base space-y-4"
+                  />
+                </div>
               </div>
 
-              <div className="md:flex-1 grid grid-cols-1 sm:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <div className="mb-4 inline-flex items-center px-4 py-1.5 bg-primary/5 dark:bg-primary/10 border border-primary/20 rounded-full">
-                    <h4 className="text-[11px] font-bold uppercase tracking-[0.4em] text-primary">Key features</h4>
+              {/* Core Features */}
+              {coreFeatures.length > 0 && (
+                <div className="space-y-5">
+                  <div className="inline-flex items-center gap-2 pb-2 border-b border-border/60 w-full">
+                    <span className="text-xs font-mono font-bold uppercase tracking-widest text-primary">02 / Capabilities</span>
+                    <h2 className="text-xl md:text-2xl font-bold text-foreground">Core Engineered Capabilities</h2>
                   </div>
-                  <ul className="space-y-2">
-                    {service.features.slice(0, 3).map((f, i) => (
-                      <li key={i} className="text-sm text-muted-foreground flex items-center gap-2">
-                        <CheckCircle2 className="w-3 h-3 opacity-50" /> {f}
-                      </li>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {coreFeatures.map((feat, index) => (
+                      <div key={index} className="p-5 rounded-2xl bg-surface-1 border border-border/60 hover:border-primary/40 transition-colors shadow-xs space-y-2.5">
+                        <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 text-primary flex items-center justify-center">
+                          <DynamicIcon name={feat.icon} className="w-5 h-5" fallback={CheckCircle2} />
+                        </div>
+                        <h3 className="font-bold text-base text-foreground">{feat.title}</h3>
+                        {feat.description && (
+                          <p className="text-xs md:text-sm text-muted-foreground leading-relaxed">
+                            {feat.description}
+                          </p>
+                        )}
+                      </div>
                     ))}
-                  </ul>
+                  </div>
                 </div>
-                <div className="flex items-center justify-center md:justify-end">
-                  <Button variant="glass" onClick={() => navigate(`/services/${service.id}`)}>
-                    Service Portfolio <ArrowRight className="ml-2 w-4 h-4" />
+              )}
+
+              {/* Deliverables */}
+              {deliverables.length > 0 && (
+                <div className="space-y-5">
+                  <div className="inline-flex items-center gap-2 pb-2 border-b border-border/60 w-full">
+                    <span className="text-xs font-mono font-bold uppercase tracking-widest text-accent">03 / Handover</span>
+                    <h2 className="text-xl md:text-2xl font-bold text-foreground">Deliverables & Key Outputs</h2>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {deliverables.map((deliv, index) => (
+                      <div key={index} className="p-5 rounded-2xl bg-surface-1 border border-border/60 hover:border-accent/40 transition-colors shadow-xs space-y-2.5">
+                        <div className="w-10 h-10 rounded-xl bg-accent/10 border border-accent/20 text-accent flex items-center justify-center">
+                          <DynamicIcon name={deliv.icon} className="w-5 h-5" fallback={CheckCircle2} />
+                        </div>
+                        <h3 className="font-bold text-base text-foreground">{deliv.title}</h3>
+                        {deliv.description && (
+                          <p className="text-xs md:text-sm text-muted-foreground leading-relaxed">
+                            {deliv.description}
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Showcase Gallery */}
+              {gallery.length > 0 && (
+                <div className="space-y-5">
+                  <div className="inline-flex items-center gap-2 pb-2 border-b border-border/60 w-full">
+                    <span className="text-xs font-mono font-bold uppercase tracking-widest text-primary">04 / Artifacts</span>
+                    <h2 className="text-xl md:text-2xl font-bold text-foreground">Visual Gallery & UI Artifacts</h2>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                    {gallery.map((imgUrl, index) => (
+                      <button
+                        key={index}
+                        type="button"
+                        onClick={() => setActiveGalleryIndex(index)}
+                        className="group aspect-[16/10] rounded-xl overflow-hidden bg-surface-2 border border-border/60 relative cursor-pointer hover:border-primary transition-all shadow-xs"
+                      >
+                        <img 
+                          src={imgUrl} 
+                          alt={`${title} screenshot ${index + 1}`} 
+                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" 
+                        />
+                        <div className="absolute inset-0 bg-primary/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                          <span className="px-3 py-1 rounded-lg bg-background/90 text-[11px] font-bold text-foreground shadow-sm">
+                            Enlarge View
+                          </span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Right 4 Columns: Sidebar, Tech Stacks, Links, Parent Service Card */}
+            <div className="lg:col-span-4 space-y-6">
+              {/* Production Access Card */}
+              {(liveLink || gitRepo) && (
+                <div className="p-6 rounded-2xl bg-surface-1 border border-border/60 space-y-4">
+                  <h3 className="text-sm font-bold uppercase tracking-wider font-mono text-foreground flex items-center gap-2">
+                    <Globe className="w-4 h-4 text-primary" /> Production Deployment
+                  </h3>
+
+                  <div className="space-y-3">
+                    {liveLink && (
+                      <a href={liveLink} target="_blank" rel="noopener noreferrer" className="block">
+                        <Button className="w-full justify-between rounded-xl h-11 cursor-pointer">
+                          <span className="flex items-center gap-2">
+                            <Globe className="w-4 h-4" /> Live Application
+                          </span>
+                          <ExternalLink className="w-3.5 h-3.5 opacity-80" />
+                        </Button>
+                      </a>
+                    )}
+                    {gitRepo && (
+                      <a href={gitRepo} target="_blank" rel="noopener noreferrer" className="block">
+                        <Button variant="glass" className="w-full justify-between rounded-xl h-11 cursor-pointer">
+                          <span className="flex items-center gap-2">
+                            <Github className="w-4 h-4" /> Git Repository
+                          </span>
+                          <ExternalLink className="w-3.5 h-3.5 opacity-80" />
+                        </Button>
+                      </a>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Technologies Employed */}
+              {mappedTechStacks.length > 0 && (
+                <div className="p-6 rounded-2xl bg-surface-1 border border-border/60 space-y-4">
+                  <h3 className="text-sm font-bold uppercase tracking-wider font-mono text-foreground flex items-center gap-2">
+                    <Layers className="w-4 h-4 text-primary" /> Technologies Used
+                  </h3>
+
+                  <div className="grid grid-cols-1 gap-2.5">
+                    {mappedTechStacks.map((stk) => (
+                      <div 
+                        key={stk.id} 
+                        className="p-2.5 rounded-xl bg-surface-2/60 border border-border/40 flex items-center gap-3"
+                      >
+                        <div className="w-8 h-8 rounded-lg bg-surface-3 flex items-center justify-center shrink-0">
+                          <TechStackIcon stack={stk} className="w-4 h-4 text-primary" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-xs font-bold text-foreground truncate">{stk.name}</div>
+                          <div className="text-[10px] font-mono text-muted-foreground uppercase">{stk.classification}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Tags */}
+              {product.tags && product.tags.length > 0 && (
+                <div className="p-6 rounded-2xl bg-surface-1 border border-border/60 space-y-3">
+                  <h3 className="text-xs font-bold uppercase tracking-wider font-mono text-foreground">
+                    Project Keywords
+                  </h3>
+                  <div className="flex flex-wrap gap-1.5">
+                    {product.tags.map((tag) => (
+                      <span key={tag} className="px-2.5 py-1 rounded-md bg-surface-2 text-xs font-mono text-muted-foreground border border-border/40">
+                        #{tag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Parent Service Card */}
+              {service && (
+                <div className="p-6 rounded-2xl bg-gradient-to-br from-primary/5 via-surface-1 to-surface-2 border border-primary/20 space-y-4">
+                  <div className="text-[11px] font-mono uppercase tracking-wider text-primary font-bold">
+                    Parent Service Capability
+                  </div>
+
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 text-primary flex items-center justify-center shrink-0">
+                      <DynamicIcon name={service.icon} className="w-5 h-5" fallback={Briefcase} />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-base text-foreground leading-snug">{service.title || service.name}</h4>
+                      <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
+                        {service.shortDescription || service.description}
+                      </p>
+                    </div>
+                  </div>
+
+                  <Button 
+                    variant="glass" 
+                    className="w-full justify-between rounded-xl text-xs cursor-pointer"
+                    onClick={() => navigate(`/services/${service.slug || service.id}`)}
+                  >
+                    <span>Explore Service Portfolio</span>
+                    <ArrowRight className="w-3.5 h-3.5 ml-2" />
                   </Button>
                 </div>
-              </div>
+              )}
             </div>
           </div>
-        </section>
+        </div>
+      </section>
+
+      {/* Gallery Lightbox Modal */}
+      {activeGalleryIndex !== null && gallery[activeGalleryIndex] && (
+        <div 
+          className="fixed inset-0 z-50 bg-background/90 backdrop-blur-md flex items-center justify-center p-4 sm:p-8 animate-in fade-in duration-200"
+          onClick={() => setActiveGalleryIndex(null)}
+        >
+          <div 
+            className="max-w-5xl w-full max-h-[90vh] bg-surface-1 border border-border rounded-2xl overflow-hidden shadow-2xl relative flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-4 border-b border-border/60 flex items-center justify-between">
+              <span className="text-xs font-mono font-semibold text-muted-foreground">
+                Artifact {activeGalleryIndex + 1} of {gallery.length}
+              </span>
+              <button 
+                type="button" 
+                onClick={() => setActiveGalleryIndex(null)}
+                className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-surface-2 cursor-pointer transition-colors"
+              >
+                ✕ Close
+              </button>
+            </div>
+            <div className="p-2 flex-1 overflow-auto flex items-center justify-center bg-surface-0 min-h-[300px]">
+              <img 
+                src={gallery[activeGalleryIndex]} 
+                alt={`${title} enlarged`} 
+                className="max-w-full max-h-[75vh] object-contain rounded-lg"
+              />
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

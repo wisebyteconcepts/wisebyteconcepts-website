@@ -1,11 +1,16 @@
-import { Service, Product, Skill, MediaItem, MediaFolder, MediaCollection, MediaAuditLog } from '@/types';
+import { Service, Product, Skill, TechStack, MediaItem, MediaFolder, MediaCollection, MediaAuditLog } from '@/types';
 import { StorageService } from './storageService';
 import { DEFAULT_FOLDERS, DEFAULT_MEDIA_ITEMS, DEFAULT_COLLECTIONS } from '@/data/defaultMedia';
+import { normalizeTechStack, DEFAULT_CLASSIFICATIONS } from '@/utils/techStackMigration';
+import { normalizeService, DEFAULT_SERVICE_CATEGORIES } from '@/utils/serviceMigration';
 
 const KEYS = {
   SERVICES: 'wbc_services',
+  SERVICE_CATEGORIES: 'wbc_service_categories',
   PRODUCTS: 'wbc_products',
   SKILLS: 'wbc_skills',
+  TECH_STACKS: 'wbc_tech_stacks',
+  CLASSIFICATIONS: 'wbc_classifications',
   MEDIA: 'wbc_media',
   FOLDERS: 'wbc_media_folders',
   COLLECTIONS: 'wbc_media_collections',
@@ -39,30 +44,53 @@ export class LocalStorageAdapter implements StorageService {
   }
 
   async getServices(): Promise<Service[]> {
-    return this.getItem<Service>(KEYS.SERVICES);
+    const raw = this.getItem<any>(KEYS.SERVICES);
+    return raw.map(normalizeService);
   }
 
   async createService(service: Service): Promise<Service> {
-    const services = this.getItem<Service>(KEYS.SERVICES);
-    services.push(service);
+    const normalized = normalizeService(service);
+    const services = await this.getServices();
+    services.push(normalized);
     this.setItem(KEYS.SERVICES, services);
-    return service;
+    return normalized;
   }
 
   async updateService(service: Service): Promise<Service> {
-    const services = this.getItem<Service>(KEYS.SERVICES);
-    const index = services.findIndex(s => s.id === service.id);
+    const normalized = normalizeService(service);
+    const services = await this.getServices();
+    const index = services.findIndex(s => s.id === normalized.id);
     if (index !== -1) {
-      services[index] = service;
+      services[index] = normalized;
       this.setItem(KEYS.SERVICES, services);
     }
-    return service;
+    return normalized;
   }
 
   async deleteService(id: string): Promise<void> {
-    const services = this.getItem<Service>(KEYS.SERVICES);
+    const services = await this.getServices();
     const filtered = services.filter(s => s.id !== id);
     this.setItem(KEYS.SERVICES, filtered);
+  }
+
+  // Service Categories Lookup
+  async getServiceCategories(): Promise<string[]> {
+    const stored = this.getItem<string>(KEYS.SERVICE_CATEGORIES);
+    return Array.from(new Set([...DEFAULT_SERVICE_CATEGORIES, ...stored]));
+  }
+
+  async addServiceCategory(name: string): Promise<string> {
+    const trimmed = name.trim();
+    if (!trimmed) throw new Error('Category name cannot be empty');
+    const formatted = trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
+    const current = await this.getServiceCategories();
+    if (!current.some(c => c.toLowerCase() === formatted.toLowerCase())) {
+      const stored = this.getItem<string>(KEYS.SERVICE_CATEGORIES);
+      stored.push(formatted);
+      this.setItem(KEYS.SERVICE_CATEGORIES, stored);
+      return formatted;
+    }
+    return current.find(c => c.toLowerCase() === formatted.toLowerCase())!;
   }
 
   async getProducts(): Promise<Product[]> {
@@ -92,31 +120,111 @@ export class LocalStorageAdapter implements StorageService {
     this.setItem(KEYS.PRODUCTS, filtered);
   }
 
+  // Tech Stacks
+  async getTechStacks(): Promise<TechStack[]> {
+    const rawTechStacks = this.getItem<any>(KEYS.TECH_STACKS);
+    if (rawTechStacks.length > 0) {
+      return rawTechStacks.map(normalizeTechStack);
+    }
+
+    // Auto-migration from legacy skills key if tech_stacks is empty
+    const legacySkills = this.getItem<any>(KEYS.SKILLS);
+    if (legacySkills.length > 0) {
+      const migrated = legacySkills.map(normalizeTechStack);
+      this.setItem(KEYS.TECH_STACKS, migrated);
+      return migrated;
+    }
+
+    return [];
+  }
+
+  async createTechStack(techStack: TechStack): Promise<TechStack> {
+    const normalized = normalizeTechStack(techStack);
+    const stacks = await this.getTechStacks();
+    stacks.push(normalized);
+    this.setItem(KEYS.TECH_STACKS, stacks);
+    // Dual-write to skills for backward compatibility
+    this.setItem(KEYS.SKILLS, stacks);
+    return normalized;
+  }
+
+  async updateTechStack(techStack: TechStack): Promise<TechStack> {
+    const normalized = normalizeTechStack(techStack);
+    const stacks = await this.getTechStacks();
+    const index = stacks.findIndex(s => s.id === normalized.id);
+    if (index !== -1) {
+      stacks[index] = normalized;
+      this.setItem(KEYS.TECH_STACKS, stacks);
+      this.setItem(KEYS.SKILLS, stacks);
+    }
+    return normalized;
+  }
+
+  async deleteTechStack(id: string): Promise<void> {
+    const stacks = await this.getTechStacks();
+    const filtered = stacks.filter(s => s.id !== id);
+    this.setItem(KEYS.TECH_STACKS, filtered);
+    this.setItem(KEYS.SKILLS, filtered);
+  }
+
+  // Legacy Skills methods for backwards compatibility
   async getSkills(): Promise<Skill[]> {
-    return this.getItem<Skill>(KEYS.SKILLS);
+    return this.getTechStacks();
   }
 
   async createSkill(skill: Skill): Promise<Skill> {
-    const skills = this.getItem<Skill>(KEYS.SKILLS);
-    skills.push(skill);
-    this.setItem(KEYS.SKILLS, skills);
-    return skill;
+    return this.createTechStack(normalizeTechStack(skill));
   }
 
   async updateSkill(skill: Skill): Promise<Skill> {
-    const skills = this.getItem<Skill>(KEYS.SKILLS);
-    const index = skills.findIndex(s => s.id === skill.id);
-    if (index !== -1) {
-      skills[index] = skill;
-      this.setItem(KEYS.SKILLS, skills);
-    }
-    return skill;
+    return this.updateTechStack(normalizeTechStack(skill));
   }
 
   async deleteSkill(id: string): Promise<void> {
-    const skills = this.getItem<Skill>(KEYS.SKILLS);
-    const filtered = skills.filter(s => s.id !== id);
-    this.setItem(KEYS.SKILLS, filtered);
+    return this.deleteTechStack(id);
+  }
+
+  // Classifications Lookup
+  async getClassifications(): Promise<string[]> {
+    const stored = this.getItem<string>(KEYS.CLASSIFICATIONS);
+    const combined = Array.from(new Set([...DEFAULT_CLASSIFICATIONS, ...stored]));
+    return combined;
+  }
+
+  async addClassification(name: string): Promise<string> {
+    const trimmed = name.trim();
+    if (!trimmed) throw new Error('Classification name cannot be empty');
+    
+    const formatted = trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
+    const current = await this.getClassifications();
+    const exists = current.some(c => c.toLowerCase() === formatted.toLowerCase());
+    
+    if (!exists) {
+      const stored = this.getItem<string>(KEYS.CLASSIFICATIONS);
+      stored.push(formatted);
+      this.setItem(KEYS.CLASSIFICATIONS, stored);
+      return formatted;
+    }
+    
+    const existing = current.find(c => c.toLowerCase() === formatted.toLowerCase())!;
+    return existing;
+  }
+
+  async deleteClassification(name: string): Promise<void> {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+
+    const techStacks = await this.getTechStacks();
+    const inUse = techStacks.some(
+      s => (s.classification || '').toLowerCase() === trimmed.toLowerCase()
+    );
+    if (inUse) {
+      throw new Error(`Cannot delete "${trimmed}" because it is currently assigned to one or more tech stacks.`);
+    }
+
+    const stored = this.getItem<string>(KEYS.CLASSIFICATIONS);
+    const filtered = stored.filter(c => c.toLowerCase() !== trimmed.toLowerCase());
+    this.setItem(KEYS.CLASSIFICATIONS, filtered);
   }
 
   // Media Gallery Items
@@ -221,7 +329,9 @@ export class LocalStorageAdapter implements StorageService {
     let key: string | null = null;
     if (collectionName === 'services') key = KEYS.SERVICES;
     else if (collectionName === 'products') key = KEYS.PRODUCTS;
-    else if (collectionName === 'skills') key = KEYS.SKILLS;
+    else if (collectionName === 'tech_stacks' || collectionName === 'skills') {
+      key = KEYS.TECH_STACKS;
+    }
     else if (collectionName === 'media') key = KEYS.MEDIA;
     
     if (!key) return;
@@ -233,6 +343,9 @@ export class LocalStorageAdapter implements StorageService {
     });
 
     this.setItem(key, newData);
+    if (collectionName === 'tech_stacks' || collectionName === 'skills') {
+      this.setItem(KEYS.SKILLS, newData);
+    }
   }
 }
 

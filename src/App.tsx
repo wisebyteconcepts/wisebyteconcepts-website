@@ -14,14 +14,14 @@ import { PublicLayout, AdminLayout } from '@/layouts';
 const HomePage = lazy(() => import('./pages').then(m => ({ default: m.HomePage })));
 const ServicesPage = lazy(() => import('./pages').then(m => ({ default: m.ServicesPage })));
 const ProductsPage = lazy(() => import('./pages').then(m => ({ default: m.ProductsPage })));
-const SkillsPage = lazy(() => import('./pages').then(m => ({ default: m.SkillsPage })));
+const TechStacksPage = lazy(() => import('./pages').then(m => ({ default: m.TechStacksPage })));
 const AdminLoginPage = lazy(() => import('./pages').then(m => ({ default: m.AdminLoginPage })));
 const AdminDashboardPage = lazy(() => import('./pages').then(m => ({ default: m.AdminDashboardPage })));
 const AdminServicesPage = lazy(() => import('./pages').then(m => ({ default: m.AdminServicesPage })));
 const AdminServiceEditPage = lazy(() => import('./pages').then(m => ({ default: m.AdminServiceEditPage })));
 const AdminProductsPage = lazy(() => import('./pages').then(m => ({ default: m.AdminProductsPage })));
 const AdminProductEditPage = lazy(() => import('./pages').then(m => ({ default: m.AdminProductEditPage })));
-const AdminSkillsPage = lazy(() => import('./pages').then(m => ({ default: m.AdminSkillsPage })));
+const AdminTechStacksPage = lazy(() => import('./pages').then(m => ({ default: m.AdminTechStacksPage })));
 const AdminMediaPage = lazy(() => import('./pages').then(m => ({ default: m.AdminMediaPage })));
 const ServiceDetailPage = lazy(() => import('./pages').then(m => ({ default: m.ServiceDetailPage })));
 const ProductDetailPage = lazy(() => import('./pages').then(m => ({ default: m.ProductDetailPage })));
@@ -64,7 +64,10 @@ export default function App() {
               <Route path="services/:id" element={<ServiceDetailPage />} />
               <Route path="products" element={<ProductsPage />} />
               <Route path="products/:id" element={<ProductDetailPage />} />
-              <Route path="skills" element={<SkillsPage />} />
+              <Route path="projects" element={<Navigate to="/products" replace />} />
+              <Route path="projects/:id" element={<ProductDetailPage />} />
+              <Route path="tech-stacks" element={<TechStacksPage />} />
+              <Route path="skills" element={<Navigate to="/tech-stacks" replace />} />
               <Route path="contact" element={<ContactPage />} />
               <Route path="*" element={<NotFoundPage />} />
             </Route>
@@ -85,7 +88,11 @@ export default function App() {
                 <Route path="products/new" element={<AdminProductEditPage />} />
                 <Route path="products/edit/:id" element={<AdminProductEditPage />} />
                 <Route path="products/:id/edit" element={<AdminProductEditPage />} />
-                <Route path="skills" element={<AdminSkillsPage />} />
+                <Route path="projects" element={<Navigate to="/admin/products" replace />} />
+                <Route path="projects/new" element={<Navigate to="/admin/products/new" replace />} />
+                <Route path="projects/edit/:id" element={<AdminProductEditPage />} />
+                <Route path="tech-stacks" element={<AdminTechStacksPage />} />
+                <Route path="skills" element={<Navigate to="/admin/tech-stacks" replace />} />
                 <Route index element={<Navigate to="/admin/dashboard" replace />} />
                 <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
               </Route>

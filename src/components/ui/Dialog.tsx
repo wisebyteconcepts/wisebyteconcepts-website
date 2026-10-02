@@ -75,7 +75,7 @@ export const DialogContent = ({
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 10 }}
         className={cn(
-          "relative z-50 w-full max-w-lg rounded-3xl border border-border/80 bg-background shadow-2xl p-6 sm:p-8 max-h-[90vh] overflow-y-auto",
+          "relative z-50 w-full max-w-lg rounded-3xl border border-border bg-surface-5 text-text-primary shadow-popover p-6 sm:p-8 max-h-[90vh] overflow-y-auto",
           className
         )}
       >
@@ -83,7 +83,7 @@ export const DialogContent = ({
           type="button"
           aria-label="Close modal"
           onClick={handleClose}
-          className="absolute right-4 top-4 sm:right-6 sm:top-6 h-8 w-8 inline-flex items-center justify-center rounded-xl bg-muted/60 hover:bg-muted border border-border/40 text-muted-foreground hover:text-foreground transition-colors z-50 cursor-pointer shadow-xs"
+          className="absolute right-4 top-4 sm:right-6 sm:top-6 h-8 w-8 inline-flex items-center justify-center rounded-xl bg-surface-4 hover:bg-[var(--hover-overlay)] border border-border text-text-muted hover:text-text-primary transition-colors z-50 cursor-pointer shadow-xs"
         >
           <X className="h-4 w-4" />
         </button>
@@ -103,5 +103,5 @@ export const DialogFooter = ({ className, ...props }: React.HTMLAttributes<HTMLD
 );
 
 export const DialogTitle = ({ className, ...props }: React.HTMLAttributes<HTMLHeadingElement>) => (
-  <h2 className={cn("text-xl sm:text-2xl font-bold tracking-tight text-foreground break-words min-w-0", className)} {...props} />
+  <h2 className={cn("text-xl sm:text-2xl font-bold tracking-tight text-text-primary break-words min-w-0", className)} {...props} />
 );

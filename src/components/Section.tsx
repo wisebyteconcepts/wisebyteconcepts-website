@@ -20,7 +20,7 @@ export const Section = ({ title, description, children, className, id }: Section
               initial={{ opacity: 0, x: -20 }}
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
-              className="text-3xl md:text-5xl font-bold mb-4"
+              className="text-3xl md:text-5xl font-bold mb-4 text-text-primary"
             >
               {title}
             </motion.h2>
@@ -30,7 +30,7 @@ export const Section = ({ title, description, children, className, id }: Section
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: 0.1 }}
-                className="text-muted-foreground text-lg md:text-xl leading-relaxed"
+                className="text-text-secondary text-lg md:text-xl leading-relaxed"
               >
                 {description}
               </motion.p>
@@ -40,7 +40,7 @@ export const Section = ({ title, description, children, className, id }: Section
               whileInView={{ width: '80px' }}
               viewport={{ once: true }}
               transition={{ delay: 0.2 }}
-              className="h-1 bg-gradient-brand mt-6 rounded-full"
+              className="h-1 bg-accent mt-6 rounded-full"
             />
           </div>
         )}

@@ -7,10 +7,12 @@ import {
   writeBatch 
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { Service, Product, Skill, MediaItem, MediaFolder, MediaCollection, MediaAuditLog, OperationType } from '@/types';
+import { Service, Product, Skill, TechStack, MediaItem, MediaFolder, MediaCollection, MediaAuditLog, OperationType } from '@/types';
 import { StorageService } from './storageService';
 import { auth } from '../lib/firebase';
 import { storage as localFallback } from './localStorageAdapter';
+import { normalizeTechStack } from '@/utils/techStackMigration';
+import { normalizeService } from '@/utils/serviceMigration';
 
 function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
   const errInfo = {
@@ -27,6 +29,29 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
   // Non-fatal logging for client resilience
 }
 
+/**
+ * Deeply removes all `undefined` values from an object or array before sending to Firestore,
+ * preventing 'Function setDoc() called with invalid data. Unsupported field value: undefined' errors.
+ */
+export function cleanForFirestore<T>(data: T): T {
+  if (data === null || data === undefined) return data;
+  if (Array.isArray(data)) {
+    return data
+      .filter((item) => item !== undefined)
+      .map((item) => cleanForFirestore(item)) as unknown as T;
+  }
+  if (typeof data === 'object' && !(data instanceof Date)) {
+    const cleaned: Record<string, any> = {};
+    for (const [key, value] of Object.entries(data as Record<string, any>)) {
+      if (value !== undefined) {
+        cleaned[key] = cleanForFirestore(value);
+      }
+    }
+    return cleaned as T;
+  }
+  return data;
+}
+
 export class FirestoreAdapter implements StorageService {
   async getServices(): Promise<Service[]> {
     try {
@@ -34,7 +59,7 @@ export class FirestoreAdapter implements StorageService {
       if (snapshot.empty) {
         return localFallback.getServices();
       }
-      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Service));
+      return snapshot.docs.map(doc => normalizeService({ id: doc.id, ...doc.data() }));
     } catch (error) {
       handleFirestoreError(error, OperationType.LIST, 'services');
       return localFallback.getServices();
@@ -42,24 +67,26 @@ export class FirestoreAdapter implements StorageService {
   }
 
   async createService(service: Service): Promise<Service> {
+    const normalized = normalizeService(service);
     try {
-      await setDoc(doc(db, 'services', service.id), service);
-      await localFallback.createService(service);
-      return service;
+      await setDoc(doc(db, 'services', normalized.id), cleanForFirestore(normalized));
+      await localFallback.createService(normalized);
+      return normalized;
     } catch (error) {
-      handleFirestoreError(error, OperationType.CREATE, `services/${service.id}`);
-      return localFallback.createService(service);
+      handleFirestoreError(error, OperationType.CREATE, `services/${normalized.id}`);
+      return localFallback.createService(normalized);
     }
   }
 
   async updateService(service: Service): Promise<Service> {
+    const normalized = normalizeService(service);
     try {
-      await setDoc(doc(db, 'services', service.id), service);
-      await localFallback.updateService(service);
-      return service;
+      await setDoc(doc(db, 'services', normalized.id), cleanForFirestore(normalized));
+      await localFallback.updateService(normalized);
+      return normalized;
     } catch (error) {
-      handleFirestoreError(error, OperationType.UPDATE, `services/${service.id}`);
-      return localFallback.updateService(service);
+      handleFirestoreError(error, OperationType.UPDATE, `services/${normalized.id}`);
+      return localFallback.updateService(normalized);
     }
   }
 
@@ -70,6 +97,39 @@ export class FirestoreAdapter implements StorageService {
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, `services/${id}`);
       await localFallback.deleteService(id);
+    }
+  }
+
+  // Service Categories Lookup
+  async getServiceCategories(): Promise<string[]> {
+    try {
+      const snapshot = await getDocs(collection(db, 'service_categories'));
+      if (!snapshot.empty) {
+        const firestoreList = snapshot.docs.map(doc => (doc.data().name as string) || doc.id);
+        const fallbackList = await localFallback.getServiceCategories();
+        return Array.from(new Set([...fallbackList, ...firestoreList]));
+      }
+      return localFallback.getServiceCategories();
+    } catch (error) {
+      return localFallback.getServiceCategories();
+    }
+  }
+
+  async addServiceCategory(name: string): Promise<string> {
+    const trimmed = name.trim();
+    if (!trimmed) throw new Error('Category name cannot be empty');
+    const formatted = trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
+    
+    try {
+      const slug = formatted.toLowerCase().replace(/[^a-z0-9]/g, '_');
+      await setDoc(doc(db, 'service_categories', slug), cleanForFirestore({
+        name: formatted,
+        createdAt: new Date().toISOString()
+      }));
+      await localFallback.addServiceCategory(formatted);
+      return formatted;
+    } catch (error) {
+      return localFallback.addServiceCategory(formatted);
     }
   }
 
@@ -88,7 +148,7 @@ export class FirestoreAdapter implements StorageService {
 
   async createProduct(product: Product): Promise<Product> {
     try {
-      await setDoc(doc(db, 'products', product.id), product);
+      await setDoc(doc(db, 'products', product.id), cleanForFirestore(product));
       await localFallback.createProduct(product);
       return product;
     } catch (error) {
@@ -99,7 +159,7 @@ export class FirestoreAdapter implements StorageService {
 
   async updateProduct(product: Product): Promise<Product> {
     try {
-      await setDoc(doc(db, 'products', product.id), product);
+      await setDoc(doc(db, 'products', product.id), cleanForFirestore(product));
       await localFallback.updateProduct(product);
       return product;
     } catch (error) {
@@ -118,48 +178,148 @@ export class FirestoreAdapter implements StorageService {
     }
   }
 
-  async getSkills(): Promise<Skill[]> {
+  // Tech Stacks
+  async getTechStacks(): Promise<TechStack[]> {
     try {
-      const snapshot = await getDocs(collection(db, 'skills'));
-      if (snapshot.empty) {
-        return localFallback.getSkills();
+      // 1. Try tech_stacks collection
+      const snapshot = await getDocs(collection(db, 'tech_stacks'));
+      if (!snapshot.empty) {
+        return snapshot.docs.map(doc => normalizeTechStack({ id: doc.id, ...doc.data() }));
       }
-      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Skill));
+      
+      // 2. Fallback to skills collection
+      const legacySnapshot = await getDocs(collection(db, 'skills'));
+      if (!legacySnapshot.empty) {
+        return legacySnapshot.docs.map(doc => normalizeTechStack({ id: doc.id, ...doc.data() }));
+      }
+
+      return localFallback.getTechStacks();
     } catch (error) {
-      handleFirestoreError(error, OperationType.LIST, 'skills');
-      return localFallback.getSkills();
+      handleFirestoreError(error, OperationType.LIST, 'tech_stacks');
+      return localFallback.getTechStacks();
     }
+  }
+
+  async createTechStack(techStack: TechStack): Promise<TechStack> {
+    const normalized = normalizeTechStack(techStack);
+    try {
+      await setDoc(doc(db, 'tech_stacks', normalized.id), cleanForFirestore(normalized));
+      // Dual-write to skills for backward compatibility
+      try {
+        await setDoc(doc(db, 'skills', normalized.id), cleanForFirestore(normalized));
+      } catch (e) {
+        // non-blocking
+      }
+      await localFallback.createTechStack(normalized);
+      return normalized;
+    } catch (error) {
+      handleFirestoreError(error, OperationType.CREATE, `tech_stacks/${normalized.id}`);
+      return localFallback.createTechStack(normalized);
+    }
+  }
+
+  async updateTechStack(techStack: TechStack): Promise<TechStack> {
+    const normalized = normalizeTechStack(techStack);
+    try {
+      await setDoc(doc(db, 'tech_stacks', normalized.id), cleanForFirestore(normalized));
+      // Dual-write to skills for backward compatibility
+      try {
+        await setDoc(doc(db, 'skills', normalized.id), cleanForFirestore(normalized));
+      } catch (e) {
+        // non-blocking
+      }
+      await localFallback.updateTechStack(normalized);
+      return normalized;
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, `tech_stacks/${normalized.id}`);
+      return localFallback.updateTechStack(normalized);
+    }
+  }
+
+  async deleteTechStack(id: string): Promise<void> {
+    try {
+      await deleteDoc(doc(db, 'tech_stacks', id));
+      try {
+        await deleteDoc(doc(db, 'skills', id));
+      } catch (e) {
+        // non-blocking
+      }
+      await localFallback.deleteTechStack(id);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, `tech_stacks/${id}`);
+      await localFallback.deleteTechStack(id);
+    }
+  }
+
+  // Legacy Skills methods for backwards compatibility
+  async getSkills(): Promise<Skill[]> {
+    return this.getTechStacks();
   }
 
   async createSkill(skill: Skill): Promise<Skill> {
-    try {
-      await setDoc(doc(db, 'skills', skill.id), skill);
-      await localFallback.createSkill(skill);
-      return skill;
-    } catch (error) {
-      handleFirestoreError(error, OperationType.CREATE, `skills/${skill.id}`);
-      return localFallback.createSkill(skill);
-    }
+    return this.createTechStack(normalizeTechStack(skill));
   }
 
   async updateSkill(skill: Skill): Promise<Skill> {
-    try {
-      await setDoc(doc(db, 'skills', skill.id), skill);
-      await localFallback.updateSkill(skill);
-      return skill;
-    } catch (error) {
-      handleFirestoreError(error, OperationType.UPDATE, `skills/${skill.id}`);
-      return localFallback.updateSkill(skill);
-    }
+    return this.updateTechStack(normalizeTechStack(skill));
   }
 
   async deleteSkill(id: string): Promise<void> {
+    return this.deleteTechStack(id);
+  }
+
+  // Classifications Lookup
+  async getClassifications(): Promise<string[]> {
     try {
-      await deleteDoc(doc(db, 'skills', id));
-      await localFallback.deleteSkill(id);
+      const snapshot = await getDocs(collection(db, 'classifications'));
+      if (!snapshot.empty) {
+        const firestoreList = snapshot.docs.map(doc => (doc.data().name as string) || doc.id);
+        const fallbackList = await localFallback.getClassifications();
+        return Array.from(new Set([...fallbackList, ...firestoreList]));
+      }
+      return localFallback.getClassifications();
     } catch (error) {
-      handleFirestoreError(error, OperationType.DELETE, `skills/${id}`);
-      await localFallback.deleteSkill(id);
+      return localFallback.getClassifications();
+    }
+  }
+
+  async addClassification(name: string): Promise<string> {
+    const trimmed = name.trim();
+    if (!trimmed) throw new Error('Classification name cannot be empty');
+    const formatted = trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
+    
+    try {
+      const slug = formatted.toLowerCase().replace(/[^a-z0-9]/g, '_');
+      await setDoc(doc(db, 'classifications', slug), cleanForFirestore({
+        name: formatted,
+        createdAt: new Date().toISOString()
+      }));
+      await localFallback.addClassification(formatted);
+      return formatted;
+    } catch (error) {
+      return localFallback.addClassification(formatted);
+    }
+  }
+
+  async deleteClassification(name: string): Promise<void> {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+
+    // Check if in use by any tech stack
+    const techStacks = await this.getTechStacks();
+    const inUse = techStacks.some(
+      s => (s.classification || '').toLowerCase() === trimmed.toLowerCase()
+    );
+    if (inUse) {
+      throw new Error(`Cannot delete "${trimmed}" because it is currently assigned to one or more tech stacks.`);
+    }
+
+    const slug = trimmed.toLowerCase().replace(/[^a-z0-9]/g, '_');
+    try {
+      await deleteDoc(doc(db, 'classifications', slug));
+      await localFallback.deleteClassification(trimmed);
+    } catch (error) {
+      await localFallback.deleteClassification(trimmed);
     }
   }
 
@@ -331,7 +491,7 @@ export class FirestoreAdapter implements StorageService {
       const batch = writeBatch(db);
       updates.forEach(item => {
         const ref = doc(db, collectionName, item.id);
-        batch.set(ref, item, { merge: true });
+        batch.set(ref, cleanForFirestore(item), { merge: true });
       });
       await batch.commit();
       await localFallback.batchUpdate(collectionName, updates);

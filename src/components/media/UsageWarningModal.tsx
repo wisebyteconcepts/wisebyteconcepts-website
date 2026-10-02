@@ -52,18 +52,18 @@ export const UsageWarningModal: React.FC<UsageWarningModalProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-xl border-amber-500/30 bg-background/95 backdrop-blur-xl">
+      <DialogContent className="max-w-xl border-amber-500/30">
         <DialogHeader>
           <div className="flex items-center gap-3 text-amber-500 mb-1">
             <div className="p-2 rounded-xl bg-amber-500/10 border border-amber-500/20">
               <AlertTriangle className="w-5 h-5" />
             </div>
-            <DialogTitle className="text-lg font-bold text-foreground">
+            <DialogTitle className="text-lg font-bold text-text-primary">
               Media File Is In Active Use!
             </DialogTitle>
           </div>
-          <p className="text-xs text-muted-foreground">
-            <span className="font-semibold text-foreground">"{item.name}"</span> is currently referenced in{' '}
+          <p className="text-xs text-text-muted">
+            <span className="font-semibold text-text-primary">"{item.name}"</span> is currently referenced in{' '}
             <span className="font-bold text-amber-500">{usages.length}</span> location{usages.length > 1 ? 's' : ''} across your site. Deleting it directly may result in broken images on live pages.
           </p>
         </DialogHeader>
@@ -71,18 +71,18 @@ export const UsageWarningModal: React.FC<UsageWarningModalProps> = ({
         {mode === 'options' ? (
           <div className="space-y-4 my-2">
             {/* List of locations */}
-            <div className="border border-white/10 rounded-xl p-3 bg-white/5 max-h-48 overflow-y-auto space-y-2">
-              <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground font-semibold">
+            <div className="border border-border rounded-xl p-3 bg-surface-1 max-h-48 overflow-y-auto space-y-2">
+              <div className="text-[10px] font-mono uppercase tracking-wider text-text-muted font-semibold">
                 Referenced In:
               </div>
               {usages.map((u, idx) => (
                 <div 
                   key={idx} 
-                  className="flex items-center justify-between text-xs p-2 rounded-lg bg-black/20 border border-white/5"
+                  className="flex items-center justify-between text-xs p-2 rounded-lg bg-surface-2 border border-border"
                 >
                   <div>
-                    <span className="font-semibold text-foreground">{u.locationTitle}</span>
-                    <span className="text-[10px] text-muted-foreground font-mono ml-2">
+                    <span className="font-semibold text-text-primary">{u.locationTitle}</span>
+                    <span className="text-[10px] text-text-muted font-mono ml-2">
                       ({u.field})
                     </span>
                   </div>
@@ -90,7 +90,7 @@ export const UsageWarningModal: React.FC<UsageWarningModalProps> = ({
                     href={u.url}
                     target="_blank"
                     rel="noreferrer"
-                    className="text-[10px] text-primary hover:underline flex items-center gap-1 font-mono"
+                    className="text-[10px] text-accent hover:underline flex items-center gap-1 font-mono"
                   >
                     View <ExternalLink className="w-3 h-3" />
                   </a>
@@ -100,44 +100,44 @@ export const UsageWarningModal: React.FC<UsageWarningModalProps> = ({
 
             {/* Decision choices */}
             <div className="space-y-2 pt-2">
-              <div className="text-xs font-semibold text-foreground mb-2">
+              <div className="text-xs font-semibold text-text-primary mb-2">
                 Choose an action:
               </div>
 
               <button
                 type="button"
                 onClick={() => setMode('pick_replacement')}
-                className="w-full text-left p-3 rounded-xl border border-primary/20 bg-primary/5 hover:bg-primary/10 transition-colors flex items-center justify-between group"
+                className="w-full text-left p-3 rounded-xl border border-accent/20 bg-accent-soft text-text-primary hover:bg-accent-soft/80 transition-colors flex items-center justify-between group"
               >
                 <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-primary/20 text-primary">
+                  <div className="p-2 rounded-lg bg-accent/20 text-accent">
                     <RefreshCw className="w-4 h-4" />
                   </div>
                   <div>
-                    <div className="text-xs font-semibold text-foreground group-hover:text-primary transition-colors">
+                    <div className="text-xs font-semibold text-text-primary group-hover:text-accent transition-colors">
                       Replace with Another Image
                     </div>
-                    <div className="text-[11px] text-muted-foreground">
+                    <div className="text-[11px] text-text-muted">
                       Substitute all current references with an alternative image from the gallery.
                     </div>
                   </div>
                 </div>
-                <span className="text-xs font-mono text-primary font-bold">Recommended</span>
+                <span className="text-xs font-mono text-accent-soft-text font-bold">Recommended</span>
               </button>
 
               <button
                 type="button"
                 onClick={handleUsePlaceholder}
-                className="w-full text-left p-3 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition-colors flex items-center gap-3"
+                className="w-full text-left p-3 rounded-xl border border-border bg-surface-2 hover:bg-[var(--hover-overlay)] transition-colors flex items-center gap-3"
               >
-                <div className="p-2 rounded-lg bg-white/10 text-muted-foreground">
+                <div className="p-2 rounded-lg bg-surface-4 text-text-muted">
                   <ImageIcon className="w-4 h-4" />
                 </div>
                 <div>
-                  <div className="text-xs font-semibold text-foreground">
+                  <div className="text-xs font-semibold text-text-primary">
                     Replace with Placeholder Image
                   </div>
-                  <div className="text-[11px] text-muted-foreground">
+                  <div className="text-[11px] text-text-muted">
                     Replace references with a clean fallback placeholder image to avoid broken UI.
                   </div>
                 </div>
@@ -184,8 +184,8 @@ export const UsageWarningModal: React.FC<UsageWarningModalProps> = ({
                     onClick={() => setSelectedReplacement(other.url)}
                     className={`relative rounded-xl overflow-hidden aspect-video border cursor-pointer transition-all ${
                       isSelected
-                        ? 'border-primary ring-2 ring-primary/40'
-                        : 'border-white/10 hover:border-white/30'
+                        ? 'border-accent ring-2 ring-accent/40'
+                        : 'border-border hover:border-accent/40'
                     }`}
                   >
                     <img

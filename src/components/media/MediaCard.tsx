@@ -62,14 +62,14 @@ export const MediaCard: React.FC<MediaCardProps> = ({
   return (
     <div
       onClick={handleCardClick}
-      className={`group relative rounded-2xl overflow-hidden border transition-all cursor-pointer bg-white/5 flex flex-col ${
+      className={`group relative rounded-2xl overflow-hidden border transition-all cursor-pointer bg-surface-2 flex flex-col shadow-sm ${
         isSelected
-          ? 'border-primary ring-2 ring-primary/40 bg-primary/5'
-          : 'border-white/10 hover:border-primary/40 hover:bg-white/10'
+          ? 'border-accent ring-2 ring-accent/40 bg-accent-soft text-accent-soft-text'
+          : 'border-border hover:border-accent/40 hover:shadow-md'
       }`}
     >
       {/* Thumbnail Aspect Box */}
-      <div className="relative aspect-video w-full overflow-hidden bg-black/40 flex items-center justify-center">
+      <div className="relative aspect-video w-full overflow-hidden bg-surface-1 flex items-center justify-center">
         {item.type === 'image' ? (
           <img
             src={item.thumbnailUrl || item.url}
@@ -79,7 +79,7 @@ export const MediaCard: React.FC<MediaCardProps> = ({
             referrerPolicy="no-referrer"
           />
         ) : item.type === 'video' ? (
-          <div className="relative w-full h-full flex items-center justify-center bg-zinc-950">
+          <div className="relative w-full h-full flex items-center justify-center bg-black">
             {item.thumbnailUrl ? (
               <img
                 src={item.thumbnailUrl}
@@ -89,7 +89,7 @@ export const MediaCard: React.FC<MediaCardProps> = ({
               />
             ) : null}
             <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-              <div className="w-10 h-10 rounded-full bg-primary/80 backdrop-blur-md flex items-center justify-center text-white shadow-lg">
+              <div className="w-10 h-10 rounded-full bg-accent-strong backdrop-blur-md flex items-center justify-center text-on-accent shadow-lg">
                 <Film className="w-5 h-5 ml-0.5" />
               </div>
             </div>
@@ -101,10 +101,10 @@ export const MediaCard: React.FC<MediaCardProps> = ({
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center p-4 text-center">
-            <div className="w-12 h-12 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center mb-2">
+            <div className="w-12 h-12 rounded-xl bg-accent-soft text-accent-soft-text flex items-center justify-center mb-2">
               <FileText className="w-6 h-6" />
             </div>
-            <span className="text-[10px] font-mono uppercase text-muted-foreground font-bold">
+            <span className="text-[10px] font-mono uppercase text-text-muted font-bold">
               {item.name.split('.').pop() || 'DOC'}
             </span>
           </div>
@@ -119,7 +119,7 @@ export const MediaCard: React.FC<MediaCardProps> = ({
             }}
             className={`card-action absolute top-2 left-2 w-6 h-6 rounded-lg border flex items-center justify-center transition-all ${
               isSelected
-                ? 'bg-primary border-primary text-primary-foreground'
+                ? 'bg-accent-strong border-accent-strong text-on-accent'
                 : 'bg-black/60 border-white/20 text-transparent opacity-0 group-hover:opacity-100 hover:border-white/50'
             }`}
           >
@@ -167,7 +167,7 @@ export const MediaCard: React.FC<MediaCardProps> = ({
                     setMenuOpen(false);
                   }}
                 />
-                <div className="absolute right-0 bottom-8 z-50 w-44 rounded-xl bg-zinc-900 border border-white/15 p-1 shadow-2xl text-xs space-y-0.5">
+                <div className="absolute right-0 bottom-8 z-50 w-44 rounded-xl bg-surface-5 border border-border p-1 shadow-popover text-xs space-y-0.5">
                   <button
                     type="button"
                     onClick={(e) => {
@@ -175,9 +175,9 @@ export const MediaCard: React.FC<MediaCardProps> = ({
                       setMenuOpen(false);
                       onPreview(item);
                     }}
-                    className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-white/10 text-foreground flex items-center gap-2"
+                    className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-[var(--hover-overlay)] text-text-primary flex items-center gap-2"
                   >
-                    <Eye className="w-3.5 h-3.5 text-muted-foreground" /> View & Edit
+                    <Eye className="w-3.5 h-3.5 text-text-muted" /> View & Edit
                   </button>
 
                   {item.type === 'image' && onOptimize && (
@@ -188,9 +188,9 @@ export const MediaCard: React.FC<MediaCardProps> = ({
                         setMenuOpen(false);
                         onOptimize(item);
                       }}
-                      className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-white/10 text-foreground flex items-center gap-2"
+                      className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-[var(--hover-overlay)] text-text-primary flex items-center gap-2"
                     >
-                      <Sparkles className="w-3.5 h-3.5 text-primary" /> Resize / Optimize
+                      <Sparkles className="w-3.5 h-3.5 text-accent" /> Resize / Optimize
                     </button>
                   )}
 
@@ -202,9 +202,9 @@ export const MediaCard: React.FC<MediaCardProps> = ({
                         setMenuOpen(false);
                         onReplace(item);
                       }}
-                      className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-white/10 text-foreground flex items-center gap-2"
+                      className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-[var(--hover-overlay)] text-text-primary flex items-center gap-2"
                     >
-                      <RefreshCw className="w-3.5 h-3.5 text-muted-foreground" /> Replace File
+                      <RefreshCw className="w-3.5 h-3.5 text-text-muted" /> Replace File
                     </button>
                   )}
 
@@ -216,9 +216,9 @@ export const MediaCard: React.FC<MediaCardProps> = ({
                         setMenuOpen(false);
                         onMoveToFolder(item);
                       }}
-                      className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-white/10 text-foreground flex items-center gap-2"
+                      className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-[var(--hover-overlay)] text-text-primary flex items-center gap-2"
                     >
-                      <FolderInput className="w-3.5 h-3.5 text-muted-foreground" /> Move Folder
+                      <FolderInput className="w-3.5 h-3.5 text-text-muted" /> Move Folder
                     </button>
                   )}
 
@@ -230,13 +230,13 @@ export const MediaCard: React.FC<MediaCardProps> = ({
                         setMenuOpen(false);
                         onAddToCollection(item);
                       }}
-                      className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-white/10 text-foreground flex items-center gap-2"
+                      className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-[var(--hover-overlay)] text-text-primary flex items-center gap-2"
                     >
-                      <Layers className="w-3.5 h-3.5 text-muted-foreground" /> Add to Collection
+                      <Layers className="w-3.5 h-3.5 text-text-muted" /> Add to Collection
                     </button>
                   )}
 
-                  <div className="h-px bg-white/10 my-1" />
+                  <div className="h-px bg-divider my-1" />
 
                   <button
                     type="button"
@@ -259,10 +259,10 @@ export const MediaCard: React.FC<MediaCardProps> = ({
       {/* Info Card Body */}
       <div className="p-3 flex flex-col justify-between flex-1 gap-2">
         <div className="space-y-1">
-          <div className="font-semibold text-xs text-foreground truncate" title={item.name}>
+          <div className="font-semibold text-xs text-text-primary truncate" title={item.name}>
             {item.name}
           </div>
-          <div className="flex items-center justify-between text-[10px] text-muted-foreground font-mono">
+          <div className="flex items-center justify-between text-[10px] text-text-muted font-mono">
             <span>{formatBytes(item.size)}</span>
             {item.dimensions && (
               <span>
@@ -273,22 +273,22 @@ export const MediaCard: React.FC<MediaCardProps> = ({
         </div>
 
         {/* "Used in X places" Pill Indicator */}
-        <div className="pt-2 border-t border-white/5 flex items-center justify-between">
+        <div className="pt-2 border-t border-divider flex items-center justify-between">
           {usageCount > 0 ? (
             <span
-              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-500/10 border border-green-500/20 text-green-500 text-[10px] font-mono font-bold"
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-success/15 border border-success/30 text-success text-[10px] font-mono font-bold"
               title={usages.map((u) => `${u.locationTitle} (${u.field})`).join('\n')}
             >
               Used in {usageCount} place{usageCount !== 1 ? 's' : ''}
             </span>
           ) : (
-            <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-white/5 text-muted-foreground text-[10px] font-mono">
+            <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-surface-4 text-text-muted text-[10px] font-mono">
               Unused
             </span>
           )}
 
           {item.tags && item.tags.length > 0 && (
-            <span className="text-[10px] text-muted-foreground truncate max-w-[90px]">
+            <span className="text-[10px] text-text-muted truncate max-w-[90px]">
               #{item.tags[0]}
             </span>
           )}

@@ -56,10 +56,38 @@
         "id": { "type": "string" },
         "name": { "type": "string" },
         "category": { "type": "string" },
-        "level": { "type": "number" },
         "createdAt": { "type": "string" },
         "updatedAt": { "type": "string" }
       }
+    },
+    "TechStack": {
+      "title": "Tech Stack",
+      "description": "Technologies, frameworks, and tools in tech stack",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "classification": { "type": "string" },
+        "iconType": { "type": "string", "enum": ["icon", "link", "image"] },
+        "icon": { "type": "string" },
+        "iconLink": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "order": { "type": "number" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "name", "classification", "iconType"]
+    },
+    "Classification": {
+      "title": "Classification",
+      "description": "Lookup classification category for tech stack",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["name"]
     },
     "MediaItem": {
       "title": "Media Item",
@@ -142,6 +170,14 @@
     "skills/{skillId}": {
       "schema": "Skill",
       "description": "Skill matrix items"
+    },
+    "tech_stacks/{stackId}": {
+      "schema": "TechStack",
+      "description": "Tech stack items"
+    },
+    "classifications/{classificationId}": {
+      "schema": "Classification",
+      "description": "Tech stack classification lookup items"
     },
     "media/{mediaId}": {
       "schema": "MediaItem",

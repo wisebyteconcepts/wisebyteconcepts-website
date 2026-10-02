@@ -65,7 +65,7 @@ export const FolderManagerModal: React.FC<FolderManagerModalProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md bg-background/95 backdrop-blur-2xl border-white/10">
+      <DialogContent className="max-w-md">
         <DialogHeader>
           <div className="flex items-center gap-2 text-primary">
             <FolderPlus className="w-5 h-5" />

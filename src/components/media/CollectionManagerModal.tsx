@@ -84,12 +84,12 @@ export const CollectionManagerModal: React.FC<CollectionManagerModalProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto bg-background/95 backdrop-blur-2xl border-white/10">
+      <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
         <DialogHeader className="pr-12 sm:pr-14">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-2 text-primary min-w-0">
+            <div className="flex items-center gap-2 text-accent min-w-0">
               <Layers className="w-5 h-5 shrink-0" />
-              <DialogTitle className="text-lg font-bold truncate">Media Collections</DialogTitle>
+              <DialogTitle className="text-lg font-bold truncate text-text-primary">Media Collections</DialogTitle>
             </div>
             {!isCreating && (
               <Button size="sm" onClick={() => setIsCreating(true)} className="rounded-xl gap-1 text-xs shrink-0">
@@ -97,7 +97,7 @@ export const CollectionManagerModal: React.FC<CollectionManagerModalProps> = ({
               </Button>
             )}
           </div>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-text-muted">
             Named bundles of media assets for quick insertion into showcases, courses, and homepage blocks.
           </p>
         </DialogHeader>
@@ -139,7 +139,7 @@ export const CollectionManagerModal: React.FC<CollectionManagerModalProps> = ({
                 <span className="text-[10px] text-muted-foreground">Click items to toggle</span>
               </div>
 
-              <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 max-h-48 overflow-y-auto p-1 border border-white/5 rounded-xl bg-black/20">
+              <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 max-h-48 overflow-y-auto p-1 border border-border rounded-xl bg-surface-3">
                 {items.map((item) => {
                   const isChecked = selectedIds.includes(item.id);
                   return (
@@ -152,8 +152,8 @@ export const CollectionManagerModal: React.FC<CollectionManagerModalProps> = ({
                       }}
                       className={`relative aspect-square rounded-lg overflow-hidden border cursor-pointer transition-all ${
                         isChecked
-                          ? 'border-primary ring-2 ring-primary/40'
-                          : 'border-white/10 opacity-70 hover:opacity-100'
+                          ? 'border-accent ring-2 ring-accent/40'
+                          : 'border-border opacity-70 hover:opacity-100'
                       }`}
                     >
                       <img
@@ -162,7 +162,7 @@ export const CollectionManagerModal: React.FC<CollectionManagerModalProps> = ({
                         className="w-full h-full object-cover"
                       />
                       {isChecked && (
-                        <div className="absolute top-1 right-1 p-0.5 rounded-full bg-primary text-primary-foreground">
+                        <div className="absolute top-1 right-1 p-0.5 rounded-full bg-accent-strong text-on-accent">
                           <Check className="w-3 h-3" />
                         </div>
                       )}
@@ -176,7 +176,7 @@ export const CollectionManagerModal: React.FC<CollectionManagerModalProps> = ({
               <Button variant="ghost" onClick={() => setIsCreating(false)}>
                 Cancel
               </Button>
-              <Button onClick={handleCreate} disabled={!name.trim()} className="shadow-glow-primary">
+              <Button onClick={handleCreate} disabled={!name.trim()} className="shadow-sm">
                 Save Collection
               </Button>
             </div>
@@ -193,18 +193,18 @@ export const CollectionManagerModal: React.FC<CollectionManagerModalProps> = ({
                     onClick={() => setActiveCollectionId(c.id)}
                     className={`p-3 rounded-xl border text-left cursor-pointer transition-all ${
                       isActive
-                        ? 'border-primary bg-primary/10 text-primary'
-                        : 'border-white/10 bg-white/5 hover:border-white/20'
+                        ? 'border-accent bg-accent-soft text-accent-soft-text font-semibold'
+                        : 'border-border bg-surface-2 hover:bg-[var(--hover-overlay)]'
                     }`}
                   >
                     <div className="flex items-center justify-between">
-                      <div className="font-semibold text-xs text-foreground truncate">{c.name}</div>
-                      <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-white/10 text-muted-foreground shrink-0">
+                      <div className="font-semibold text-xs text-text-primary truncate">{c.name}</div>
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-surface-4 text-text-muted shrink-0">
                         {c.mediaIds?.length || 0} items
                       </span>
                     </div>
                     {c.description && (
-                      <div className="text-[11px] text-muted-foreground truncate mt-1">
+                      <div className="text-[11px] text-text-muted truncate mt-1">
                         {c.description}
                       </div>
                     )}
@@ -212,14 +212,14 @@ export const CollectionManagerModal: React.FC<CollectionManagerModalProps> = ({
                 );
               })}
               {collections.length === 0 && (
-                <div className="text-center py-8 text-xs text-muted-foreground italic">
+                <div className="text-center py-8 text-xs text-text-muted italic">
                   No collections created yet.
                 </div>
               )}
             </div>
 
             {/* Collection detail preview */}
-            <div className="md:col-span-7 p-4 rounded-xl border border-white/10 bg-white/5 flex flex-col justify-between min-h-[220px]">
+            <div className="md:col-span-7 p-4 rounded-xl border border-border bg-surface-1 flex flex-col justify-between min-h-[220px]">
               {activeCollection ? (
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">

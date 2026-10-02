@@ -23,7 +23,7 @@ export interface FormLabelProps extends UiLabelProps {}
 
 export const FormLabel = forwardRef<HTMLLabelElement, FormLabelProps>(
   ({ className, ...props }, ref) => (
-    <UiLabel ref={ref} className={cn("text-xs font-semibold text-foreground/90", className)} {...props} />
+    <UiLabel ref={ref} className={cn("text-xs font-semibold text-text-primary", className)} {...props} />
   )
 );
 FormLabel.displayName = "FormLabel";
@@ -43,7 +43,7 @@ export const FormDescription = forwardRef<HTMLParagraphElement, FormDescriptionP
   ({ className, ...props }, ref) => (
     <p
       ref={ref}
-      className={cn("text-[11px] text-muted-foreground/80 leading-relaxed mt-1 select-none", className)}
+      className={cn("text-[11px] text-text-muted leading-relaxed mt-1 select-none", className)}
       {...props}
     />
   )
@@ -253,20 +253,19 @@ export const SelectBlock = forwardRef<HTMLSelectElement, SelectBlockProps>(
             ref={ref}
             id={inputId}
             className={cn(
-              "flex h-10 w-full appearance-none rounded-xl border border-input bg-background/80 dark:bg-zinc-950/70 px-3.5 py-2 pr-10 text-sm text-foreground shadow-sm transition-all duration-200 hover:border-border dark:hover:border-white/25 focus-visible:outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20 dark:focus-visible:ring-primary/30 disabled:cursor-not-allowed disabled:opacity-50 font-sans cursor-pointer",
-              error && "border-destructive focus-visible:border-destructive focus-visible:ring-destructive/20",
+              "flex h-10 w-full appearance-none rounded-xl border border-border-strong bg-surface-3 px-3.5 py-2 pr-10 text-sm text-text-primary shadow-xs transition-all duration-200 focus-visible:outline-none focus-visible:border-accent focus-ring-accent disabled:cursor-not-allowed disabled:opacity-50 font-sans cursor-pointer",
+              error && "border-destructive focus-visible:border-destructive",
               className
             )}
             {...selectProps}
           >
             {children}
           </select>
-          <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground/70 transition-transform group-focus-within/select:text-primary">
+          <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-text-muted transition-transform group-focus-within/select:text-accent">
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
             </svg>
           </div>
-          <div className="absolute inset-0 rounded-xl bg-primary/5 opacity-0 group-focus-within/select:opacity-100 pointer-events-none transition-opacity duration-300" />
         </div>
       </FormField>
     );
@@ -422,19 +421,18 @@ export const Select = forwardRef<HTMLSelectElement, NativeSelectProps>(
       <select
         ref={ref}
         className={cn(
-          "flex h-10 w-full appearance-none rounded-xl border border-input bg-background/80 dark:bg-zinc-950/70 px-3.5 py-2 pr-10 text-sm text-foreground shadow-sm transition-all duration-200 hover:border-border dark:hover:border-white/25 focus-visible:outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20 dark:focus-visible:ring-primary/30 disabled:cursor-not-allowed disabled:opacity-50 font-sans cursor-pointer",
+          "flex h-10 w-full appearance-none rounded-xl border border-border-strong bg-surface-3 px-3.5 py-2 pr-10 text-sm text-text-primary shadow-xs transition-all duration-200 focus-visible:outline-none focus-visible:border-accent focus-ring-accent disabled:cursor-not-allowed disabled:opacity-50 font-sans cursor-pointer",
           className
         )}
         {...props}
       >
         {children}
       </select>
-      <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground/70 transition-transform group-focus-within/select:text-primary">
+      <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-text-muted transition-transform group-focus-within/select:text-accent">
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
         </svg>
       </div>
-      <div className="absolute inset-0 rounded-xl bg-primary/5 opacity-0 group-focus-within/select:opacity-100 pointer-events-none transition-opacity duration-300" />
     </div>
   )
 );

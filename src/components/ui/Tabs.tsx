@@ -40,7 +40,7 @@ export const TabsList = ({ className, children }: { className?: string, children
   <div
     role="tablist"
     className={cn(
-      "inline-flex h-10 max-h-10 items-center justify-start rounded-xl bg-muted/80 p-1 text-muted-foreground border border-border/40 shadow-inner overflow-x-auto overflow-y-hidden scrollbar-none shrink-0",
+      "inline-flex items-center justify-start rounded-xl bg-surface-1 p-1 text-text-muted border border-border overflow-x-auto overflow-y-hidden scrollbar-none shrink-0 gap-1",
       className
     )}
   >
@@ -60,8 +60,10 @@ export const TabsTrigger = ({ value, children, className }: { value: string, chi
       data-state={isActive ? "active" : "inactive"}
       onClick={() => setActiveTab(value)}
       className={cn(
-        "relative inline-flex h-8 items-center justify-center gap-2 whitespace-nowrap rounded-lg px-3 text-xs font-medium ring-offset-background transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 select-none shrink-0",
-        isActive ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:bg-background/40 hover:text-foreground",
+        "relative inline-flex h-8 items-center justify-center gap-2 whitespace-nowrap rounded-lg px-3 text-xs font-medium border transition-all duration-150 focus-visible:outline-none focus-visible:border-accent focus-ring-accent disabled:pointer-events-none disabled:opacity-50 select-none shrink-0 cursor-pointer",
+        isActive
+          ? "bg-surface-2 text-text-primary shadow-xs border-border/80"
+          : "bg-transparent text-text-secondary hover:bg-[var(--hover-overlay)] hover:text-text-primary border-transparent",
         className
       )}
     >

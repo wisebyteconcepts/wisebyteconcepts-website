@@ -104,10 +104,10 @@ export const MediaDetailsModal: React.FC<MediaDetailsModalProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-background/95 backdrop-blur-2xl border-white/10">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader className="pr-12 sm:pr-14 mb-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <DialogTitle className="text-xl font-bold truncate max-w-sm sm:max-w-md">{item.name}</DialogTitle>
+            <DialogTitle className="text-xl font-bold truncate max-w-sm sm:max-w-md text-text-primary">{item.name}</DialogTitle>
             <div className="flex items-center gap-2 shrink-0">
               {item.type === 'image' && onOpenOptimizer && (
                 <Button
@@ -119,7 +119,7 @@ export const MediaDetailsModal: React.FC<MediaDetailsModalProps> = ({
                   }}
                   className="rounded-xl gap-1 text-xs"
                 >
-                  <Sparkles className="w-3.5 h-3.5 text-primary" /> Resize & Optimize
+                  <Sparkles className="w-3.5 h-3.5 text-accent" /> Resize & Optimize
                 </Button>
               )}
               {onOpenReplace && (
@@ -162,12 +162,12 @@ export const MediaDetailsModal: React.FC<MediaDetailsModalProps> = ({
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 my-2">
           {/* Media Preview Column */}
           <div className="lg:col-span-6 flex flex-col gap-4">
-            <div className="p-3 rounded-2xl bg-black/40 border border-white/10 flex items-center justify-center min-h-[260px] overflow-hidden relative group">
+            <div className="p-3 rounded-2xl bg-surface-1 border border-border flex items-center justify-center min-h-[260px] overflow-hidden relative group">
               {item.type === 'image' ? (
                 <img
                   src={item.url}
                   alt={item.altText || item.name}
-                  className="max-h-[340px] max-w-full rounded-xl object-contain shadow-2xl"
+                  className="max-h-[340px] max-w-full rounded-xl object-contain shadow-card-raised"
                   referrerPolicy="no-referrer"
                 />
               ) : item.type === 'video' ? (
@@ -175,7 +175,7 @@ export const MediaDetailsModal: React.FC<MediaDetailsModalProps> = ({
                   <iframe
                     src={item.embedUrl}
                     title={item.name}
-                    className="w-full aspect-video rounded-xl border border-white/10"
+                    className="w-full aspect-video rounded-xl border border-border"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                     allowFullScreen
                   />
@@ -183,7 +183,7 @@ export const MediaDetailsModal: React.FC<MediaDetailsModalProps> = ({
                   <video
                     src={item.url}
                     controls
-                    className="w-full max-h-[340px] rounded-xl border border-white/10"
+                    className="w-full max-h-[340px] rounded-xl border border-border"
                   />
                 )
               ) : (
@@ -192,8 +192,8 @@ export const MediaDetailsModal: React.FC<MediaDetailsModalProps> = ({
                     <FileText className="w-8 h-8" />
                   </div>
                   <div>
-                    <div className="text-sm font-semibold text-foreground">{item.name}</div>
-                    <div className="text-xs text-muted-foreground mt-1 font-mono">
+                    <div className="text-sm font-semibold text-text-primary">{item.name}</div>
+                    <div className="text-xs text-text-muted mt-1 font-mono">
                       {item.mimeType || 'Document'} • {formatBytes(item.size)}
                     </div>
                   </div>
@@ -205,14 +205,14 @@ export const MediaDetailsModal: React.FC<MediaDetailsModalProps> = ({
             </div>
 
             {/* Technical Specifications */}
-            <div className="p-4 rounded-xl border border-white/10 bg-white/5 space-y-2 text-xs">
-              <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground font-semibold">
+            <div className="p-4 rounded-xl border border-border bg-surface-1 space-y-2 text-xs">
+              <div className="text-[10px] font-mono uppercase tracking-wider text-text-muted font-semibold">
                 Technical Specifications
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <span className="text-muted-foreground">Dimensions:</span>{' '}
-                  <span className="font-mono text-foreground">
+                  <span className="text-text-muted">Dimensions:</span>{' '}
+                  <span className="font-mono text-text-primary">
                     {item.dimensions ? `${item.dimensions.width} × ${item.dimensions.height} px` : 'N/A'}
                   </span>
                 </div>
@@ -234,9 +234,9 @@ export const MediaDetailsModal: React.FC<MediaDetailsModalProps> = ({
             </div>
 
             {/* "Used in X places" Tracking */}
-            <div className="p-4 rounded-xl border border-white/10 bg-white/5 space-y-2 text-xs">
+            <div className="p-4 rounded-xl border border-border bg-surface-1 space-y-2 text-xs">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground font-semibold">
+                <span className="text-[10px] font-mono uppercase tracking-wider text-text-muted font-semibold">
                   Used In Website ({usages.length})
                 </span>
                 {usages.length > 0 ? (
@@ -244,7 +244,7 @@ export const MediaDetailsModal: React.FC<MediaDetailsModalProps> = ({
                     Active Reference
                   </span>
                 ) : (
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-white/10 text-muted-foreground">
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-surface-4 text-text-muted">
                     Orphaned / Unused
                   </span>
                 )}
@@ -255,11 +255,11 @@ export const MediaDetailsModal: React.FC<MediaDetailsModalProps> = ({
                   {usages.map((u, i) => (
                     <div
                       key={i}
-                      className="flex items-center justify-between p-2 rounded-lg bg-black/20 border border-white/5"
+                      className="flex items-center justify-between p-2 rounded-lg bg-surface-2 border border-border"
                     >
                       <div className="truncate pr-2">
-                        <span className="font-semibold text-foreground">{u.locationTitle}</span>
-                        <span className="text-[10px] text-muted-foreground ml-1.5 font-mono">
+                        <span className="font-semibold text-text-primary">{u.locationTitle}</span>
+                        <span className="text-[10px] text-text-muted ml-1.5 font-mono">
                           [{u.field}]
                         </span>
                       </div>
@@ -267,7 +267,7 @@ export const MediaDetailsModal: React.FC<MediaDetailsModalProps> = ({
                         href={u.url}
                         target="_blank"
                         rel="noreferrer"
-                        className="text-[10px] text-primary hover:underline flex items-center gap-1 font-mono shrink-0"
+                        className="text-[10px] text-accent hover:underline flex items-center gap-1 font-mono shrink-0"
                       >
                         Visit <ExternalLink className="w-3 h-3" />
                       </a>
@@ -347,8 +347,8 @@ export const MediaDetailsModal: React.FC<MediaDetailsModalProps> = ({
             </div>
 
             {/* Version History */}
-            <div className="p-4 rounded-xl border border-white/10 bg-white/5 space-y-2 text-xs">
-              <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-wider text-muted-foreground font-semibold">
+            <div className="p-4 rounded-xl border border-border bg-surface-1 space-y-2 text-xs">
+              <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-wider text-text-muted font-semibold">
                 <History className="w-3.5 h-3.5" /> Version History ({item.versionHistory?.length || 0})
               </div>
 
@@ -357,14 +357,14 @@ export const MediaDetailsModal: React.FC<MediaDetailsModalProps> = ({
                   {item.versionHistory.map((ver) => (
                     <div
                       key={ver.id}
-                      className="flex items-center justify-between p-2 rounded-lg bg-black/20 border border-white/5 text-[11px]"
+                      className="flex items-center justify-between p-2 rounded-lg bg-surface-2 border border-border text-[11px]"
                     >
                       <div className="truncate">
-                        <span className="font-semibold text-foreground font-mono">v{ver.version}</span>
-                        <span className="text-muted-foreground ml-2">
+                        <span className="font-semibold text-text-primary font-mono">v{ver.version}</span>
+                        <span className="text-text-muted ml-2">
                           {new Date(ver.replacedAt).toLocaleDateString()}
                         </span>
-                        <span className="text-[10px] text-muted-foreground ml-2 font-mono">
+                        <span className="text-[10px] text-text-muted ml-2 font-mono">
                           ({formatBytes(ver.size)})
                         </span>
                       </div>
@@ -372,7 +372,7 @@ export const MediaDetailsModal: React.FC<MediaDetailsModalProps> = ({
                         size="sm"
                         variant="ghost"
                         onClick={() => handleRestoreVersion(ver.id)}
-                        className="h-6 text-[10px] font-mono hover:text-primary"
+                        className="h-6 text-[10px] font-mono hover:text-accent"
                       >
                         Restore
                       </Button>
@@ -380,7 +380,7 @@ export const MediaDetailsModal: React.FC<MediaDetailsModalProps> = ({
                   ))}
                 </div>
               ) : (
-                <p className="text-[11px] text-muted-foreground italic">
+                <p className="text-[11px] text-text-muted italic">
                   No previous versions. When you replace this file, previous versions are archived here.
                 </p>
               )}

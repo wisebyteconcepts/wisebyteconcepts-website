@@ -1,58 +1,118 @@
-import React, { useState } from 'react';
-import * as LucideIcons from 'lucide-react';
-import * as RiIcons from 'react-icons/ri';
-import * as HiIcons from 'react-icons/hi2';
-import { X, Grid3x3, Sparkles } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { X, Sparkles, SlidersHorizontal } from 'lucide-react';
 import { Button } from '@/components/Button';
 import { FormLabel } from '@/components/forms/FormControls';
 import { cn } from '@/lib/utils';
 import { ImageInput } from './ImageInput';
 import { IconPicker as UniversalIconPicker } from '@/components/IconPicker';
+import { Icon } from '@/components/ui/Icon';
+import { IconValue, normalizeIcon, formatIconLabel } from '@/types/icon';
 
-interface IconPickerProps {
-  value?: string;
-  onChange: (value: string) => void;
+export interface IconPickerProps {
+  value?: IconValue | string | null;
+  onChange: (value: any) => void;
   label?: string;
+  className?: string;
+  compact?: boolean;
 }
 
-export const IconPicker: React.FC<IconPickerProps> = ({ value, onChange, label = "Select Icon" }) => {
+export const IconPicker: React.FC<IconPickerProps> = ({
+  value,
+  onChange,
+  label = "Select Icon",
+  className,
+  compact = false,
+}) => {
   const [mode, setMode] = useState<'library' | 'url'>('library');
   const [isPickerOpen, setIsPickerOpen] = useState(false);
+  const triggerButtonRef = useRef<HTMLButtonElement>(null);
 
-  const isUrl = value?.startsWith('http') || value?.startsWith('data:') || value?.includes('/');
+  const normalized = normalizeIcon(value);
+  const isUrl = typeof value === 'string' && (value.startsWith('http') || value.startsWith('data:') || value.includes('/'));
+  const hasIcon = Boolean(normalized || isUrl);
 
-  // Current icon preview
-  const renderPreview = (iconName: string, className = "w-4 h-4") => {
-    if (!iconName) return null;
-    
-    // Check Lucide
-    const LucideIcon = (LucideIcons as any)[iconName];
-    if (LucideIcon) return <LucideIcon className={className} />;
-    
-    // Check Remix
-    const RiIcon = (RiIcons as any)[iconName];
-    if (RiIcon) return <RiIcon className={className} />;
-    
-    // Check Heroicons
-    const HiIcon = (HiIcons as any)[iconName];
-    if (HiIcon) return <HiIcon className={className} />;
-
-    if (iconName.startsWith('http') || iconName.startsWith('data:') || iconName.includes('/')) {
-      return <img src={iconName} alt="icon" className={cn("object-contain", className)} referrerPolicy="no-referrer" />;
-    }
-    return null;
+  const handleSelectIcon = (icon: IconValue) => {
+    onChange(icon);
+    setMode('library');
   };
 
+  const handleClear = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    onChange('');
+  };
+
+  if (compact) {
+    return (
+      <div className={cn("space-y-1.5 w-full", className)}>
+        {label && (
+          <div className="flex items-center justify-between">
+            <FormLabel className="text-xs font-semibold">{label}</FormLabel>
+            {isUrl && (
+              <span className="text-[10px] font-mono text-muted-foreground uppercase">URL</span>
+            )}
+          </div>
+        )}
+
+        <div className="flex items-center gap-2 w-full">
+          <button
+            ref={triggerButtonRef}
+            type="button"
+            onClick={() => setIsPickerOpen(true)}
+            className="flex-1 h-10 px-3 rounded-xl border border-border-strong bg-surface-3 hover:bg-surface-4 text-text-primary shadow-xs transition-all duration-200 flex items-center justify-between gap-2.5 cursor-pointer text-left focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary group/picker-btn"
+          >
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-6 h-6 rounded-lg bg-surface-2 border border-border flex items-center justify-center shrink-0 text-primary shadow-2xs">
+                {hasIcon ? (
+                  <Icon value={value} className="w-3.5 h-3.5" fallback={Sparkles} />
+                ) : (
+                  <Sparkles className="w-3.5 h-3.5 text-muted-foreground/40" />
+                )}
+              </div>
+              <span className="text-xs font-semibold truncate text-foreground">
+                {formatIconLabel(value) || "Select Icon..."}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-1 shrink-0 text-muted-foreground group-hover/picker-btn:text-foreground">
+              <SlidersHorizontal className="w-3.5 h-3.5" />
+            </div>
+          </button>
+
+          {hasIcon && (
+            <Button
+              variant="ghost"
+              size="icon"
+              type="button"
+              onClick={handleClear}
+              title="Clear icon"
+              className="shrink-0 h-10 w-10 border border-border-strong rounded-xl hover:text-destructive hover:bg-destructive/10 cursor-pointer"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
+
+        <UniversalIconPicker 
+          isOpen={isPickerOpen}
+          onOpenChange={setIsPickerOpen}
+          onSelect={handleSelectIcon}
+          selectedIcon={value}
+          triggerRef={triggerButtonRef}
+        />
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-2.5 w-full">
+    <div className={cn("space-y-2.5 w-full", className)}>
       <div className="flex items-center justify-between">
         <FormLabel className="text-xs font-semibold">{label}</FormLabel>
-        <div className="flex gap-1.5 p-0.5 rounded-lg bg-muted/50 border border-border/50">
+        <div className="flex gap-1.5 p-0.5 rounded-lg bg-surface-2 border border-border/60">
           <button 
             type="button"
             className={cn(
               "px-2.5 py-1 text-[11px] font-semibold rounded-md transition-all cursor-pointer",
-              mode === 'library' ? "bg-background text-foreground shadow-xs font-bold" : "text-muted-foreground hover:text-foreground"
+              mode === 'library' ? "bg-primary text-white shadow-xs font-bold" : "text-muted-foreground hover:text-foreground"
             )}
             onClick={() => setMode('library')}
           >
@@ -62,7 +122,7 @@ export const IconPicker: React.FC<IconPickerProps> = ({ value, onChange, label =
             type="button"
             className={cn(
               "px-2.5 py-1 text-[11px] font-semibold rounded-md transition-all cursor-pointer",
-              mode === 'url' ? "bg-background text-foreground shadow-xs font-bold" : "text-muted-foreground hover:text-foreground"
+              mode === 'url' ? "bg-primary text-white shadow-xs font-bold" : "text-muted-foreground hover:text-foreground"
             )}
             onClick={() => setMode('url')}
           >
@@ -73,36 +133,54 @@ export const IconPicker: React.FC<IconPickerProps> = ({ value, onChange, label =
 
       <div className={cn(
         "p-3.5 rounded-xl border transition-all relative overflow-hidden group/picker shadow-xs",
-        mode === 'library' ? "bg-background/80 dark:bg-zinc-950/70 border-input" : "bg-muted/20 border-dashed border-input"
+        mode === 'library' ? "bg-surface-3 border-border-strong" : "bg-surface-1 border-dashed border-border-strong"
       )}>
         <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover/picker:opacity-100 transition-opacity pointer-events-none" />
         
         <div className="flex items-center gap-3.5 relative z-10">
-          <div className="w-12 h-12 rounded-xl bg-muted/60 border border-border/60 flex items-center justify-center shrink-0 text-primary shadow-xs">
-            {value ? renderPreview(value, "w-6 h-6") : <Sparkles className="w-5 h-5 text-muted-foreground/40" />}
+          {/* Icon Preview */}
+          <div className="w-12 h-12 rounded-xl bg-surface-2 border border-border/80 flex items-center justify-center shrink-0 text-primary shadow-xs">
+            {hasIcon ? (
+              <Icon value={value} className="w-6 h-6" fallback={Sparkles} />
+            ) : (
+              <Sparkles className="w-5 h-5 text-muted-foreground/40" />
+            )}
           </div>
+
+          {/* Details */}
           <div className="flex-grow min-w-0">
-            <p className="text-xs font-semibold truncate text-foreground">
-              {value && !isUrl ? value : isUrl ? "Custom Asset Vector" : "No icon selected"}
+            <p className="text-xs font-bold truncate text-foreground">
+              {formatIconLabel(value)}
             </p>
-            <p className="text-[10px] text-muted-foreground font-mono">
-              {isUrl ? "External Resource URL" : "Built-in System Icons"}
+            <p className="text-[10px] text-muted-foreground font-mono truncate">
+              {isUrl ? "External Resource Vector" : normalized ? `Standardized ${normalized.library} node` : "No icon specified"}
             </p>
           </div>
-          <div className="flex items-center gap-1.5">
-            {value && (
-              <Button variant="ghost" size="icon" onClick={() => onChange('')} className="shrink-0 h-8 w-8 hover:text-destructive rounded-lg">
+
+          {/* Actions */}
+          <div className="flex items-center gap-1.5 shrink-0">
+            {hasIcon && (
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                type="button"
+                onClick={handleClear} 
+                title="Remove Icon"
+                className="shrink-0 h-8 w-8 hover:text-destructive rounded-lg cursor-pointer"
+              >
                 <X className="h-4 w-4" />
               </Button>
             )}
+
             {mode === 'library' && (
               <Button 
+                ref={triggerButtonRef}
                 type="button"
                 onClick={() => setIsPickerOpen(true)}
-                className="h-8 px-3 rounded-lg gap-1.5 font-semibold text-xs shadow-xs"
+                className="h-8.5 px-3.5 rounded-xl gap-1.5 font-semibold text-xs shadow-xs cursor-pointer"
               >
-                <Grid3x3 className="w-3.5 h-3.5" />
-                Browse
+                <SlidersHorizontal className="w-3.5 h-3.5" />
+                {hasIcon ? "Change Icon" : "Select Icon"}
               </Button>
             )}
           </div>
@@ -112,7 +190,7 @@ export const IconPicker: React.FC<IconPickerProps> = ({ value, onChange, label =
           <div className="mt-4 pt-4 border-t border-border/50">
             <ImageInput 
               label="Icon URL or Data URI"
-              value={isUrl ? (value || null) : null}
+              value={isUrl ? (typeof value === 'string' ? value : null) : null}
               onChange={(val) => onChange(val || "")}
             />
           </div>
@@ -122,12 +200,12 @@ export const IconPicker: React.FC<IconPickerProps> = ({ value, onChange, label =
       <UniversalIconPicker 
         isOpen={isPickerOpen}
         onOpenChange={setIsPickerOpen}
-        onSelect={(icon) => {
-          onChange(icon);
-          setMode('library');
-        }}
-        selectedIcon={!isUrl ? value : undefined}
+        onSelect={handleSelectIcon}
+        selectedIcon={value}
+        triggerRef={triggerButtonRef}
       />
     </div>
   );
 };
+
+export default IconPicker;

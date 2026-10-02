@@ -54,21 +54,21 @@ export const MediaPickerModal: React.FC<MediaPickerModalProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-6xl max-h-[92vh] overflow-y-auto bg-background/95 backdrop-blur-2xl border-white/10 p-6">
-        <DialogHeader className="border-b border-white/10 pb-4">
-          <div className="flex items-center gap-2 text-primary">
+      <DialogContent className="max-w-6xl max-h-[92vh] overflow-y-auto p-6">
+        <DialogHeader className="border-b border-divider pb-4">
+          <div className="flex items-center gap-2 text-accent">
             <ImageIcon className="w-5 h-5" />
             <DialogTitle className="text-xl font-bold">{title}</DialogTitle>
           </div>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-text-muted">
             Select an optimized image or file from the unified media library, or upload a new one directly.
           </p>
 
           {/* Quick-Access: Recently Used Shelf */}
           {recentItems.length > 0 && (
             <div className="pt-3">
-              <div className="flex items-center gap-1.5 text-[11px] font-mono uppercase tracking-wider text-muted-foreground font-semibold mb-2">
-                <Clock className="w-3.5 h-3.5 text-primary" /> Recently Used Media
+              <div className="flex items-center gap-1.5 text-[11px] font-mono uppercase tracking-wider text-text-muted font-semibold mb-2">
+                <Clock className="w-3.5 h-3.5 text-accent" /> Recently Used Media
               </div>
               <div className="flex items-center gap-3 overflow-x-auto pb-2 scrollbar-thin">
                 {recentItems.slice(0, 8).map((rec) => (
@@ -76,7 +76,7 @@ export const MediaPickerModal: React.FC<MediaPickerModalProps> = ({
                     key={rec.id}
                     type="button"
                     onClick={() => handleChooseItem(rec)}
-                    className="relative group shrink-0 w-24 h-16 rounded-xl overflow-hidden border border-white/10 hover:border-primary/60 transition-all text-left bg-black/40"
+                    className="relative group shrink-0 w-24 h-16 rounded-xl overflow-hidden border border-border hover:border-accent transition-all text-left bg-surface-1"
                     title={rec.name}
                   >
                     <img
@@ -85,7 +85,7 @@ export const MediaPickerModal: React.FC<MediaPickerModalProps> = ({
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                       referrerPolicy="no-referrer"
                     />
-                    <div className="absolute inset-x-0 bottom-0 p-1 bg-black/80 backdrop-blur-sm text-[9px] truncate text-white">
+                    <div className="absolute inset-x-0 bottom-0 p-1 bg-surface-5/90 backdrop-blur-sm text-[9px] truncate text-text-primary">
                       {rec.name}
                     </div>
                   </button>
@@ -107,7 +107,7 @@ export const MediaPickerModal: React.FC<MediaPickerModalProps> = ({
           />
         </div>
 
-        <DialogFooter className="border-t border-white/10 pt-4">
+        <DialogFooter className="border-t border-divider pt-4">
           <Button variant="ghost" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>

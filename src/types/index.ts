@@ -1,3 +1,5 @@
+import { IconValue } from './icon';
+
 export enum ServiceCategory {
   DEVELOPMENT = 'development',
   DESIGN = 'design',
@@ -6,99 +8,166 @@ export enum ServiceCategory {
   SYSTEMS = 'systems',
 }
 
-export type PricingType = 'fixed' | 'starting_from' | 'custom';
-export type PricingUnit = 'project' | 'month' | 'hour';
-export type CtaAction = 'contact' | 'quote' | 'external';
+export type ServiceIconType = 'icon' | 'image';
+
+export type ServiceDeliveredUnit = 'Days' | 'Weeks' | 'Month' | 'Depends Upon Project';
+
+export interface ServiceDeliveredWithin {
+  unit: ServiceDeliveredUnit;
+  range?: string | number;
+}
+
+export type ServicePricingModel = 'Fixed' | 'Starting At' | 'Range' | 'Custom Quote';
+
+export interface ServiceValueItem {
+  icon: IconValue | string;
+  title: string;
+  description: string;
+}
+
+export interface ServiceCtaVisual {
+  type: 'icon' | 'image';
+  value: IconValue | string;
+}
 
 export interface Service {
   id: string;
-  slug: string;
   
-  // Basic Display
-  name: string;
-  caption: string;
-  header: string;
+  // Content Tab
+  title: string;
+  slug: string;
+  caption?: string;
   shortDescription: string;
   fullDescription: string;
+  category: string; // From Service Category lookup
+  tags: string[];
+  active: boolean; // false = hidden from public site
+  featured: boolean; // shown on homepage
+  order: number;
 
-  // Media
-  icon?: string;
-  thumbnail: string;
+  // Media Tab
+  iconType: ServiceIconType;
+  icon?: IconValue | string;
+  iconImage?: string;
+  displayPicture: string; // required media picker
+  bannerPicture?: string; // optional (falls back to displayPicture)
+  gallery?: string[]; // media picker collection
+
+  // Value Tab
+  coreFeatures: ServiceValueItem[];
+  deliverables: ServiceValueItem[];
+  deliveredWithin: ServiceDeliveredWithin;
+
+  // Pricing Tab
+  pricingModel: ServicePricingModel;
+  currency?: string;
+  amount?: number;
+  minAmount?: number;
+  maxAmount?: number;
+
+  // Call to Action Tab
+  ctaVisual?: ServiceCtaVisual;
+  ctaText?: string;
+  ctaButtonText: string;
+  ctaButtonLink: string;
+
+  // Tech Used Tab
+  techStacks: string[]; // multi-select from Tech Stack model
+  relatedProjects: string[]; // multi-select from Project model
+
+  // SEO Tab
+  metaTitle?: string;
+  metaDescription?: string;
+  keywords?: string[];
+
+  // Backward compatibility aliases for legacy access
+  name?: string;
+  header?: string;
+  thumbnail?: string;
   bannerImage?: string;
-  gallery?: string[];
-
-  // Categorization
-  category: ServiceCategory;
-  tags?: string[];
-
-  // Features & Deliverables
-  features: string[];
-  deliverables?: string[];
-
-  // Pricing
-  pricing?: {
-    type: PricingType;
-    amount?: number;
-    currency?: string;
-    unit?: PricingUnit;
-  };
-
-  // Timeline
+  isActive?: boolean;
+  isFeatured?: boolean;
+  features?: string[];
+  technologies?: string[];
+  description?: string;
+  pricing?: any;
+  cta?: any;
+  seo?: any;
   estimatedDuration?: string;
 
-  // Tech Stack
-  technologies?: string[];
-
-  // Portfolio Mapping
-  relatedProjects?: string[];
-
-  // CTA
-  cta?: {
-    label: string;
-    action: CtaAction;
-    link?: string;
-  };
-
-  // SEO
-  seo?: {
-    metaTitle?: string;
-    metaDescription?: string;
-    keywords?: string[];
-  };
-
-  // Status & Control
-  isActive: boolean;
-  isFeatured?: boolean;
-  order?: number;
-
   createdAt: string;
   updatedAt: string;
 }
 
-export interface Product {
+export type ProjectDeliveredUnit = 'Days' | 'Weeks' | 'Month' | 'Depends Upon Project';
+
+export interface ProjectDeliveredWithin {
+  unit: ProjectDeliveredUnit;
+  range?: string | number;
+}
+
+export interface ProjectValueItem {
+  icon: IconValue | string;
+  title: string;
+  description: string;
+}
+
+export type ProjectIconType = 'icon' | 'image';
+
+export interface Project {
   id: string;
 
-  // Core Info
-  name: string;
-  description: string;
+  // Basic Details Tab
+  title: string;
+  slug: string;
+  caption?: string;
+  shortDescription: string;
+  fullDescription: string;
+  category: string; // Select from "Project Category" lookup
+  parentService: string; // Select from Service model (FK → Service.id)
+  tags: string[];
+  active: boolean; // false = hidden from public site
+  featured: boolean; // shown on homepage
+  order: number; // used for sorting
 
-  // Relationship
-  serviceId: string; // FK → Service.id
-  icon?: string;
+  // Media Tab
+  iconType: ProjectIconType;
+  icon?: IconValue | string;
+  iconImage?: string;
+  displayPicture: string; // media picker
+  bannerPicture?: string; // optional (falls back to displayPicture)
+  gallery: string[]; // media picker, collection
 
-  // Media
+  // Value Tab
+  coreFeatures: ProjectValueItem[];
+  deliverables: ProjectValueItem[];
+  deliveredWithin: ProjectDeliveredWithin;
+
+  // Tech Used Tab
+  techStacks: string[]; // multi-select from Tech Stack model
+
+  // Deployment Tab
+  liveLink: string; // validated url (live website or download link)
+  gitRepository?: string; // validated optional url (public repos only)
+
+  // Backward compatibility aliases for existing components and queries
+  name?: string;
+  description?: string;
+  serviceId?: string;
   imageUrl?: string;
-
-  // Optional Enhancements
   demoUrl?: string;
   repoUrl?: string;
-  tags?: string[];
+  isActive?: boolean;
+  isFeatured?: boolean;
+  technologies?: string[];
+  features?: string[];
 
-  // System
-  order?: number;
   createdAt: string;
   updatedAt: string;
 }
+
+// In-place model alias: Product is Project to prevent duplicate module or parallel model
+export type Product = Project;
 
 export enum SkillCategory {
   FRONTEND = 'frontend',
@@ -108,16 +177,24 @@ export enum SkillCategory {
   OTHER = 'other',
 }
 
-export interface Skill {
+export type TechStackIconType = 'icon' | 'link' | 'image';
+
+export interface TechStack {
   id: string;
   name: string;
-  category: SkillCategory;
-  level: number; // 0–100
-  icon?: string;
-  order?: number;
+  classification: string; // e.g. Frontend, Backend, Tools, Database, etc.
+  iconType: TechStackIconType;
+  icon?: IconValue | string;
+  iconLink?: string;
+  imageUrl?: string;
+  order: number;
+  // Backward compatibility fields for legacy views
+  category?: SkillCategory | string;
   createdAt: string;
   updatedAt: string;
 }
+
+export type Skill = TechStack;
 
 export enum UserRole {
   ADMIN = 'admin',
@@ -146,3 +223,4 @@ export interface AuthState {
 }
 
 export * from './media';
+export * from './icon';

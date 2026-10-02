@@ -182,26 +182,26 @@ export const MediaUploadModal: React.FC<MediaUploadModalProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-background/95 backdrop-blur-2xl border-white/10">
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <div className="flex items-center gap-2 text-primary">
+          <div className="flex items-center gap-2 text-accent">
             <Upload className="w-5 h-5" />
             <DialogTitle className="text-xl font-bold">Upload to Media Gallery</DialogTitle>
           </div>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-text-muted">
             Add images, video files or embeds, and documents. Automatically optimizes and indexes for site-wide use.
           </p>
         </DialogHeader>
 
         {/* Destination folder & settings bar */}
-        <div className="flex flex-wrap items-center justify-between gap-4 p-3 rounded-xl bg-white/5 border border-white/10 text-xs">
+        <div className="flex flex-wrap items-center justify-between gap-4 p-3 rounded-xl bg-surface-1 border border-border text-xs">
           <div className="flex items-center gap-2">
-            <Label className="text-xs text-muted-foreground">Destination Folder:</Label>
+            <Label className="text-xs text-text-muted">Destination Folder:</Label>
             <Select
               value={targetFolderId || 'root'}
               onValueChange={(v) => setTargetFolderId(v === 'root' ? null : v)}
             >
-              <SelectTrigger className="h-8 w-48 bg-muted/40 hover:bg-muted/60 border-input text-xs">
+              <SelectTrigger className="h-8 w-48 bg-surface-3 hover:bg-[var(--hover-overlay)] border-border-strong text-xs">
                 <SelectValue placeholder="All Media (Root)" />
               </SelectTrigger>
               <SelectContent>
@@ -222,9 +222,9 @@ export const MediaUploadModal: React.FC<MediaUploadModalProps> = ({
             />
             <span
               onClick={() => setAutoWebp(!autoWebp)}
-              className="text-xs cursor-pointer flex items-center gap-1 select-none"
+              className="text-xs cursor-pointer flex items-center gap-1 select-none text-text-primary"
             >
-              <Sparkles className="w-3.5 h-3.5 text-primary" /> Auto-convert to WebP
+              <Sparkles className="w-3.5 h-3.5 text-accent" /> Auto-convert to WebP
             </span>
           </div>
         </div>
@@ -248,8 +248,8 @@ export const MediaUploadModal: React.FC<MediaUploadModalProps> = ({
               onClick={() => fileInputRef.current?.click()}
               className={`p-8 border-2 border-dashed rounded-2xl flex flex-col items-center justify-center gap-3 cursor-pointer transition-all ${
                 isDragging
-                  ? 'border-primary bg-primary/10 scale-[1.01]'
-                  : 'border-white/10 hover:border-primary/50 hover:bg-white/5'
+                  ? 'border-accent bg-accent-soft scale-[1.01]'
+                  : 'border-border hover:border-accent hover:bg-[var(--hover-overlay)] bg-surface-1'
               }`}
             >
               <input
@@ -293,19 +293,19 @@ export const MediaUploadModal: React.FC<MediaUploadModalProps> = ({
                   {queue.map((item) => (
                     <div
                       key={item.id}
-                      className="p-3 rounded-xl border border-white/10 bg-white/5 space-y-2 text-xs"
+                      className="p-3 rounded-xl border border-border bg-surface-2 space-y-2 text-xs shadow-xs"
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2 truncate">
                           {item.file.type.startsWith('image/') ? (
-                            <ImageIcon className="w-4 h-4 text-primary shrink-0" />
+                            <ImageIcon className="w-4 h-4 text-accent shrink-0" />
                           ) : item.file.type.startsWith('video/') ? (
                             <Film className="w-4 h-4 text-purple-400 shrink-0" />
                           ) : (
-                            <FileText className="w-4 h-4 text-amber-400 shrink-0" />
+                            <FileText className="w-4 h-4 text-amber-500 shrink-0" />
                           )}
-                          <span className="font-mono truncate font-semibold">{item.file.name}</span>
-                          <span className="text-[10px] text-muted-foreground">
+                          <span className="font-mono truncate font-semibold text-text-primary">{item.file.name}</span>
+                          <span className="text-[10px] text-text-muted">
                             ({formatBytes(item.file.size)})
                           </span>
                         </div>
@@ -325,7 +325,7 @@ export const MediaUploadModal: React.FC<MediaUploadModalProps> = ({
                             <button
                               type="button"
                               onClick={() => removeQueueItem(item.id)}
-                              className="p-1 text-muted-foreground hover:text-destructive"
+                              className="p-1 text-text-muted hover:text-destructive"
                             >
                               <X className="w-3.5 h-3.5" />
                             </button>
@@ -335,9 +335,9 @@ export const MediaUploadModal: React.FC<MediaUploadModalProps> = ({
 
                       {/* Progress bar */}
                       {item.status === 'uploading' && (
-                        <div className="w-full bg-white/10 h-1 rounded-full overflow-hidden">
+                        <div className="w-full bg-surface-4 h-1.5 rounded-full overflow-hidden">
                           <div
-                            className="bg-primary h-full transition-all duration-300"
+                            className="bg-accent-strong h-full transition-all duration-300"
                             style={{ width: `${item.progress}%` }}
                           />
                         </div>

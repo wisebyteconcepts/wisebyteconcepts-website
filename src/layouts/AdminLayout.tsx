@@ -1,6 +1,6 @@
 import { Link, useLocation, useNavigate, Outlet } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
-import { LayoutDashboard, ShoppingBag, Briefcase, Code, LogOut, Terminal, ExternalLink, Image as ImageIcon } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag, Briefcase, Layers, LogOut, Terminal, ExternalLink, Image as ImageIcon } from 'lucide-react';
 import { GlowOrb, Button } from '@/components';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '@/lib/utils';
@@ -18,27 +18,27 @@ export const AdminLayout = () => {
   const navItems = [
     { name: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
     { name: 'Services', path: '/admin/services', icon: Briefcase },
-    { name: 'Products', path: '/admin/products', icon: ShoppingBag },
-    { name: 'Skills', path: '/admin/skills', icon: Code },
+    { name: 'Projects', path: '/admin/products', icon: ShoppingBag, aliases: ['/admin/projects'] },
+    { name: 'Tech Stacks', path: '/admin/tech-stacks', icon: Layers, aliases: ['/admin/skills'] },
   ];
 
   const isMediaActive = location.pathname === '/admin/media' || location.pathname.startsWith('/admin/media');
 
   return (
-    <div className="flex flex-col min-h-screen bg-background text-foreground selection:bg-primary/30">
+    <div className="flex flex-col min-h-screen bg-surface-0 text-text-primary selection:bg-accent/30">
       <GlowOrb className="top-[-10%] right-[-5%]" color="rgba(59, 130, 246, 0.05)" />
       <GlowOrb className="bottom-0 left-[-5%]" color="rgba(59, 130, 246, 0.05)" delay={3} />
 
-      <header className="fixed top-0 left-0 right-0 z-50 glass py-4 border-b border-border/50">
+      <header className="fixed top-0 left-0 right-0 z-50 bg-surface-1/90 py-4 border-b border-border backdrop-blur-md">
         <div className="container mx-auto px-6 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Link to="/admin/dashboard" className="flex items-center gap-3">
-              <div className="w-9 h-9 bg-gradient-brand flex items-center justify-center rounded-lg font-bold text-white shadow-glow">
+              <div className="w-9 h-9 bg-accent-strong flex items-center justify-center rounded-lg font-bold text-on-accent shadow-xs">
                 A
               </div>
               <div className="flex flex-col">
-                <span className="text-lg font-bold tracking-tight text-foreground leading-none uppercase">Console</span>
-                <span className="text-[10px] font-mono text-muted-foreground uppercase opacity-70">
+                <span className="text-lg font-bold tracking-tight text-text-primary leading-none uppercase">Console</span>
+                <span className="text-[10px] font-mono text-text-muted uppercase">
                   {user?.role} Mode
                 </span>
               </div>
@@ -46,14 +46,14 @@ export const AdminLayout = () => {
           </div>
           <div className="flex items-center gap-2">
             <a href="/" target="_blank" rel="noopener noreferrer" className="hidden sm:block">
-              <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-primary transition-colors">
+              <Button variant="ghost" size="sm" className="text-text-secondary hover:text-text-primary transition-colors">
                 <ExternalLink className="w-4 h-4 mr-2" /> View Website
               </Button>
             </a>
-            <Button variant="ghost" size="sm" onClick={handleLogout} className="text-muted-foreground hover:text-destructive">
+            <Button variant="ghost" size="sm" onClick={handleLogout} className="text-text-secondary hover:text-destructive">
               <LogOut className="w-4 h-4 mr-2" /> Logout
             </Button>
-            <div className="h-6 w-px bg-border/50 mx-2" />
+            <div className="h-6 w-px bg-border mx-2" />
             <Link to="/">
               <Button variant="glass" size="sm">Exit Console</Button>
             </Link>
@@ -63,14 +63,17 @@ export const AdminLayout = () => {
 
       <main className="flex-1 container mx-auto px-4 sm:px-6 pt-24 pb-12 flex flex-col gap-6">
         {/* Top Navigation Tabs Bar */}
-        <aside className="w-full flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-2 rounded-2xl glass border border-border/50 backdrop-blur-md">
+        <aside className="w-full flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-2 rounded-2xl bg-surface-1 border border-border">
           <nav
             role="tablist"
             aria-label="Admin Navigation Tabs"
-            className="inline-flex h-11 max-h-11 items-center gap-1.5 p-1 rounded-xl bg-muted/80 text-muted-foreground border border-border/40 shadow-inner overflow-x-auto overflow-y-hidden scrollbar-none w-full sm:w-auto shrink-0"
+            className="inline-flex h-11 max-h-11 items-center gap-1.5 p-1 rounded-xl bg-surface-0 text-text-muted border border-border overflow-x-auto overflow-y-hidden scrollbar-none w-full sm:w-auto shrink-0"
           >
             {navItems.map((item) => {
-              const active = location.pathname === item.path || (item.path !== '/admin/dashboard' && location.pathname.startsWith(item.path));
+              const active = 
+                location.pathname === item.path || 
+                (item.path !== '/admin/dashboard' && location.pathname.startsWith(item.path)) ||
+                Boolean(item.aliases && item.aliases.some((a) => location.pathname === a || location.pathname.startsWith(a)));
               return (
                 <Link
                   key={item.path}
@@ -79,13 +82,13 @@ export const AdminLayout = () => {
                   aria-selected={active}
                   data-state={active ? 'active' : 'inactive'}
                   className={cn(
-                    "inline-flex h-9 items-center gap-2.5 whitespace-nowrap rounded-lg px-3.5 text-xs sm:text-sm font-medium ring-offset-background transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 shrink-0 select-none",
+                    "inline-flex h-9 items-center gap-2.5 whitespace-nowrap rounded-lg px-3.5 text-xs sm:text-sm font-medium border transition-all duration-150 focus-visible:outline-none focus-visible:border-accent focus-ring-accent shrink-0 select-none",
                     active
-                      ? "bg-background text-foreground shadow-sm"
-                      : "text-muted-foreground hover:bg-background/40 hover:text-foreground"
+                      ? "bg-surface-2 text-text-primary shadow-xs border-border"
+                      : "text-text-secondary hover:bg-[var(--hover-overlay)] hover:text-text-primary border-transparent"
                   )}
                 >
-                  <item.icon className={cn("w-4 h-4 shrink-0", active ? "text-primary" : "text-muted-foreground")} />
+                  <item.icon className={cn("w-4 h-4 shrink-0", active ? "text-accent" : "text-text-muted")} />
                   <span>{item.name}</span>
                 </Link>
               );
@@ -100,25 +103,25 @@ export const AdminLayout = () => {
               aria-selected={isMediaActive}
               data-state={isMediaActive ? 'active' : 'inactive'}
               className={cn(
-                "inline-flex h-11 items-center gap-2 whitespace-nowrap rounded-xl px-4 text-xs sm:text-sm font-medium border transition-colors duration-150 shrink-0 select-none",
+                "inline-flex h-11 items-center gap-2 whitespace-nowrap rounded-xl px-4 text-xs sm:text-sm font-medium border transition-all duration-150 shrink-0 select-none",
                 isMediaActive
-                  ? "bg-primary text-primary-foreground border-primary shadow-glow"
-                  : "bg-muted/70 hover:bg-muted text-foreground border-border/50 hover:border-primary/40 shadow-xs"
+                  ? "bg-accent-strong text-on-accent border-accent-strong shadow-xs"
+                  : "bg-surface-4 hover:bg-[var(--hover-overlay)] text-text-primary border-border"
               )}
             >
-              <ImageIcon className={cn("w-4 h-4 shrink-0", isMediaActive ? "text-primary-foreground" : "text-primary")} />
+              <ImageIcon className={cn("w-4 h-4 shrink-0", isMediaActive ? "text-on-accent" : "text-accent")} />
               <span>Media Gallery</span>
             </Link>
 
             {/* Session Status Pill */}
-            <div className="hidden md:flex items-center gap-3 px-3 py-1.5 text-xs font-mono rounded-xl bg-background/40 border border-border/40">
+            <div className="hidden md:flex items-center gap-3 px-3 py-1.5 text-xs font-mono rounded-xl bg-surface-2 border border-border">
               <div className="flex items-center gap-1.5">
-                <span className="text-[10px] text-muted-foreground uppercase">Identity:</span>
-                <span className="text-foreground/80 font-medium truncate max-w-[170px]">{user?.email}</span>
+                <span className="text-[10px] text-text-muted uppercase">Identity:</span>
+                <span className="text-text-primary font-medium truncate max-w-[170px]">{user?.email}</span>
               </div>
-              <div className="h-3.5 w-px bg-border/50" />
-              <div className="flex items-center gap-1.5 text-emerald-500 font-semibold text-[11px]">
-                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <div className="h-3.5 w-px bg-border" />
+              <div className="flex items-center gap-1.5 text-success font-semibold text-[11px]">
+                <div className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
                 <span>Secure Access</span>
               </div>
             </div>
@@ -127,17 +130,17 @@ export const AdminLayout = () => {
 
         {/* Content Area - Now takes full width */}
         <div className="w-full flex flex-col min-h-[600px]">
-          <div className="glass rounded-2xl p-6 sm:p-8 border-border/50 flex-1 relative overflow-hidden backdrop-blur-md">
+          <div className="bg-surface-1 rounded-2xl p-6 sm:p-8 border border-border flex-1 relative overflow-hidden">
              <div className="absolute top-0 right-0 p-6 opacity-5 pointer-events-none">
-                <Terminal className="w-32 h-32 text-foreground" />
+                <Terminal className="w-32 h-32 text-text-primary" />
              </div>
              <AnimatePresence mode="wait">
                <motion.div
                  key={location.pathname}
-                 initial={{ opacity: 0, y: 10 }}
-                 animate={{ opacity: 1, y: 0 }}
-                 exit={{ opacity: 0, y: -10 }}
-                 transition={{ duration: 0.15, ease: "easeOut" }}
+                 initial={{ opacity: 0 }}
+                 animate={{ opacity: 1 }}
+                 exit={{ opacity: 0 }}
+                 transition={{ duration: 0.12, ease: "easeOut" }}
                  className="h-full"
                >
                  <Outlet />

@@ -172,13 +172,13 @@ export const ImageOptimizerModal: React.FC<ImageOptimizerModalProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-background/95 backdrop-blur-2xl border-white/10">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <div className="flex items-center gap-2 text-primary">
+          <div className="flex items-center gap-2 text-accent">
             <Sparkles className="w-5 h-5" />
             <DialogTitle className="text-xl font-bold">Image Optimization & Resizer</DialogTitle>
           </div>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-text-muted">
             Resize, crop to standard web aspect ratios, and convert to high-efficiency WebP with real-time compression preview.
           </p>
         </DialogHeader>
@@ -197,8 +197,8 @@ export const ImageOptimizerModal: React.FC<ImageOptimizerModalProps> = ({
                     onClick={() => handlePresetChange(idx)}
                     className={`p-2.5 rounded-xl border text-left transition-all ${
                       selectedPresetIndex === idx
-                        ? 'border-primary bg-primary/10 text-primary'
-                        : 'border-white/10 bg-white/5 text-muted-foreground hover:text-foreground hover:bg-white/10'
+                        ? 'border-accent bg-accent-soft text-accent-soft-text font-semibold'
+                        : 'border-border bg-surface-3 text-text-secondary hover:text-text-primary hover:bg-[var(--hover-overlay)]'
                     }`}
                   >
                     <div className="text-xs font-semibold">{p.label}</div>
@@ -275,22 +275,22 @@ export const ImageOptimizerModal: React.FC<ImageOptimizerModalProps> = ({
             </FormField>
 
             {/* Stats Comparison Card */}
-            <div className="p-4 rounded-xl border border-white/10 bg-white/5 space-y-2">
-              <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+            <div className="p-4 rounded-xl border border-border bg-surface-1 space-y-2">
+              <div className="text-[10px] font-mono uppercase tracking-wider text-text-muted">
                 Compression Analysis
               </div>
               <div className="flex items-center justify-between text-xs">
                 <div>
-                  <div className="text-muted-foreground">Original</div>
+                  <div className="text-text-muted">Original</div>
                   <div className="font-mono font-semibold">{formatBytes(originalSize)}</div>
                 </div>
-                <ArrowRight className="w-4 h-4 text-muted-foreground" />
+                <ArrowRight className="w-4 h-4 text-text-muted" />
                 <div>
-                  <div className="text-muted-foreground">Optimized</div>
-                  <div className="font-mono font-semibold text-primary">{formatBytes(optimizedSize)}</div>
+                  <div className="text-text-muted">Optimized</div>
+                  <div className="font-mono font-semibold text-accent">{formatBytes(optimizedSize)}</div>
                 </div>
                 <div>
-                  <div className="text-muted-foreground">Savings</div>
+                  <div className="text-text-muted">Savings</div>
                   <div className={`font-mono font-bold ${savingsPct > 0 ? 'text-green-500' : 'text-amber-500'}`}>
                     {savingsPct > 0 ? `-${savingsPct}%` : '0%'}
                   </div>
@@ -300,15 +300,15 @@ export const ImageOptimizerModal: React.FC<ImageOptimizerModalProps> = ({
           </div>
 
           {/* Preview Column */}
-          <div className="lg:col-span-7 flex flex-col items-center justify-center p-4 rounded-2xl border border-white/10 bg-black/40 min-h-[320px] relative overflow-hidden">
+          <div className="lg:col-span-7 flex flex-col items-center justify-center p-4 rounded-2xl border border-border bg-surface-1 min-h-[320px] relative overflow-hidden">
             {previewDataUrl ? (
               <div className="relative max-h-[380px] w-full flex items-center justify-center">
                 <img
                   src={previewDataUrl}
                   alt="Optimized preview"
-                  className="max-h-[360px] max-w-full rounded-xl object-contain shadow-2xl border border-white/10"
+                  className="max-h-[360px] max-w-full rounded-xl object-contain shadow-card-raised border border-border"
                 />
-                <div className="absolute bottom-2 left-2 px-3 py-1 rounded-lg bg-black/80 backdrop-blur-md text-[10px] font-mono text-white border border-white/10 flex items-center gap-2">
+                <div className="absolute bottom-2 left-2 px-3 py-1 rounded-lg bg-surface-5/90 backdrop-blur-md text-[10px] font-mono text-text-primary border border-border flex items-center gap-2 shadow-sm">
                   <span>{optimizedDims.width} × {optimizedDims.height} px</span>
                   <span>•</span>
                   <span>{format.replace('image/', '').toUpperCase()}</span>

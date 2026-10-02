@@ -38,13 +38,13 @@ export const ListInput = ({
       <div className="flex items-center justify-between">
         <FormLabel className="text-xs font-semibold">{label}</FormLabel>
         {value.length > 0 && (
-          <span className="text-[10px] font-mono font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground border border-border/50">
+          <span className="text-[10px] font-mono font-medium px-2 py-0.5 rounded-full bg-surface-4 text-text-muted border border-border">
             {value.length} {value.length === 1 ? 'item' : 'items'}
           </span>
         )}
       </div>
 
-      {description && <p className="text-[11px] text-muted-foreground">{description}</p>}
+      {description && <p className="text-[11px] text-text-muted">{description}</p>}
 
       <div className="flex gap-2 items-center">
         <Input
@@ -66,23 +66,23 @@ export const ListInput = ({
           onClick={add}
           disabled={!current.trim()}
           variant="secondary"
-          className="shrink-0 h-9 rounded-xl text-xs gap-1 px-3 shadow-sm"
+          className="shrink-0 h-9 rounded-xl text-xs gap-1 px-3 shadow-xs"
         >
           <Plus className="h-3.5 w-3.5" /> Add
         </Button>
       </div>
 
-      <div className="flex flex-wrap gap-1.5 min-h-[32px] p-2 rounded-xl bg-muted/20 border border-border/40">
+      <div className="flex flex-wrap gap-1.5 min-h-[32px] p-2 rounded-xl bg-surface-1 border border-border">
         {value.map((item, i) => (
           <div
             key={i}
-            className="flex items-center gap-1.5 bg-background dark:bg-zinc-900 border border-border/60 hover:border-primary/50 px-2.5 py-1 rounded-lg text-xs font-medium text-foreground transition-all shadow-xs group"
+            className="flex items-center gap-1.5 bg-surface-4 border border-border hover:border-accent/50 px-2.5 py-1 rounded-lg text-xs font-medium text-text-primary transition-all shadow-xs group"
           >
             <span>{item}</span>
             <button
               type="button"
               onClick={() => remove(i)}
-              className="text-muted-foreground/60 hover:text-destructive hover:bg-destructive/10 p-0.5 rounded transition-colors"
+              className="text-text-muted hover:text-destructive hover:bg-[var(--hover-overlay)] p-0.5 rounded transition-colors"
               title="Remove item"
             >
               <X className="h-3 w-3" />

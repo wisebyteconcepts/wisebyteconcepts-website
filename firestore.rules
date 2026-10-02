@@ -63,6 +63,18 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin();
     }
 
+    // Tech Stacks collection
+    match /tech_stacks/{stackId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Classifications collection
+    match /classifications/{classificationId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
     // Unified Media Gallery collection
     match /media/{mediaId} {
       allow read: if true;
