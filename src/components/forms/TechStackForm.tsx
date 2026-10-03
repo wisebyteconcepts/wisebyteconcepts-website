@@ -332,7 +332,7 @@ export const TechStackForm: React.FC<TechStackFormProps> = ({
                 <p className="text-[11px] text-destructive">{errors.icon.message as string}</p>
               )}
               <p className="text-[11px] text-muted-foreground">
-                Choose from thousands of curated Lucide, Remix Icon, and Heroicons.
+                Choose from thousands of curated Hugeicons.
               </p>
             </div>
           )}

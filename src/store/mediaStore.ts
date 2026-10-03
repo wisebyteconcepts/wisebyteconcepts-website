@@ -53,6 +53,15 @@ interface MediaState {
     tags?: string[];
   }) => Promise<MediaItem>;
 
+  addWebImage: (data: {
+    url: string;
+    name?: string;
+    altText?: string;
+    caption?: string;
+    folderId?: string | null;
+    tags?: string[];
+  }) => Promise<MediaItem>;
+
   // Updates & Replacements
   updateItem: (id: string, updates: Partial<MediaItem>) => Promise<MediaItem>;
 
@@ -331,6 +340,61 @@ export const useMediaStore = create<MediaState>((set, get) => ({
     return saved;
   },
 
+  addWebImage: async (data) => {
+    const currentUser = useAuthStore.getState().user?.email || 'admin@wisebyteconcepts.com';
+    const sanitizedUrl = data.url.trim();
+
+    if (!sanitizedUrl.startsWith('http://') && !sanitizedUrl.startsWith('https://')) {
+      throw new Error('Please enter a valid HTTP or HTTPS image URL.');
+    }
+
+    const id = `media-web-${Date.now()}`;
+    const now = new Date().toISOString();
+    const filenameSegment = sanitizedUrl.split('/').pop()?.split('?')[0]?.replace(/\.[^/.]+$/, '') || 'Web Image';
+    const name = data.name?.trim() || decodeURIComponent(filenameSegment) || 'Web Image';
+
+    const newItem: MediaItem = {
+      id,
+      name,
+      type: 'web-image',
+      url: sanitizedUrl,
+      thumbnailUrl: sanitizedUrl,
+      mediumUrl: sanitizedUrl,
+      largeUrl: sanitizedUrl,
+      originalUrl: sanitizedUrl,
+      altText: data.altText?.trim() || name,
+      caption: data.caption?.trim() || '',
+      folderId: data.folderId || null,
+      tags: data.tags?.length ? data.tags : ['web-image'],
+      size: 0,
+      mimeType: 'image/web',
+      uploadedBy: currentUser,
+      uploadedAt: now,
+      updatedAt: now,
+    };
+
+    const saved = await api.data.createMediaItem(newItem);
+
+    const log: MediaAuditLog = {
+      id: `log-${Date.now()}`,
+      action: 'upload',
+      mediaId: id,
+      mediaName: name,
+      performedBy: currentUser,
+      timestamp: now,
+      details: `Linked web image: ${sanitizedUrl}`,
+    };
+    await api.data.createMediaAuditLog(log);
+
+    set((state) => ({
+      items: [saved, ...state.items],
+      auditLogs: [log, ...state.auditLogs],
+    }));
+
+    get().recordRecentlyUsed(saved.id);
+    return saved;
+  },
+
   updateItem: async (id, updates) => {
     const item = get().items.find((i) => i.id === id);
     if (!item) throw new Error('Media item not found');
@@ -379,7 +443,7 @@ export const useMediaStore = create<MediaState>((set, get) => ({
       newUrl = newFile;
       newThumb = newFile;
     } else {
-      if (item.type === 'image') {
+      if (item.type === 'image' || item.type === 'web-image') {
         const multi = await generateMultiResolutions(newFile, autoWebp);
         newUrl = multi.large || multi.original;
         newThumb = multi.thumbnail;
@@ -804,7 +868,7 @@ export const useMediaStore = create<MediaState>((set, get) => ({
       const bytes = item.size || 0;
       totalBytes += bytes;
 
-      if (item.type === 'image') {
+      if (item.type === 'image' || item.type === 'web-image') {
         imageBytes += bytes;
         imageCount++;
       } else if (item.type === 'video') {

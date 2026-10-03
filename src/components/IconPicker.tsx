@@ -7,17 +7,17 @@ import {
   Copy, 
   CheckCheck, 
   Clock, 
-  Zap, 
-  Sparkles, 
-  Shield, 
-  Loader2 
+  Loader2,
+  Shapes,
+  AlertTriangle
 } from 'lucide-react';
 import { Dialog, DialogContent } from './ui/Dialog';
 import { Input } from './ui/Input';
 import { Button } from '@/components/Button';
 import { Icon, MissingIconPlaceholder } from './ui/Icon';
-import type { IconLibrary, IconValue } from '@/types/icon';
+import type { IconValue } from '@/types/icon';
 import { normalizeIcon } from '@/types/icon';
+import { getHugeIconList } from '@/utils/hugeicons';
 import { cn } from '@/lib/utils';
 
 export interface IconPickerProps {
@@ -29,16 +29,12 @@ export interface IconPickerProps {
   triggerRef?: React.RefObject<HTMLElement | null>;
 }
 
-// Session storage key for tab
-const STORAGE_TAB_KEY = 'wbc_icon_picker_tab';
-const STORAGE_RECENT_KEY = 'wbc_recent_icons';
-const STORAGE_FAVORITES_KEY = 'wbc_favorite_icons';
+// Storage keys
+const STORAGE_RECENT_KEY = 'wbc_recent_icons_huge';
+const STORAGE_FAVORITES_KEY = 'wbc_favorite_icons_huge';
 
-// In-memory caches for lazy loaded registries
-let lucideCache: Record<string, any> | null = null;
-let remixCache: Record<string, any> | null = null;
-let heroOutlineCache: Record<string, any> | null = null;
-let heroSolidCache: Record<string, any> | null = null;
+// In-memory cache for Hugeicons list
+let hugeIconsCache: string[] | null = null;
 
 export const IconPicker: React.FC<IconPickerProps> = ({
   isOpen,
@@ -51,31 +47,13 @@ export const IconPicker: React.FC<IconPickerProps> = ({
   // Normalize initial selection
   const initialNormalized = useMemo(() => normalizeIcon(selectedIcon), [selectedIcon]);
 
-  // Tab state with session persistence
-  const [activeTab, setActiveTab] = useState<IconLibrary>(() => {
-    if (initialNormalized?.library) return initialNormalized.library;
-    try {
-      const saved = sessionStorage.getItem(STORAGE_TAB_KEY) as IconLibrary;
-      if (saved && ['lucide', 'remix', 'hero'].includes(saved)) return saved;
-    } catch {
-      // sessionStorage might fail in strict iframe
-    }
-    return 'lucide';
-  });
-
-  // Style variant state (tab specific)
-  const [remixVariant, setRemixVariant] = useState<'line' | 'fill'>('line');
-  const [heroVariant, setHeroVariant] = useState<'outline' | 'solid'>('outline');
-
   // Search input state and debounced query (~200ms)
   const [searchInput, setSearchInput] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
 
-  // Loaded registries
-  const [isLucideLoaded, setIsLucideLoaded] = useState(!!lucideCache);
-  const [isRemixLoaded, setIsRemixLoaded] = useState(!!remixCache);
-  const [isHeroLoaded, setIsHeroLoaded] = useState(!!(heroOutlineCache && heroSolidCache));
-  const [isLoadingLibrary, setIsLoadingLibrary] = useState(false);
+  // Loaded Hugeicons list
+  const [allIcons, setAllIcons] = useState<string[]>(() => hugeIconsCache || []);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Filter toggles
   const [showOnlyFavorites, setShowOnlyFavorites] = useState(false);
@@ -99,7 +77,7 @@ export const IconPicker: React.FC<IconPickerProps> = ({
     return [];
   });
 
-  // Favorite icons (stored in localStorage as Set of "library:name:variant")
+  // Favorite icons (stored in localStorage as Set of kebab-case names)
   const [favorites, setFavorites] = useState<Set<string>>(() => {
     try {
       const data = localStorage.getItem(STORAGE_FAVORITES_KEY);
@@ -141,142 +119,83 @@ export const IconPicker: React.FC<IconPickerProps> = ({
     setLocalSelected(normalizeIcon(selectedIcon));
   }, [selectedIcon]);
 
-  // Save active tab to session
-  const handleTabChange = (tab: IconLibrary) => {
-    setActiveTab(tab);
-    setSearchInput('');
-    setDebouncedSearch('');
-    setShowOnlyFavorites(false);
-    setVisibleCount(80);
-    setFocusedIndex(-1);
-    try {
-      sessionStorage.setItem(STORAGE_TAB_KEY, tab);
-    } catch {
-      // ignore
-    }
-  };
-
-  // Lazy-load library when tab becomes active
+  // Lazy-load Hugeicons list on first open
   useEffect(() => {
     if (!isOpen) return;
 
-    let isMounted = true;
-
-    if (activeTab === 'lucide' && !lucideCache) {
-      setIsLoadingLibrary(true);
-      import('lucide-react')
-        .then((mod) => {
-          if (!isMounted) return;
-          lucideCache = mod;
-          setIsLucideLoaded(true);
+    if (!hugeIconsCache) {
+      setIsLoading(true);
+      getHugeIconList()
+        .then((list) => {
+          hugeIconsCache = list;
+          setAllIcons(list);
         })
         .finally(() => {
-          if (isMounted) setIsLoadingLibrary(false);
+          setIsLoading(false);
         });
-    } else if (activeTab === 'remix' && !remixCache) {
-      setIsLoadingLibrary(true);
-      import('@remixicon/react')
-        .then((mod) => {
-          if (!isMounted) return;
-          remixCache = mod;
-          setIsRemixLoaded(true);
-        })
-        .finally(() => {
-          if (isMounted) setIsLoadingLibrary(false);
-        });
-    } else if (activeTab === 'hero' && (!heroOutlineCache || !heroSolidCache)) {
-      setIsLoadingLibrary(true);
-      Promise.all([
-        import('@heroicons/react/24/outline'),
-        import('@heroicons/react/24/solid'),
-      ])
-        .then(([outlineMod, solidMod]) => {
-          if (!isMounted) return;
-          heroOutlineCache = outlineMod;
-          heroSolidCache = solidMod;
-          setIsHeroLoaded(true);
-        })
-        .finally(() => {
-          if (isMounted) setIsLoadingLibrary(false);
-        });
+    } else {
+      setAllIcons(hugeIconsCache);
     }
+  }, [isOpen]);
 
-    return () => {
-      isMounted = false;
-    };
-  }, [activeTab, isOpen]);
-
-  // Extract raw icon names for current tab
-  const tabIcons = useMemo(() => {
-    if (activeTab === 'lucide') {
-      if (!lucideCache) return [];
-      return Object.keys(lucideCache)
-        .filter((k) => {
-          const val = (lucideCache as any)[k];
-          return (
-            (typeof val === 'function' || typeof val === 'object') &&
-            !k.includes('createLucideIcon') &&
-            k !== 'LucideIcon' &&
-            k !== 'default' &&
-            k !== 'IconContext' &&
-            /^[A-Z]/.test(k)
-          );
-        })
-        .sort();
-    }
-
-    if (activeTab === 'remix') {
-      if (!remixCache) return [];
-      const suffix = remixVariant === 'fill' ? 'Fill' : 'Line';
-      return Object.keys(remixCache)
-        .filter((k) => k.startsWith('Ri') && k.endsWith(suffix))
-        .sort();
-    }
-
-    if (activeTab === 'hero') {
-      const cache = heroVariant === 'solid' ? heroSolidCache : heroOutlineCache;
-      if (!cache) return [];
-      return Object.keys(cache)
-        .filter((k) => k.endsWith('Icon'))
-        .sort();
-    }
-
-    return [];
-  }, [activeTab, isLucideLoaded, isRemixLoaded, isHeroLoaded, remixVariant, heroVariant]);
-
-  // Filter icons by debounced search and favorites
+  // Ranked search: exact match -> prefix -> substring -> alphabetical
   const filteredIcons = useMemo(() => {
-    let list = tabIcons;
+    let list = allIcons;
 
     if (showOnlyFavorites) {
-      list = list.filter((name) => {
-        const key = `${activeTab}:${name}:${
-          activeTab === 'remix' ? remixVariant : activeTab === 'hero' ? heroVariant : ''
-        }`;
-        return favorites.has(key);
-      });
+      list = list.filter((name) => favorites.has(name));
     }
 
-    if (debouncedSearch) {
-      const q = debouncedSearch.toLowerCase();
-      list = list.filter((name) => {
-        // Strip common prefixes/suffixes for human search
-        const cleanName = name
-          .replace(/^Ri/, '')
-          .replace(/(Line|Fill)$/, '')
-          .replace(/Icon$/, '')
-          .toLowerCase();
-        return cleanName.includes(q) || name.toLowerCase().includes(q);
-      });
+    if (!debouncedSearch) {
+      return list;
     }
 
-    return list;
-  }, [tabIcons, debouncedSearch, showOnlyFavorites, favorites, activeTab, remixVariant, heroVariant]);
+    const q = debouncedSearch.toLowerCase();
 
-  // Slice for infinite scrolling/batching
+    interface ScoredItem {
+      name: string;
+      tier: number; // 0 = exact, 1 = prefix, 2 = substring
+    }
+
+    const scored: ScoredItem[] = [];
+
+    for (const name of list) {
+      const n = name.toLowerCase();
+
+      // 1. Exact match
+      if (n === q) {
+        scored.push({ name, tier: 0 });
+      }
+      // 2. Prefix match
+      else if (n.startsWith(q)) {
+        scored.push({ name, tier: 1 });
+      }
+      // 3. Substring match
+      else if (n.includes(q)) {
+        scored.push({ name, tier: 2 });
+      }
+    }
+
+    // Sort by tier first, then alphabetically
+    scored.sort((a, b) => {
+      if (a.tier !== b.tier) {
+        return a.tier - b.tier;
+      }
+      return a.name.localeCompare(b.name);
+    });
+
+    return scored.map((s) => s.name);
+  }, [allIcons, debouncedSearch, showOnlyFavorites, favorites]);
+
+  // Slice for infinite scrolling (80 items initial)
   const displayedIcons = useMemo(() => {
     return filteredIcons.slice(0, visibleCount);
   }, [filteredIcons, visibleCount]);
+
+  // Favorites list for empty query
+  const favoriteIconsList = useMemo(() => {
+    return Array.from(favorites).sort();
+  }, [favorites]);
 
   // IntersectionObserver to load more as user scrolls down
   useEffect(() => {
@@ -303,19 +222,17 @@ export const IconPicker: React.FC<IconPickerProps> = ({
     if (gridContainerRef.current) {
       gridContainerRef.current.scrollTop = 0;
     }
-  }, [debouncedSearch, activeTab, remixVariant, heroVariant, showOnlyFavorites]);
+  }, [debouncedSearch, showOnlyFavorites]);
 
   // Toggle favorite
   const toggleFavorite = (name: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    const variant = activeTab === 'remix' ? remixVariant : activeTab === 'hero' ? heroVariant : undefined;
-    const key = `${activeTab}:${name}:${variant || ''}`;
     setFavorites((prev) => {
       const next = new Set(prev);
-      if (next.has(key)) {
-        next.delete(key);
+      if (next.has(name)) {
+        next.delete(name);
       } else {
-        next.add(key);
+        next.add(name);
       }
       try {
         localStorage.setItem(STORAGE_FAVORITES_KEY, JSON.stringify(Array.from(next)));
@@ -329,11 +246,7 @@ export const IconPicker: React.FC<IconPickerProps> = ({
   // Copy icon name
   const handleCopyName = (name: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    const cleanName = name
-      .replace(/^Ri/, '')
-      .replace(/(Line|Fill)$/, '')
-      .replace(/Icon$/, '');
-    navigator.clipboard.writeText(cleanName);
+    navigator.clipboard.writeText(name);
     setCopiedName(name);
     setTimeout(() => {
       setCopiedName((curr) => (curr === name ? null : curr));
@@ -342,27 +255,25 @@ export const IconPicker: React.FC<IconPickerProps> = ({
 
   // Select an icon cell
   const handleCellSelect = (name: string) => {
-    const variant = activeTab === 'remix' ? remixVariant : activeTab === 'hero' ? heroVariant : undefined;
-    const nextVal: IconValue = {
-      library: activeTab,
+    setLocalSelected({
       name,
-    };
-    if (variant) {
-      nextVal.variant = variant;
-    }
-    setLocalSelected(nextVal);
+      library: 'huge',
+    });
   };
 
   // Confirm selection
   const handleConfirm = () => {
     if (!localSelected) return;
 
-    // Update recently used list
+    const finalVal: IconValue = {
+      name: localSelected.name,
+      library: 'huge',
+    };
+
+    // Update recently used list (filtering out duplicates, max 12 items)
     setRecentIcons((prev) => {
-      const filtered = prev.filter(
-        (item) => !(item.library === localSelected.library && item.name === localSelected.name && item.variant === localSelected.variant)
-      );
-      const next = [localSelected, ...filtered].slice(0, 10);
+      const filtered = prev.filter((item) => item.name !== finalVal.name);
+      const next = [finalVal, ...filtered].slice(0, 12);
       try {
         localStorage.setItem(STORAGE_RECENT_KEY, JSON.stringify(next));
       } catch (err) {
@@ -371,7 +282,7 @@ export const IconPicker: React.FC<IconPickerProps> = ({
       return next;
     });
 
-    onSelect(localSelected);
+    onSelect(finalVal);
     onOpenChange(false);
   };
 
@@ -438,38 +349,31 @@ export const IconPicker: React.FC<IconPickerProps> = ({
 
     if (nextIndex !== focusedIndex && nextIndex >= 0 && nextIndex < displayedIcons.length) {
       setFocusedIndex(nextIndex);
-      const targetBtn = gridContainerRef.current?.querySelector(`[data-grid-idx="${nextIndex}"]`) as HTMLElement;
+      const targetBtn = gridContainerRef.current?.querySelector(
+        `[data-grid-idx="${nextIndex}"]`
+      ) as HTMLElement;
       if (targetBtn) {
         targetBtn.focus();
       }
     }
   };
 
-  const getCleanDisplayName = (raw: string) => {
-    return raw
-      .replace(/^Ri/, '')
-      .replace(/(Line|Fill)$/, '')
-      .replace(/Icon$/, '');
-  };
-
   const isCurrentSelected = (name: string) => {
     if (!localSelected) return false;
-    if (localSelected.library !== activeTab) return false;
-    if (localSelected.name !== name) return false;
-    if (activeTab === 'remix') {
-      return (localSelected.variant || 'line') === remixVariant;
-    }
-    if (activeTab === 'hero') {
-      return (localSelected.variant || 'outline') === heroVariant;
-    }
-    return true;
+    return localSelected.name === name;
   };
+
+  const isLegacySelected = Boolean(
+    localSelected &&
+    localSelected.library &&
+    localSelected.library !== 'huge'
+  );
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent
         className={cn(
-          "max-w-2xl w-full h-[min(680px,92vh)] flex flex-col p-0 overflow-hidden bg-background border-border shadow-2xl rounded-2xl",
+          "max-w-2xl w-full h-[min(700px,94vh)] flex flex-col p-0 overflow-hidden bg-background border-border shadow-2xl rounded-2xl",
           className
         )}
       >
@@ -482,464 +386,387 @@ export const IconPicker: React.FC<IconPickerProps> = ({
           tabIndex={-1}
           className="flex flex-col h-full w-full outline-hidden overflow-hidden"
         >
-          {/* Header: Title "Select an Icon" and Close [X] Button */}
-        <div className="px-5 h-14 border-b border-border/60 bg-surface-1 flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-bold">
-              <Zap className="w-4 h-4" />
+          {/* Header */}
+          <div className="px-5 h-14 border-b border-border/60 bg-surface-1 flex items-center justify-between shrink-0">
+            <div className="flex items-center gap-2.5">
+              <div className="w-7 h-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-bold">
+                <Shapes className="w-4 h-4" />
+              </div>
+              <h2 id="icon-picker-title" className="text-sm font-bold tracking-tight text-foreground">
+                Select an Icon
+              </h2>
             </div>
-            <h2 id="icon-picker-title" className="text-sm font-bold tracking-tight text-foreground">
-              Select an Icon
-            </h2>
+            <button
+              type="button"
+              onClick={handleClose}
+              aria-label="Close dialog"
+              className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={handleClose}
-            aria-label="Close dialog"
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors cursor-pointer"
+
+          {/* Search & Favorites Filter Bar (No tabs, no style filters) */}
+          <div className="px-5 py-3 border-b border-border/40 bg-surface-0 shrink-0 space-y-2.5">
+            <div className="flex items-center gap-2">
+              {/* Live Search Input */}
+              <div className="relative flex-1 group">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground transition-colors group-focus-within:text-primary pointer-events-none" />
+                <Input
+                  autoFocus
+                  placeholder="Search icons... e.g. 'home', 'user', 'arrow'"
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  className="pl-9 pr-8 h-9.5 bg-surface-2 border-border/80 focus:border-primary focus:ring-1 focus:ring-primary/20 rounded-xl text-xs font-medium transition-all"
+                />
+                {searchInput && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchInput('')}
+                    aria-label="Clear search"
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground rounded-md cursor-pointer"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+
+              {/* Favorites Filter Toggle */}
+              <button
+                type="button"
+                onClick={() => setShowOnlyFavorites((prev) => !prev)}
+                title="Show Favorites"
+                className={cn(
+                  "h-9 px-2.5 rounded-xl border flex items-center gap-1.5 text-xs font-semibold transition-all shrink-0 cursor-pointer",
+                  showOnlyFavorites
+                    ? "bg-amber-500/10 border-amber-500/30 text-amber-500 shadow-xs"
+                    : "bg-surface-2 border-border/60 text-muted-foreground hover:text-foreground hover:bg-muted/40"
+                )}
+              >
+                <Star className={cn("w-3.5 h-3.5", showOnlyFavorites ? "fill-amber-500 text-amber-500" : "")} />
+                <span className="hidden sm:inline">Favorites</span>
+              </button>
+            </div>
+
+            {/* Result Count Text */}
+            <div className="flex items-center justify-between text-[11px] text-muted-foreground px-1">
+              <span>
+                {isLoading
+                  ? "Loading Hugeicons..."
+                  : `${filteredIcons.length} ${filteredIcons.length === 1 ? 'icon' : 'icons'} found`}
+              </span>
+              {showOnlyFavorites && (
+                <span className="text-amber-500 font-medium">Filtering starred icons</span>
+              )}
+            </div>
+          </div>
+
+          {/* Scrollable Container with Grid */}
+          <div
+            ref={gridContainerRef}
+            className="flex-1 overflow-y-auto px-5 py-4 custom-scrollbar bg-surface-0 space-y-4"
           >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
+            {/* Empty Query: Pinned Recently Used Section */}
+            {recentIcons.length > 0 && !debouncedSearch && !showOnlyFavorites && (
+              <div className="p-3 rounded-xl bg-surface-1 border border-border/60 space-y-2">
+                <div className="flex items-center justify-between text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+                  <span className="flex items-center gap-1.5">
+                    <Clock className="w-3 h-3 text-primary" />
+                    Recently Used
+                  </span>
+                  <span className="text-[10px] font-normal lowercase opacity-70">click to select</span>
+                </div>
+                <div className="flex items-center gap-2 overflow-x-auto pb-1 pt-0.5 custom-scrollbar">
+                  {recentIcons.map((rec, idx) => {
+                    const isRecSelected = localSelected?.name === rec.name;
 
-        {/* Library Tabs: Lucide | Remix Icon | Hero Icons */}
-        <div className="px-5 pt-3.5 pb-2 bg-surface-1/50 border-b border-border/40 shrink-0">
-          <div role="tablist" aria-label="Icon Libraries" className="flex gap-1.5 p-1 bg-surface-2 rounded-xl border border-border/60">
-            <button
-              type="button"
-              role="tab"
-              id="tab-lucide"
-              aria-selected={activeTab === 'lucide'}
-              aria-controls="tabpanel-icons"
-              onClick={() => handleTabChange('lucide')}
-              className={cn(
-                "flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-semibold transition-all cursor-pointer",
-                activeTab === 'lucide'
-                  ? "bg-primary text-white shadow-xs font-bold"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
-              )}
-            >
-              <Zap className="w-3.5 h-3.5" />
-              <span>Lucide</span>
-            </button>
-
-            <button
-              type="button"
-              role="tab"
-              id="tab-remix"
-              aria-selected={activeTab === 'remix'}
-              aria-controls="tabpanel-icons"
-              onClick={() => handleTabChange('remix')}
-              className={cn(
-                "flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-semibold transition-all cursor-pointer",
-                activeTab === 'remix'
-                  ? "bg-primary text-white shadow-xs font-bold"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
-              )}
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>Remix Icon</span>
-            </button>
-
-            <button
-              type="button"
-              role="tab"
-              id="tab-hero"
-              aria-selected={activeTab === 'hero'}
-              aria-controls="tabpanel-icons"
-              onClick={() => handleTabChange('hero')}
-              className={cn(
-                "flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-semibold transition-all cursor-pointer",
-                activeTab === 'hero'
-                  ? "bg-primary text-white shadow-xs font-bold"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
-              )}
-            >
-              <Shield className="w-3.5 h-3.5" />
-              <span>Hero Icons</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Search & Filter Bar */}
-        <div className="px-5 py-3 border-b border-border/40 bg-surface-0 shrink-0 space-y-2.5">
-          <div className="flex items-center gap-2">
-            {/* Live Search Input */}
-            <div className="relative flex-1 group">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground transition-colors group-focus-within:text-primary pointer-events-none" />
-              <Input
-                autoFocus
-                placeholder="Search icons... e.g. 'arrow', 'user', 'calendar'"
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
-                className="pl-9 pr-8 h-9.5 bg-surface-2 border-border/80 focus:border-primary focus:ring-1 focus:ring-primary/20 rounded-xl text-xs font-medium transition-all"
-              />
-              {searchInput && (
-                <button
-                  type="button"
-                  onClick={() => setSearchInput('')}
-                  aria-label="Clear search"
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground rounded-md cursor-pointer"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              )}
-            </div>
-
-            {/* Conditional Style Filter: Hero Icons gets Outline/Solid, Remix gets Line/Fill, Lucide hidden */}
-            {activeTab === 'hero' && (
-              <div className="flex gap-1 p-0.5 rounded-lg bg-surface-2 border border-border/60 shrink-0">
-                <button
-                  type="button"
-                  onClick={() => setHeroVariant('outline')}
-                  className={cn(
-                    "px-2.5 py-1 text-[11px] font-semibold rounded-md transition-all cursor-pointer",
-                    heroVariant === 'outline' ? "bg-primary text-white shadow-xs font-bold" : "text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  Outline
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setHeroVariant('solid')}
-                  className={cn(
-                    "px-2.5 py-1 text-[11px] font-semibold rounded-md transition-all cursor-pointer",
-                    heroVariant === 'solid' ? "bg-primary text-white shadow-xs font-bold" : "text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  Solid
-                </button>
+                    return (
+                      <button
+                        key={`recent-${rec.name}-${idx}`}
+                        type="button"
+                        onClick={() => setLocalSelected(rec)}
+                        title={rec.name}
+                        className={cn(
+                          "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border transition-all cursor-pointer relative group",
+                          isRecSelected
+                            ? "bg-primary text-white border-primary shadow-sm"
+                            : "bg-surface-2 border-border hover:border-primary/50 hover:bg-surface-3 text-foreground"
+                        )}
+                      >
+                        <Icon
+                          name={rec.name}
+                          library={rec.library}
+                          className={cn("w-5 h-5", isRecSelected ? "text-white" : "text-foreground")}
+                        />
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             )}
 
-            {activeTab === 'remix' && (
-              <div className="flex gap-1 p-0.5 rounded-lg bg-surface-2 border border-border/60 shrink-0">
-                <button
-                  type="button"
-                  onClick={() => setRemixVariant('line')}
-                  className={cn(
-                    "px-2.5 py-1 text-[11px] font-semibold rounded-md transition-all cursor-pointer",
-                    remixVariant === 'line' ? "bg-primary text-white shadow-xs font-bold" : "text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  Line
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setRemixVariant('fill')}
-                  className={cn(
-                    "px-2.5 py-1 text-[11px] font-semibold rounded-md transition-all cursor-pointer",
-                    remixVariant === 'fill' ? "bg-primary text-white shadow-xs font-bold" : "text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  Fill
-                </button>
+            {/* Empty Query: Pinned Favorites Section */}
+            {favoriteIconsList.length > 0 && !debouncedSearch && !showOnlyFavorites && (
+              <div className="p-3 rounded-xl bg-surface-1 border border-border/60 space-y-2">
+                <div className="flex items-center justify-between text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+                  <span className="flex items-center gap-1.5">
+                    <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
+                    Favorites
+                  </span>
+                  <span className="text-[10px] font-normal lowercase opacity-70">{favoriteIconsList.length} starred</span>
+                </div>
+                <div className="flex items-center gap-2 overflow-x-auto pb-1 pt-0.5 custom-scrollbar">
+                  {favoriteIconsList.map((favName, idx) => {
+                    const isFavSelected = isCurrentSelected(favName);
+                    return (
+                      <button
+                        key={`fav-pinned-${favName}-${idx}`}
+                        type="button"
+                        onClick={() => handleCellSelect(favName)}
+                        title={favName}
+                        className={cn(
+                          "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border transition-all cursor-pointer relative group",
+                          isFavSelected
+                            ? "bg-primary text-white border-primary shadow-sm"
+                            : "bg-surface-2 border-border hover:border-primary/50 hover:bg-surface-3 text-foreground"
+                        )}
+                      >
+                        <Icon
+                          name={favName}
+                          library="huge"
+                          className={cn("w-5 h-5", isFavSelected ? "text-white" : "text-foreground")}
+                        />
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             )}
 
-            {/* Favorites Filter Toggle */}
-            <button
-              type="button"
-              onClick={() => setShowOnlyFavorites((prev) => !prev)}
-              title="Show Favorites"
-              className={cn(
-                "h-9 px-2.5 rounded-xl border flex items-center gap-1.5 text-xs font-semibold transition-all shrink-0 cursor-pointer",
-                showOnlyFavorites
-                  ? "bg-amber-500/10 border-amber-500/30 text-amber-500 shadow-xs"
-                  : "bg-surface-2 border-border/60 text-muted-foreground hover:text-foreground hover:bg-muted/40"
-              )}
-            >
-              <Star className={cn("w-3.5 h-3.5", showOnlyFavorites ? "fill-amber-500 text-amber-500" : "")} />
-              <span className="hidden sm:inline">Favorites</span>
-            </button>
-          </div>
-
-          {/* Result Count Text */}
-          <div className="flex items-center justify-between text-[11px] text-muted-foreground px-1">
-            <span>
-              {isLoadingLibrary
-                ? "Loading library..."
-                : `${filteredIcons.length} ${filteredIcons.length === 1 ? 'icon' : 'icons'} found`}
-            </span>
-            {showOnlyFavorites && (
-              <span className="text-amber-500 font-medium">Filtering starred icons</span>
-            )}
-          </div>
-        </div>
-
-        {/* Scrollable Container with Grid */}
-        <div
-          ref={gridContainerRef}
-          id="tabpanel-icons"
-          role="region"
-          aria-labelledby={`tab-${activeTab}`}
-          className="flex-1 overflow-y-auto px-5 py-4 custom-scrollbar bg-surface-0 space-y-4"
-        >
-          {/* Recently Used Row (pinned at top if available) */}
-          {recentIcons.length > 0 && !debouncedSearch && !showOnlyFavorites && (
-            <div className="p-3 rounded-xl bg-surface-1 border border-border/60 space-y-2">
-              <div className="flex items-center justify-between text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
-                <span className="flex items-center gap-1.5">
-                  <Clock className="w-3 h-3 text-primary" />
-                  Recently Used
-                </span>
-                <span className="text-[10px] font-normal lowercase opacity-70">click to select</span>
+            {/* Loading state */}
+            {isLoading ? (
+              <div className="py-20 flex flex-col items-center justify-center gap-3 text-muted-foreground">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                <p className="text-xs font-medium">Loading Hugeicons Stroke Rounded set...</p>
               </div>
-              <div className="flex items-center gap-2 overflow-x-auto pb-1 pt-0.5 custom-scrollbar">
-                {recentIcons.map((rec, idx) => {
-                  const isRecSelected =
-                    localSelected &&
-                    localSelected.library === rec.library &&
-                    localSelected.name === rec.name &&
-                    localSelected.variant === rec.variant;
+            ) : filteredIcons.length === 0 ? (
+              /* Empty State */
+              <div className="py-20 flex flex-col items-center justify-center gap-2 text-center text-muted-foreground">
+                <MissingIconPlaceholder className="w-10 h-10 opacity-30" />
+                <p className="text-sm font-semibold text-foreground">
+                  No icons found for &quot;{searchInput}&quot;
+                </p>
+                <p className="text-xs text-muted-foreground max-w-xs">
+                  Try searching for terms like &quot;home&quot;, &quot;user&quot;, &quot;arrow&quot;, or &quot;calendar&quot;.
+                </p>
+              </div>
+            ) : (
+              /* Single Clean Grid (No badges, no library tags) */
+              <div
+                role="grid"
+                aria-label="Hugeicons grid"
+                className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-2"
+              >
+                {displayedIcons.map((name, index) => {
+                  const isSelected = isCurrentSelected(name);
+                  const isFocused = focusedIndex === index;
+                  const isFav = favorites.has(name);
+                  const isCopied = copiedName === name;
 
                   return (
-                    <button
-                      key={`recent-${rec.library}-${rec.name}-${rec.variant || ''}-${idx}`}
-                      type="button"
-                      onClick={() => setLocalSelected(rec)}
-                      title={`${rec.name} (${rec.library})`}
-                      className={cn(
-                        "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border transition-all cursor-pointer relative group",
-                        isRecSelected
-                          ? "bg-primary text-white border-primary shadow-sm"
-                          : "bg-surface-2 border-border hover:border-primary/50 hover:bg-surface-3 text-foreground"
-                      )}
+                    <div
+                      key={`icon-${name}`}
+                      role="gridcell"
+                      aria-selected={isSelected}
+                      className="relative group/cell"
                     >
-                      <Icon
-                        library={rec.library}
-                        name={rec.name}
-                        variant={rec.variant}
-                        className={cn("w-5 h-5", isRecSelected ? "text-white" : "text-foreground")}
-                      />
-                    </button>
+                      <button
+                        type="button"
+                        data-grid-idx={index}
+                        tabIndex={isFocused ? 0 : -1}
+                        onClick={() => handleCellSelect(name)}
+                        title={name}
+                        className={cn(
+                          "w-full aspect-square rounded-xl border flex flex-col items-center justify-center p-1.5 transition-all duration-150 cursor-pointer relative",
+                          isSelected
+                            ? "bg-primary text-white border-primary shadow-md ring-2 ring-primary/30 z-10"
+                            : "bg-surface-2 border-border/70 hover:border-primary/60 hover:bg-surface-3 text-muted-foreground hover:text-foreground",
+                          isFocused && !isSelected && "ring-2 ring-primary/40 border-primary"
+                        )}
+                      >
+                        {/* Live SVG uniform ~28-32px */}
+                        <Icon
+                          name={name}
+                          library="huge"
+                          className={cn(
+                            "w-7 h-7 sm:w-8 sm:h-8 transition-transform group-hover/cell:scale-110",
+                            isSelected ? "text-white" : "text-foreground"
+                          )}
+                        />
+
+                        {/* Selected checkmark */}
+                        {isSelected && (
+                          <div className="absolute top-1 right-1 bg-white text-primary rounded-full p-0.5 shadow-xs">
+                            <Check className="w-2.5 h-2.5 stroke-[3.5]" />
+                          </div>
+                        )}
+                      </button>
+
+                      {/* Cell Actions on Hover: Favorite & Copy */}
+                      <div className="absolute top-1 left-1 opacity-0 group-hover/cell:opacity-100 transition-opacity z-20 flex gap-0.5 pointer-events-auto">
+                        {/* Favorite Button */}
+                        <button
+                          type="button"
+                          onClick={(e) => toggleFavorite(name, e)}
+                          title={isFav ? "Remove Favorite" : "Add to Favorites"}
+                          className={cn(
+                            "w-5 h-5 rounded-md flex items-center justify-center bg-background/90 shadow-xs border border-border/60 hover:scale-110 transition-transform cursor-pointer",
+                            isFav ? "text-amber-500 fill-amber-500 opacity-100" : "text-muted-foreground hover:text-amber-500"
+                          )}
+                        >
+                          <Star className={cn("w-3 h-3", isFav ? "fill-amber-500" : "")} />
+                        </button>
+
+                        {/* Copy Name Button */}
+                        <button
+                          type="button"
+                          onClick={(e) => handleCopyName(name, e)}
+                          title={isCopied ? "Copied!" : "Copy icon name"}
+                          className="w-5 h-5 rounded-md flex items-center justify-center bg-background/90 shadow-xs border border-border/60 hover:scale-110 transition-transform cursor-pointer text-muted-foreground hover:text-primary"
+                        >
+                          {isCopied ? (
+                            <CheckCheck className="w-3 h-3 text-emerald-500 stroke-[3]" />
+                          ) : (
+                            <Copy className="w-3 h-3" />
+                          )}
+                        </button>
+                      </div>
+
+                      {/* Copied tooltip bubble */}
+                      {isCopied && (
+                        <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 bg-popover text-popover-foreground text-[10px] px-1.5 py-0.5 rounded shadow-md border border-border whitespace-nowrap z-30 font-medium">
+                          Copied!
+                        </div>
+                      )}
+                    </div>
                   );
                 })}
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Loading state for lazy loading */}
-          {isLoadingLibrary ? (
-            <div className="py-20 flex flex-col items-center justify-center gap-3 text-muted-foreground">
-              <Loader2 className="w-8 h-8 animate-spin text-primary" />
-              <p className="text-xs font-medium">Loading {activeTab} icons set...</p>
-            </div>
-          ) : filteredIcons.length === 0 ? (
-            /* Empty State */
-            <div className="py-20 flex flex-col items-center justify-center gap-2 text-center text-muted-foreground">
-              <MissingIconPlaceholder className="w-10 h-10 opacity-30" />
-              <p className="text-sm font-semibold text-foreground">
-                No icons found for &quot;{searchInput}&quot;
-              </p>
-              <p className="text-xs text-muted-foreground max-w-xs">
-                Try searching for broader terms like &quot;arrow&quot;, &quot;user&quot;, or switch libraries.
-              </p>
-            </div>
-          ) : (
-            /* Responsive Grid */
-            <div
-              role="grid"
-              aria-label={`${activeTab} icon grid`}
-              className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-2"
-            >
-              {displayedIcons.map((name, index) => {
-                const isSelected = isCurrentSelected(name);
-                const isFocused = focusedIndex === index;
-                const cleanName = getCleanDisplayName(name);
-                const favKey = `${activeTab}:${name}:${
-                  activeTab === 'remix' ? remixVariant : activeTab === 'hero' ? heroVariant : ''
-                }`;
-                const isFav = favorites.has(favKey);
-                const isCopied = copiedName === name;
+            {/* Sentinel element for infinite scrolling */}
+            <div ref={sentinelRef} className="h-4 w-full" />
+          </div>
 
-                return (
+          {/* Footer with Preview, Legacy Warning, Controls, and Actions */}
+          <div className="p-3.5 border-t border-border/60 bg-surface-1 flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-5 shrink-0">
+            {/* Left: Selected Icon Preview + Name + Size/Color Preview Toggle */}
+            <div className="flex items-center gap-3 min-w-0">
+              {localSelected ? (
+                <div className="flex items-center gap-2.5 min-w-0">
+                  {/* Live Preview Box */}
                   <div
-                    key={`${activeTab}-${name}-${index}`}
-                    role="gridcell"
-                    aria-selected={isSelected}
-                    className="relative group/cell"
-                  >
-                    <button
-                      type="button"
-                      data-grid-idx={index}
-                      tabIndex={isFocused ? 0 : -1}
-                      onClick={() => handleCellSelect(name)}
-                      title={cleanName}
-                      className={cn(
-                        "w-full aspect-square rounded-xl border flex flex-col items-center justify-center p-1.5 transition-all duration-150 cursor-pointer relative",
-                        isSelected
-                          ? "bg-primary text-white border-primary shadow-md ring-2 ring-primary/30 z-10"
-                          : "bg-surface-2 border-border/70 hover:border-primary/60 hover:bg-surface-3 text-muted-foreground hover:text-foreground",
-                        isFocused && !isSelected && "ring-2 ring-primary/40 border-primary"
-                      )}
-                    >
-                      {/* Live SVG uniform ~28-32px */}
-                      <Icon
-                        library={activeTab}
-                        name={name}
-                        variant={activeTab === 'remix' ? remixVariant : activeTab === 'hero' ? heroVariant : undefined}
-                        className={cn(
-                          "w-7 h-7 sm:w-8 sm:h-8 transition-transform group-hover/cell:scale-110",
-                          isSelected ? "text-white" : "text-foreground"
-                        )}
-                      />
-
-                      {/* Selected checkmark */}
-                      {isSelected && (
-                        <div className="absolute top-1 right-1 bg-white text-primary rounded-full p-0.5 shadow-xs">
-                          <Check className="w-2.5 h-2.5 stroke-[3.5]" />
-                        </div>
-                      )}
-                    </button>
-
-                    {/* Cell Actions on Hover: Favorite & Copy */}
-                    <div className="absolute top-1 left-1 opacity-0 group-hover/cell:opacity-100 transition-opacity z-20 flex gap-0.5 pointer-events-auto">
-                      {/* Favorite Button */}
-                      <button
-                        type="button"
-                        onClick={(e) => toggleFavorite(name, e)}
-                        title={isFav ? "Remove Favorite" : "Add to Favorites"}
-                        className={cn(
-                          "w-5 h-5 rounded-md flex items-center justify-center bg-background/90 shadow-xs border border-border/60 hover:scale-110 transition-transform cursor-pointer",
-                          isFav ? "text-amber-500 fill-amber-500 opacity-100" : "text-muted-foreground hover:text-amber-500"
-                        )}
-                      >
-                        <Star className={cn("w-3 h-3", isFav ? "fill-amber-500" : "")} />
-                      </button>
-
-                      {/* Copy Name Button */}
-                      <button
-                        type="button"
-                        onClick={(e) => handleCopyName(name, e)}
-                        title={isCopied ? "Copied!" : "Copy icon name"}
-                        className="w-5 h-5 rounded-md flex items-center justify-center bg-background/90 shadow-xs border border-border/60 hover:scale-110 transition-transform cursor-pointer text-muted-foreground hover:text-primary"
-                      >
-                        {isCopied ? (
-                          <CheckCheck className="w-3 h-3 text-emerald-500 stroke-[3]" />
-                        ) : (
-                          <Copy className="w-3 h-3" />
-                        )}
-                      </button>
-                    </div>
-
-                    {/* Copied tooltip bubble */}
-                    {isCopied && (
-                      <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 bg-popover text-popover-foreground text-[10px] px-1.5 py-0.5 rounded shadow-md border border-border whitespace-nowrap z-30 font-medium">
-                        Copied!
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-
-          {/* Sentinel element for infinite scrolling */}
-          <div ref={sentinelRef} className="h-4 w-full" />
-        </div>
-
-        {/* Footer */}
-        <div className="p-3.5 border-t border-border/60 bg-surface-1 flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-5 shrink-0">
-          {/* Left: Selected Icon Preview + Name + Size/Color Preview Toggle */}
-          <div className="flex items-center gap-3 min-w-0">
-            {localSelected ? (
-              <div className="flex items-center gap-2.5 min-w-0">
-                {/* Live Preview Box */}
-                <div
-                  className={cn(
-                    "w-12 h-12 rounded-xl flex items-center justify-center shrink-0 border transition-all shadow-xs",
-                    previewOnPrimary
-                      ? "bg-primary text-white border-primary"
-                      : "bg-surface-2 border-border/80 text-foreground"
-                  )}
-                >
-                  <Icon
-                    library={localSelected.library}
-                    name={localSelected.name}
-                    variant={localSelected.variant}
-                    style={{ width: `${previewSize}px`, height: `${previewSize}px` }}
-                    className={previewOnPrimary ? "text-white" : "text-primary"}
-                  />
-                </div>
-
-                {/* Name & Details */}
-                <div className="min-w-0 flex flex-col">
-                  <span className="text-xs font-bold text-foreground truncate max-w-[180px]">
-                    {getCleanDisplayName(localSelected.name)}
-                  </span>
-                  <span className="text-[10px] text-muted-foreground truncate uppercase font-mono">
-                    {localSelected.library} {localSelected.variant ? `· ${localSelected.variant}` : ''}
-                  </span>
-                </div>
-
-                {/* Size & Color preview controls */}
-                <div className="hidden md:flex items-center gap-1.5 ml-2 pl-2 border-l border-border/60">
-                  <div className="flex gap-0.5 bg-surface-2 p-0.5 rounded-lg border border-border/60">
-                    {([16, 24, 32] as const).map((sz) => (
-                      <button
-                        key={sz}
-                        type="button"
-                        onClick={() => setPreviewSize(sz)}
-                        title={`Preview at ${sz}px`}
-                        className={cn(
-                          "px-1.5 py-0.5 text-[9px] font-mono font-bold rounded cursor-pointer transition-colors",
-                          previewSize === sz
-                            ? "bg-primary text-white shadow-xs"
-                            : "text-muted-foreground hover:text-foreground"
-                        )}
-                      >
-                        {sz}
-                      </button>
-                    ))}
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => setPreviewOnPrimary((prev) => !prev)}
-                    title="Toggle Primary Color Background"
                     className={cn(
-                      "px-2 py-1 text-[9px] font-bold rounded-lg border transition-all cursor-pointer",
+                      "w-12 h-12 rounded-xl flex items-center justify-center shrink-0 border transition-all shadow-xs",
                       previewOnPrimary
                         ? "bg-primary text-white border-primary"
-                        : "bg-surface-2 border-border text-muted-foreground hover:text-foreground"
+                        : "bg-surface-2 border-border/80 text-foreground"
                     )}
                   >
-                    Primary BG
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <div className="w-10 h-10 rounded-xl bg-surface-2 border border-dashed border-border flex items-center justify-center">
-                  <MissingIconPlaceholder className="w-5 h-5 opacity-40" />
-                </div>
-                <span className="text-xs italic">No icon selected</span>
-              </div>
-            )}
-          </div>
+                    <Icon
+                      name={localSelected.name}
+                      library={localSelected.library}
+                      style={{ width: `${previewSize}px`, height: `${previewSize}px` }}
+                      className={previewOnPrimary ? "text-white" : "text-primary"}
+                    />
+                  </div>
 
-          {/* Right: Cancel (secondary) and Select (primary) */}
-          <div className="flex items-center gap-2 justify-end shrink-0">
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={handleClose}
-              className="h-9 px-4 text-xs font-semibold rounded-xl"
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              disabled={!localSelected}
-              onClick={handleConfirm}
-              className="h-9 px-5 text-xs font-bold rounded-xl shadow-xs gap-1.5"
-            >
-              <Check className="w-3.5 h-3.5" />
-              Select
-            </Button>
+                  {/* Name & Details */}
+                  <div className="min-w-0 flex flex-col">
+                    <span className="text-xs font-bold text-foreground truncate max-w-[200px]">
+                      {localSelected.name}
+                    </span>
+
+                    {/* Check if Legacy icon */}
+                    {isLegacySelected ? (
+                      <span className="text-[10px] text-amber-500 font-semibold flex items-center gap-1">
+                        <AlertTriangle className="w-3 h-3 shrink-0" />
+                        Legacy icon · Select an icon above to replace
+                      </span>
+                    ) : (
+                      <span className="text-[10px] text-muted-foreground truncate uppercase font-mono">
+                        Hugeicons
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Size & Color preview controls */}
+                  <div className="hidden md:flex items-center gap-1.5 ml-2 pl-2 border-l border-border/60">
+                    <div className="flex gap-0.5 bg-surface-2 p-0.5 rounded-lg border border-border/60">
+                      {([16, 24, 32] as const).map((sz) => (
+                        <button
+                          key={sz}
+                          type="button"
+                          onClick={() => setPreviewSize(sz)}
+                          title={`Preview at ${sz}px`}
+                          className={cn(
+                            "px-1.5 py-0.5 text-[9px] font-mono font-bold rounded cursor-pointer transition-colors",
+                            previewSize === sz
+                              ? "bg-primary text-white shadow-xs"
+                              : "text-muted-foreground hover:text-foreground"
+                          )}
+                        >
+                          {sz}
+                        </button>
+                      ))}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setPreviewOnPrimary((prev) => !prev)}
+                      title="Toggle Primary Color Background"
+                      className={cn(
+                        "px-2 py-1 text-[9px] font-bold rounded-lg border transition-all cursor-pointer",
+                        previewOnPrimary
+                          ? "bg-primary text-white border-primary"
+                          : "bg-surface-2 border-border text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      Primary BG
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <div className="w-10 h-10 rounded-xl bg-surface-2 border border-dashed border-border flex items-center justify-center">
+                    <MissingIconPlaceholder className="w-5 h-5 opacity-40" />
+                  </div>
+                  <span className="text-xs italic">No icon selected</span>
+                </div>
+              )}
+            </div>
+
+            {/* Right: Cancel (secondary) and Select (primary) */}
+            <div className="flex items-center gap-2 justify-end shrink-0">
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={handleClose}
+                className="h-9 px-4 text-xs font-semibold rounded-xl"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                disabled={!localSelected}
+                onClick={handleConfirm}
+                className="h-9 px-5 text-xs font-bold rounded-xl shadow-xs gap-1.5"
+              >
+                <Check className="w-3.5 h-3.5" />
+                Select
+              </Button>
+            </div>
           </div>
-        </div>
         </div>
       </DialogContent>
     </Dialog>

@@ -163,11 +163,12 @@ export const MediaDetailsModal: React.FC<MediaDetailsModalProps> = ({
           {/* Media Preview Column */}
           <div className="lg:col-span-6 flex flex-col gap-4">
             <div className="p-3 rounded-2xl bg-surface-1 border border-border flex items-center justify-center min-h-[260px] overflow-hidden relative group">
-              {item.type === 'image' ? (
+              {item.type === 'image' || item.type === 'web-image' ? (
                 <img
                   src={item.url}
                   alt={item.altText || item.name}
                   className="max-h-[340px] max-w-full rounded-xl object-contain shadow-card-raised"
+                  loading="lazy"
                   referrerPolicy="no-referrer"
                 />
               ) : item.type === 'video' ? (

@@ -340,3 +340,82 @@ export function validateMediaUpload(
 
   return { isValid: true };
 }
+
+/**
+ * Validates if string is a valid HTTP or HTTPS URL.
+ */
+export function isValidHttpUrl(stringUrl: string): boolean {
+  if (!stringUrl || typeof stringUrl !== 'string') return false;
+  try {
+    const url = new URL(stringUrl.trim());
+    return url.protocol === 'http:' || url.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Extracts a clean title or filename from a URL path.
+ */
+export function extractFilenameFromUrl(url: string): string {
+  try {
+    const parsed = new URL(url.trim());
+    const pathname = parsed.pathname;
+    const segment = pathname.split('/').filter(Boolean).pop();
+    if (!segment) return 'Web Image';
+    const decoded = decodeURIComponent(segment);
+    const clean = decoded.replace(/\.[^/.]+$/, '').replace(/[-_]+/g, ' ');
+    return clean.charAt(0).toUpperCase() + clean.slice(1);
+  } catch {
+    return 'Web Image';
+  }
+}
+
+/**
+ * Validates a remote image URL by testing if the browser can load it as an image.
+ * Returns error messages: "Invalid URL", "Couldn't load image", or "Not an image".
+ */
+export function validateImageUrl(
+  url: string,
+  timeoutMs: number = 8000
+): Promise<{ isValid: boolean; width?: number; height?: number; error?: string }> {
+  return new Promise((resolve) => {
+    const trimmed = url.trim();
+    if (!isValidHttpUrl(trimmed)) {
+      resolve({ isValid: false, error: 'Invalid URL' });
+      return;
+    }
+
+    let timedOut = false;
+    const timer = setTimeout(() => {
+      timedOut = true;
+      resolve({ isValid: false, error: "Couldn't load image" });
+    }, timeoutMs);
+
+    const img = new Image();
+    img.referrerPolicy = 'no-referrer';
+
+    img.onload = () => {
+      if (timedOut) return;
+      clearTimeout(timer);
+      if (img.naturalWidth === 0 || img.naturalHeight === 0) {
+        resolve({ isValid: false, error: 'Not an image' });
+      } else {
+        resolve({
+          isValid: true,
+          width: img.naturalWidth,
+          height: img.naturalHeight,
+        });
+      }
+    };
+
+    img.onerror = () => {
+      if (timedOut) return;
+      clearTimeout(timer);
+      resolve({ isValid: false, error: "Couldn't load image" });
+    };
+
+    img.src = trimmed;
+  });
+}
+

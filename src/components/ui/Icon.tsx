@@ -1,15 +1,14 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import * as LucideIcons from 'lucide-react';
-import * as RemixIcons from '@remixicon/react';
-import * as HeroOutline from '@heroicons/react/24/outline';
-import * as HeroSolid from '@heroicons/react/24/solid';
-import { IconLibrary, IconVariant, IconValue, normalizeIcon } from '@/types/icon';
+import { HugeiconsIcon } from '@hugeicons/react';
+import { IconValue, normalizeIcon } from '@/types/icon';
+import { getHugeIconsCache, loadHugeIcons, getHugeIconDefinition } from '@/utils/hugeicons';
 import { cn } from '@/lib/utils';
 
 export interface IconProps extends React.SVGProps<SVGSVGElement> {
-  library?: IconLibrary;
+  library?: string;
   name?: string;
-  variant?: IconVariant;
+  variant?: string;
   value?: IconValue | string | null;
   className?: string;
   fallback?: React.ComponentType<{ className?: string }>;
@@ -21,7 +20,7 @@ export interface IconProps extends React.SVGProps<SVGSVGElement> {
  */
 export const MissingIconPlaceholder: React.FC<{ className?: string; title?: string }> = ({
   className,
-  title = "Missing Icon"
+  title = "Missing Icon",
 }) => (
   <svg
     viewBox="0 0 24 24"
@@ -40,9 +39,10 @@ export const MissingIconPlaceholder: React.FC<{ className?: string; title?: stri
 );
 
 /**
- * Universal Icon Component
- * Renders an icon from Lucide, Remix Icon, or Heroicons with backward-compatibility,
- * support for custom asset URLs, and a graceful missing-icon placeholder.
+ * Shared Icon Component
+ * Primary renderer: Hugeicons Stroke Rounded (live component).
+ * Minimal hidden fallback: Lucide for legacy records.
+ * Graceful placeholder for missing/unsupported icons.
  */
 export const Icon: React.FC<IconProps> = ({
   library: propLibrary,
@@ -54,21 +54,33 @@ export const Icon: React.FC<IconProps> = ({
   size,
   ...rest
 }) => {
-  // Normalize parameters
-  let lib: IconLibrary = propLibrary || 'lucide';
-  let iconName: string = propName || '';
-  let variant: IconVariant | undefined = propVariant;
+  let lib = propLibrary || 'huge';
+  let iconName = propName || '';
 
   if (value) {
     const norm = normalizeIcon(value);
     if (norm) {
-      lib = norm.library;
+      lib = norm.library || 'huge';
       iconName = norm.name;
-      variant = norm.variant || variant;
     } else if (typeof value === 'string') {
       iconName = value;
     }
   }
+
+  // Handle Hugeicons lazy cache loading
+  const [hugeCache, setHugeCache] = useState(() => getHugeIconsCache());
+
+  useEffect(() => {
+    if (lib === 'huge' && !hugeCache) {
+      let isMounted = true;
+      loadHugeIcons().then((c) => {
+        if (isMounted) setHugeCache(c);
+      });
+      return () => {
+        isMounted = false;
+      };
+    }
+  }, [lib, hugeCache]);
 
   // Handle empty or missing icon name
   if (!iconName) {
@@ -96,26 +108,15 @@ export const Icon: React.FC<IconProps> = ({
     );
   }
 
-  // 1. Heroicons
-  if (lib === 'hero') {
-    let key = iconName;
-    if (!key.endsWith('Icon')) {
-      key = `${key}Icon`;
-    }
-    // Remove Hi or HiOutline prefix if present
-    key = key.replace(/^HiOutline|^Hi/, '');
-    if (!key.endsWith('Icon')) {
-      key = `${key}Icon`;
-    }
-
-    const isSolid = variant === 'solid';
-    const Component = isSolid
-      ? (HeroSolid as any)[key] || (HeroOutline as any)[key]
-      : (HeroOutline as any)[key] || (HeroSolid as any)[key];
-
-    if (Component) {
+  // 1. Hugeicons (Primary Set: Free Stroke Rounded)
+  if (lib === 'huge') {
+    const iconDef = getHugeIconDefinition(iconName, hugeCache);
+    if (iconDef) {
       return (
-        <Component
+        <HugeiconsIcon
+          icon={iconDef}
+          size={size}
+          strokeWidth={1.5}
           className={cn("shrink-0", className)}
           style={size ? { width: size, height: size } : undefined}
           {...(rest as any)}
@@ -124,97 +125,32 @@ export const Icon: React.FC<IconProps> = ({
     }
   }
 
-  // 2. Remix Icons
-  if (lib === 'remix') {
-    let key = iconName;
-    if (!key.startsWith('Ri')) {
-      key = `Ri${key}`;
+  // 2. Hidden Legacy Fallback: Lucide Icons (handles previous database records)
+  if (lib === 'lucide' || (lib !== 'huge' && lib !== 'remix' && lib !== 'hero')) {
+    let lucideKey = iconName;
+    if (lucideKey.length > 0 && /^[a-z]/.test(lucideKey)) {
+      lucideKey = lucideKey.charAt(0).toUpperCase() + lucideKey.slice(1);
     }
 
-    // Handle variant Line / Fill
-    if (variant === 'fill') {
-      if (key.endsWith('Line')) {
-        key = `${key.slice(0, -4)}Fill`;
-      } else if (!key.endsWith('Fill')) {
-        key = `${key}Fill`;
-      }
-    } else if (variant === 'line') {
-      if (key.endsWith('Fill')) {
-        key = `${key.slice(0, -4)}Line`;
-      } else if (!key.endsWith('Line')) {
-        key = `${key}Line`;
+    let LucideComponent = (LucideIcons as any)[lucideKey];
+    if (!LucideComponent) {
+      const foundKey = Object.keys(LucideIcons).find(
+        (k) => k.toLowerCase() === iconName.toLowerCase()
+      );
+      if (foundKey) {
+        LucideComponent = (LucideIcons as any)[foundKey];
       }
     }
 
-    let Component = (RemixIcons as any)[key];
-
-    // If specific variant not found, try the other variant
-    if (!Component) {
-      if (key.endsWith('Line')) {
-        Component = (RemixIcons as any)[`${key.slice(0, -4)}Fill`];
-      } else if (key.endsWith('Fill')) {
-        Component = (RemixIcons as any)[`${key.slice(0, -4)}Line`];
-      }
-    }
-
-    // Direct lookup as fallback
-    if (!Component) {
-      Component = (RemixIcons as any)[iconName];
-    }
-
-    if (Component) {
+    if (LucideComponent && typeof LucideComponent === 'function') {
       return (
-        <Component
+        <LucideComponent
           className={cn("shrink-0", className)}
           style={size ? { width: size, height: size } : undefined}
           {...(rest as any)}
         />
       );
     }
-  }
-
-  // 3. Lucide Icons (or fallback lookup)
-  let lucideKey = iconName;
-  // Capitalize first letter if lowercase
-  if (lucideKey.length > 0 && /^[a-z]/.test(lucideKey)) {
-    lucideKey = lucideKey.charAt(0).toUpperCase() + lucideKey.slice(1);
-  }
-
-  let LucideComponent = (LucideIcons as any)[lucideKey];
-
-  // Try case-insensitive lookup in Lucide if not found directly
-  if (!LucideComponent) {
-    const foundKey = Object.keys(LucideIcons).find(
-      k => k.toLowerCase() === iconName.toLowerCase()
-    );
-    if (foundKey) {
-      LucideComponent = (LucideIcons as any)[foundKey];
-    }
-  }
-
-  if (LucideComponent && typeof LucideComponent === 'function') {
-    return (
-      <LucideComponent
-        className={cn("shrink-0", className)}
-        style={size ? { width: size, height: size } : undefined}
-        {...(rest as any)}
-      />
-    );
-  }
-
-  // Cross-library lookup before giving up (if library mismatch)
-  // Check Heroicons
-  const heroKey = iconName.endsWith('Icon') ? iconName : `${iconName}Icon`;
-  if ((HeroOutline as any)[heroKey]) {
-    const Comp = (HeroOutline as any)[heroKey];
-    return <Comp className={cn("shrink-0", className)} style={size ? { width: size, height: size } : undefined} {...(rest as any)} />;
-  }
-
-  // Check Remix
-  const riKey = iconName.startsWith('Ri') ? iconName : `Ri${iconName}Line`;
-  if ((RemixIcons as any)[riKey]) {
-    const Comp = (RemixIcons as any)[riKey];
-    return <Comp className={cn("shrink-0", className)} style={size ? { width: size, height: size } : undefined} {...(rest as any)} />;
   }
 
   // Final fallback

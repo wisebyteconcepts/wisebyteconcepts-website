@@ -9,7 +9,9 @@ import {
   FileText, 
   Check, 
   Layers,
-  FolderInput
+  FolderInput,
+  Globe,
+  ImageOff
 } from 'lucide-react';
 import { MediaItem } from '@/types';
 import { formatBytes } from '@/utils/mediaOptimizer';
@@ -44,6 +46,7 @@ export const MediaCard: React.FC<MediaCardProps> = ({
 }) => {
   const { getUsage } = useMediaStore();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [imageError, setImageError] = useState(false);
 
   const usages = getUsage(item.url);
   const usageCount = usages.length;
@@ -70,14 +73,22 @@ export const MediaCard: React.FC<MediaCardProps> = ({
     >
       {/* Thumbnail Aspect Box */}
       <div className="relative aspect-video w-full overflow-hidden bg-surface-1 flex items-center justify-center">
-        {item.type === 'image' ? (
-          <img
-            src={item.thumbnailUrl || item.url}
-            alt={item.altText || item.name}
-            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-            loading="lazy"
-            referrerPolicy="no-referrer"
-          />
+        {item.type === 'image' || item.type === 'web-image' ? (
+          imageError ? (
+            <div className="flex flex-col items-center justify-center p-3 text-center text-muted-foreground gap-1.5">
+              <ImageOff className="w-6 h-6 opacity-40 text-destructive" />
+              <span className="text-[10px] text-muted-foreground font-medium">Image unavailable</span>
+            </div>
+          ) : (
+            <img
+              src={item.thumbnailUrl || item.url}
+              alt={item.altText || item.name}
+              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+              loading="lazy"
+              referrerPolicy="no-referrer"
+              onError={() => setImageError(true)}
+            />
+          )
         ) : item.type === 'video' ? (
           <div className="relative w-full h-full flex items-center justify-center bg-black">
             {item.thumbnailUrl ? (
@@ -127,10 +138,16 @@ export const MediaCard: React.FC<MediaCardProps> = ({
           </div>
         )}
 
-        {/* Top right: Format badge */}
-        <div className="absolute top-2 right-2 px-2 py-0.5 rounded-md bg-black/70 backdrop-blur-md border border-white/10 font-mono text-[9px] uppercase tracking-wider text-white font-bold">
-          {item.optimizedFormat || item.mimeType?.split('/')[1] || item.type}
-        </div>
+        {/* Top right: Format badge / Web indicator */}
+        {item.type === 'web-image' ? (
+          <div className="absolute top-2 right-2 px-2 py-0.5 rounded-md bg-sky-600/90 backdrop-blur-md border border-white/20 font-mono text-[9px] uppercase tracking-wider text-white font-bold flex items-center gap-1 shadow-sm">
+            <Globe className="w-2.5 h-2.5" /> Web
+          </div>
+        ) : (
+          <div className="absolute top-2 right-2 px-2 py-0.5 rounded-md bg-black/70 backdrop-blur-md border border-white/10 font-mono text-[9px] uppercase tracking-wider text-white font-bold">
+            {item.optimizedFormat || item.mimeType?.split('/')[1] || item.type}
+          </div>
+        )}
 
         {/* Bottom bar overlay on hover */}
         <div className="absolute inset-x-0 bottom-0 p-2 bg-gradient-to-t from-black/90 via-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-between">

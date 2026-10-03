@@ -88,6 +88,7 @@ import {
 import { TechStackForm } from '@/components/forms/TechStackForm';
 import { TechStackIcon } from '@/components/TechStackIcon';
 import { MarkdownContent } from '@/components/ui/MarkdownEditor';
+import DecryptedText from '@/components/ui/DecryptedText';
 import { useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -180,7 +181,33 @@ export const HomePage = () => {
             transition={{ duration: 0.8, delay: 0.2 }}
             className="text-5xl md:text-8xl font-bold mb-8 tracking-tighter max-w-4xl mx-auto"
           >
-            Build. <span className="text-primary">Design.</span> Scale.
+            <DecryptedText
+              text="Build."
+              animateOn="view"
+              speed={40}
+              maxIterations={10}
+              sequential={true}
+              className="inline-block"
+              encryptedClassName="opacity-60 text-muted-foreground font-mono"
+            />{' '}
+            <DecryptedText
+              text="Design."
+              animateOn="view"
+              speed={40}
+              maxIterations={10}
+              sequential={true}
+              className="inline-block text-primary"
+              encryptedClassName="opacity-60 text-primary/70 font-mono"
+            />{' '}
+            <DecryptedText
+              text="Scale."
+              animateOn="view"
+              speed={40}
+              maxIterations={10}
+              sequential={true}
+              className="inline-block"
+              encryptedClassName="opacity-60 text-muted-foreground font-mono"
+            />
           </motion.h1>
 
           <motion.p

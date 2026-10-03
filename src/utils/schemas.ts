@@ -201,9 +201,9 @@ export const techStackSchema = z.object({
   icon: z.union([
     z.string(),
     z.object({
-      library: z.enum(['lucide', 'remix', 'hero']),
       name: z.string(),
-      variant: z.enum(['outline', 'solid', 'line', 'fill']).optional(),
+      library: z.enum(['huge', 'remix', 'hero', 'lucide']).optional(),
+      variant: z.string().optional(),
     }),
   ]).optional().or(z.literal('')),
   iconLink: z.string().optional().or(z.literal('')),

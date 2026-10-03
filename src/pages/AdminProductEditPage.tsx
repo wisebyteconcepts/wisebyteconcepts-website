@@ -780,7 +780,7 @@ export const AdminProductEditPage: React.FC = () => {
                   onChange={(val) => update('icon', val)}
                 />
                 <p className="text-[11px] text-muted-foreground">
-                  Choose an icon representing this project from Lucide, Remix Icon, or Heroicons.
+                  Choose an icon representing this project from Hugeicons.
                 </p>
               </div>
             ) : (

@@ -138,6 +138,11 @@
     --gradient-brand: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
     --gradient-surface: linear-gradient(180deg, rgba(15, 23, 42, 0.02) 0%, rgba(15, 23, 42, 0) 100%);
     --glass-blur: blur(12px);
+
+    /* WinUI 3 Overlay Scrollbar Tokens (Light) */
+    --winui-scroll-thumb: color-mix(in srgb, var(--text-muted) 38%, transparent);
+    --winui-scroll-thumb-hover: color-mix(in srgb, var(--text-primary) 70%, transparent);
+    --winui-scroll-thumb-active: var(--accent-strong);
   }
 
   .dark {
@@ -199,13 +204,20 @@
 
     --gradient-brand: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
     --gradient-surface: linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0) 100%);
+
+    /* WinUI 3 Overlay Scrollbar Tokens (Dark) */
+    --winui-scroll-thumb: color-mix(in srgb, var(--text-muted) 45%, transparent);
+    --winui-scroll-thumb-hover: color-mix(in srgb, var(--text-primary) 75%, transparent);
+    --winui-scroll-thumb-active: var(--accent);
   }
 
   html {
     scroll-behavior: smooth;
     font-size: 105%;
     overflow-x: hidden;
-    scrollbar-gutter: stable;
+    overflow-y: auto;
+    overflow-y: overlay;
+    scrollbar-gutter: auto;
   }
 
   body {
@@ -236,27 +248,100 @@
 }
 
 @layer utilities {
-  .hide-scrollbar::-webkit-scrollbar {
-    display: none;
+  /* ==========================================================================
+     WinUI 3 Overlay Scrollbar System
+     ========================================================================== */
+
+  /* Ensure scrollable containers overlay without layout shift */
+  .overflow-y-auto,
+  .overflow-x-auto,
+  .overflow-auto,
+  .custom-scrollbar,
+  .scrollbar-thin {
+    overflow-y: auto;
+    overflow-y: overlay;
+    scrollbar-gutter: auto;
   }
 
-  .hide-scrollbar {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
+  /* Desktop & Fine Pointer Layouts: WinUI 3 Fluent Pan Indicator Scrollbar */
+  @media (min-width: 769px) and (pointer: fine) {
+    /* Firefox global scrollbar */
+    * {
+      scrollbar-width: thin;
+      scrollbar-color: var(--winui-scroll-thumb) transparent;
+    }
+
+    *:hover {
+      scrollbar-color: var(--winui-scroll-thumb-hover) transparent;
+    }
+
+    /* WebKit / Chromium (Chrome, Edge, Safari) */
+    *::-webkit-scrollbar {
+      width: 10px;
+      height: 10px;
+      background-color: transparent;
+    }
+
+    *::-webkit-scrollbar-track {
+      background-color: transparent;
+      border-radius: 9999px;
+    }
+
+    /* WinUI 3 Pan Indicator: Subtle & thin (approx 4px) by default with transparent borders */
+    *::-webkit-scrollbar-thumb {
+      background-color: var(--winui-scroll-thumb);
+      background-clip: padding-box;
+      border: 3px solid transparent;
+      border-radius: 9999px;
+      transition: background-color 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+                  border-width 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    /* On hover: widens to 8px and brightens */
+    *::-webkit-scrollbar-thumb:hover {
+      background-color: var(--winui-scroll-thumb-hover);
+      border: 1px solid transparent;
+    }
+
+    /* On active drag */
+    *::-webkit-scrollbar-thumb:active {
+      background-color: var(--winui-scroll-thumb-active);
+      border: 1px solid transparent;
+    }
+
+    *::-webkit-scrollbar-corner {
+      background-color: transparent;
+    }
   }
 
-  .custom-scrollbar::-webkit-scrollbar {
-    width: 6px;
+  /* Mobile & Touch Layouts: Hide custom scrollbars entirely, preserve native touch scrolling */
+  @media (max-width: 768px), (pointer: coarse) {
+    html,
+    body,
+    * {
+      scrollbar-width: none !important;
+      -ms-overflow-style: none !important;
+    }
+
+    *::-webkit-scrollbar {
+      display: none !important;
+      width: 0 !important;
+      height: 0 !important;
+    }
   }
-  .custom-scrollbar::-webkit-scrollbar-track {
-    background-color: transparent;
+
+  /* Explicit scrollbar-hidden utilities */
+  .hide-scrollbar,
+  .scrollbar-none {
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
   }
-  .custom-scrollbar::-webkit-scrollbar-thumb {
-    background-color: var(--border);
-    border-radius: 9999px;
-  }
-  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background-color: var(--border-strong);
+
+  .hide-scrollbar::-webkit-scrollbar,
+  .scrollbar-none::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
   }
 
   /* Layer Containers */

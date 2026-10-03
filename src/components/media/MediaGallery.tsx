@@ -16,7 +16,8 @@ import {
   Sparkles, 
   LayoutGrid, 
   List, 
-  Folder
+  Folder,
+  Globe
 } from 'lucide-react';
 import { Button } from '@/components/Button';
 import { Input } from '@/components/ui/Input';
@@ -129,13 +130,19 @@ export const MediaGallery: React.FC<MediaGalleryProps> = ({
   const filteredItems = useMemo(() => {
     return items.filter((item) => {
       // Type tab filter
-      if (activeTab !== 'all' && item.type !== activeTab) {
+      if (activeTab === 'image') {
+        if (item.type !== 'image' && item.type !== 'web-image') {
+          return false;
+        }
+      } else if (activeTab !== 'all' && item.type !== activeTab) {
         return false;
       }
 
       // Allowed types constraint if in picker mode
       if (allowedTypes && !allowedTypes.includes(item.type)) {
-        return false;
+        if (!(allowedTypes.includes('image') && item.type === 'web-image')) {
+          return false;
+        }
       }
 
       // Folder filter
@@ -398,11 +405,17 @@ export const MediaGallery: React.FC<MediaGalleryProps> = ({
           {[
             { id: 'all', label: 'All Media', icon: Layers },
             { id: 'image', label: 'Images', icon: ImageIcon },
+            { id: 'web-image', label: 'Web', icon: Globe },
             { id: 'video', label: 'Videos', icon: Film },
             { id: 'file', label: 'Files / Docs', icon: FileText },
           ].map((tab) => {
             const Icon = tab.icon;
-            const count = tab.id === 'all' ? items.length : items.filter((i) => i.type === tab.id).length;
+            const count =
+              tab.id === 'all'
+                ? items.length
+                : tab.id === 'image'
+                ? items.filter((i) => i.type === 'image' || i.type === 'web-image').length
+                : items.filter((i) => i.type === tab.id).length;
             const active = activeTab === tab.id;
             return (
               <button
@@ -715,11 +728,13 @@ export const MediaGallery: React.FC<MediaGalleryProps> = ({
                       </td>
                       <td className="p-3 flex items-center gap-3">
                         <div className="w-10 h-10 rounded-lg overflow-hidden border border-border bg-surface-3 shrink-0 flex items-center justify-center">
-                          {item.type === 'image' ? (
+                          {item.type === 'image' || item.type === 'web-image' ? (
                             <img
                               src={item.thumbnailUrl || item.url}
                               alt={item.name}
                               className="w-full h-full object-cover"
+                              loading="lazy"
+                              referrerPolicy="no-referrer"
                             />
                           ) : item.type === 'video' ? (
                             <Film className="w-4 h-4 text-purple-400" />

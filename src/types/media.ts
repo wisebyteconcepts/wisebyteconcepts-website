@@ -1,4 +1,4 @@
-export type MediaType = 'image' | 'video' | 'file';
+export type MediaType = 'image' | 'video' | 'file' | 'web-image';
 
 export interface MediaVersion {
   id: string;

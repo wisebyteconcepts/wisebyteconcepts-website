@@ -823,7 +823,7 @@ export const AdminServiceEditPage: React.FC = () => {
                   onChange={(val) => update("icon", val)}
                 />
                 <p className="text-[11px] text-muted-foreground">
-                  Choose from thousands of curated Lucide, Remix Icon, and Heroicons.
+                  Choose from thousands of curated Hugeicons.
                 </p>
               </div>
             ) : (

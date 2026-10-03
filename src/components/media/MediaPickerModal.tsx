@@ -34,7 +34,7 @@ export const MediaPickerModal: React.FC<MediaPickerModalProps> = ({
   const recentItems = recentlyUsedIds
     .map((id) => items.find((i) => i.id === id))
     .filter(Boolean)
-    .filter((i) => !allowedTypes || allowedTypes.includes(i!.type)) as MediaItem[];
+    .filter((i) => !allowedTypes || allowedTypes.includes(i!.type) || (allowedTypes.includes('image') && i!.type === 'web-image')) as MediaItem[];
 
   const handleChooseItem = (item: MediaItem) => {
     recordRecentlyUsed(item.id);

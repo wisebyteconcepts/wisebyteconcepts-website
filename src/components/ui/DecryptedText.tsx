@@ -63,6 +63,16 @@ export default function DecryptedText({
   const pointerRef = useRef<number>(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  const prefersReducedMotion = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  useEffect(() => {
+    if (prefersReducedMotion) {
+      setDisplayText(text);
+      setIsDecrypted(true);
+      setIsAnimating(false);
+    }
+  }, [prefersReducedMotion, text]);
+
   const availableChars = useMemo<string[]>(() => {
     return useOriginalCharsOnly
       ? Array.from(new Set(text.split(''))).filter(char => char !== ' ')
@@ -332,6 +342,12 @@ export default function DecryptedText({
     const observerCallback = (entries: IntersectionObserverEntry[]) => {
       entries.forEach(entry => {
         if (entry.isIntersecting && !hasAnimated) {
+          if (prefersReducedMotion) {
+            setDisplayText(text);
+            setIsDecrypted(true);
+            setHasAnimated(true);
+            return;
+          }
           triggerDecrypt();
           setHasAnimated(true);
         }

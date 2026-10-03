@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Image as ImageIcon, X, Sparkles, RefreshCw } from 'lucide-react';
+import { Image as ImageIcon, X, Sparkles, RefreshCw, ImageOff } from 'lucide-react';
 import { FormLabel } from '@/components/forms/FormControls';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/Button';
@@ -15,6 +15,7 @@ interface ImageInputProps {
 
 export const ImageInput = ({ label, value, onChange, description, required }: ImageInputProps) => {
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [imgError, setImgError] = useState(false);
 
   return (
     <div className="space-y-2.5 w-full">
@@ -37,13 +38,22 @@ export const ImageInput = ({ label, value, onChange, description, required }: Im
       {description && <p className="text-[11px] text-muted-foreground">{description}</p>}
 
       {value ? (
-        <div className="relative group rounded-xl overflow-hidden border border-input bg-muted/20 aspect-video max-h-52 shadow-xs">
-          <img
-            src={value}
-            alt="Preview"
-            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-            referrerPolicy="no-referrer"
-          />
+        <div className="relative group rounded-xl overflow-hidden border border-input bg-muted/20 aspect-video max-h-52 shadow-xs flex items-center justify-center">
+          {imgError ? (
+            <div className="flex flex-col items-center justify-center p-4 text-center text-muted-foreground gap-2">
+              <ImageOff className="w-8 h-8 text-destructive opacity-50" />
+              <span className="text-xs font-medium">Unable to load remote image</span>
+            </div>
+          ) : (
+            <img
+              src={value}
+              alt="Preview"
+              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+              loading="lazy"
+              referrerPolicy="no-referrer"
+              onError={() => setImgError(true)}
+            />
+          )}
           <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
             <button
               type="button"

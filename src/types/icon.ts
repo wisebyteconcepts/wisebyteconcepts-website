@@ -1,14 +1,20 @@
-export type IconLibrary = 'lucide' | 'remix' | 'hero';
-export type IconVariant = 'outline' | 'solid' | 'line' | 'fill';
+import { exportToKebab } from '@/utils/hugeicons';
 
+export type IconLibrary = 'huge';
+export type LegacyIconLibrary = 'lucide' | 'remix' | 'hero';
+
+/**
+ * Standard IconValue: { name: string, library?: 'huge' }
+ * Keeps library: 'huge' as a constant for forward-compatibility.
+ */
 export interface IconValue {
-  library: IconLibrary;
   name: string;
-  variant?: IconVariant;
+  library?: 'huge' | LegacyIconLibrary;
+  variant?: string;
 }
 
 /**
- * Normalizes any icon input format (legacy string, JSON string, or IconValue object)
+ * Normalizes any icon input format (kebab-case name, JSON string, or legacy object/string)
  * into a standard IconValue object.
  */
 export function normalizeIcon(input: unknown): IconValue | null {
@@ -18,23 +24,27 @@ export function normalizeIcon(input: unknown): IconValue | null {
   if (typeof input === 'object' && input !== null) {
     const obj = input as Record<string, any>;
     if (typeof obj.name === 'string' && obj.name.trim()) {
-      let lib: IconLibrary = 'lucide';
-      if (obj.library === 'remix' || obj.library === 'hero' || obj.library === 'lucide') {
-        lib = obj.library;
+      const rawName = obj.name.trim();
+
+      // Check if legacy library specified
+      if (obj.library === 'lucide' || obj.library === 'remix' || obj.library === 'hero') {
+        return {
+          name: rawName,
+          library: obj.library,
+          variant: obj.variant,
+        };
       }
-      let variant: IconVariant | undefined = undefined;
-      if (['outline', 'solid', 'line', 'fill'].includes(obj.variant)) {
-        variant = obj.variant as IconVariant;
+
+      // Default or 'huge': ensure kebab-case name
+      let cleanName = rawName;
+      if (!cleanName.includes('-') && /^[A-Z]/.test(cleanName)) {
+        cleanName = exportToKebab(cleanName);
       }
-      const resolvedVariant = variant || (lib === 'hero' ? 'outline' : lib === 'remix' ? 'line' : undefined);
-      const res: IconValue = {
-        library: lib,
-        name: obj.name.trim(),
+
+      return {
+        name: cleanName,
+        library: 'huge',
       };
-      if (resolvedVariant) {
-        res.variant = resolvedVariant;
-      }
-      return res;
     }
   }
 
@@ -49,35 +59,46 @@ export function normalizeIcon(input: unknown): IconValue | null {
         const parsed = JSON.parse(trimmed);
         return normalizeIcon(parsed);
       } catch {
-        // Not valid JSON, continue with string heuristics
+        // Continue with string heuristics
       }
     }
 
-    // Check if external URL or path
-    if (trimmed.startsWith('http://') || trimmed.startsWith('https://') || trimmed.startsWith('data:') || trimmed.includes('/')) {
+    // Check if external URL or custom asset path
+    if (
+      trimmed.startsWith('http://') ||
+      trimmed.startsWith('https://') ||
+      trimmed.startsWith('data:') ||
+      trimmed.includes('/')
+    ) {
       return {
-        library: 'lucide',
-        name: trimmed, // Handled as custom asset
-      };
-    }
-
-    // Heuristics for legacy icon strings:
-    // 1. Remix Icon prefixed with Ri
-    if (trimmed.startsWith('Ri')) {
-      const isFill = trimmed.endsWith('Fill');
-      return {
-        library: 'remix',
         name: trimmed,
-        variant: isFill ? 'fill' : 'line',
+        library: 'huge',
       };
     }
 
-    // 2. Heroicons prefixed with HiOutline or Hi
+    // Explicit huge: prefix
+    if (trimmed.startsWith('huge:')) {
+      return {
+        name: trimmed.replace(/^huge:/, '').trim(),
+        library: 'huge',
+      };
+    }
+
+    // Legacy Remix Icon prefixed with Ri
+    if (trimmed.startsWith('Ri')) {
+      return {
+        name: trimmed,
+        library: 'remix',
+        variant: trimmed.endsWith('Fill') ? 'fill' : 'line',
+      };
+    }
+
+    // Legacy Heroicons prefixed with HiOutline or Hi
     if (trimmed.startsWith('HiOutline')) {
       const base = trimmed.replace(/^HiOutline/, '');
       return {
-        library: 'hero',
         name: base.endsWith('Icon') ? base : `${base}Icon`,
+        library: 'hero',
         variant: 'outline',
       };
     }
@@ -85,25 +106,33 @@ export function normalizeIcon(input: unknown): IconValue | null {
     if (trimmed.startsWith('Hi')) {
       const base = trimmed.replace(/^Hi/, '');
       return {
-        library: 'hero',
         name: base.endsWith('Icon') ? base : `${base}Icon`,
+        library: 'hero',
         variant: 'solid',
       };
     }
 
-    // 3. Heroicon ending in Icon (e.g. ArrowRightIcon)
+    // Legacy Heroicon ending in Icon (e.g. ArrowRightIcon)
     if (trimmed.endsWith('Icon') && !trimmed.startsWith('Ri') && !trimmed.startsWith('Lucide')) {
       return {
-        library: 'hero',
         name: trimmed,
+        library: 'hero',
         variant: 'outline',
       };
     }
 
-    // 4. Default legacy is Lucide (e.g. "Briefcase", "ShoppingBag", "Code", "Zap")
+    // Modern kebab-case icon strings (e.g. "home-01", "arrow-right-01") -> Hugeicons
+    if (trimmed.includes('-') && !trimmed.startsWith('Ri') && !trimmed.startsWith('Hi')) {
+      return {
+        name: trimmed.toLowerCase(),
+        library: 'huge',
+      };
+    }
+
+    // Default legacy is Lucide (e.g. "Briefcase", "ShoppingBag", "Code", "Zap")
     return {
-      library: 'lucide',
       name: trimmed,
+      library: 'lucide',
     };
   }
 
@@ -119,7 +148,8 @@ export function formatIconLabel(icon: IconValue | string | null | undefined): st
   if (norm.name.startsWith('http') || norm.name.startsWith('data:') || norm.name.includes('/')) {
     return 'Custom Asset Vector';
   }
-  const libName = norm.library === 'hero' ? 'Heroicons' : norm.library === 'remix' ? 'Remix' : 'Lucide';
-  const variantPart = norm.variant ? ` (${norm.variant})` : '';
-  return `${norm.name} · ${libName}${variantPart}`;
+  if (norm.library === 'lucide' || norm.library === 'remix' || norm.library === 'hero') {
+    return `${norm.name} · Legacy icon (${norm.library})`;
+  }
+  return `${norm.name} · Hugeicons`;
 }
