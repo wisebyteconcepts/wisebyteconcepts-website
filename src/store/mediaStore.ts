@@ -29,7 +29,7 @@ interface MediaState {
   isLoading: boolean;
 
   // Init
-  init: () => Promise<void>;
+  init: (force?: boolean) => Promise<void>;
 
   // Upload & Creation
   uploadFile: (
@@ -122,8 +122,8 @@ export const useMediaStore = create<MediaState>((set, get) => ({
   isLoaded: false,
   isLoading: false,
 
-  init: async () => {
-    if (get().isLoaded) return;
+  init: async (force: boolean = false) => {
+    if (get().isLoaded && !force) return;
     set({ isLoading: true });
 
     try {
@@ -252,7 +252,7 @@ export const useMediaStore = create<MediaState>((set, get) => ({
       optimizedFormat,
       altText: metadata.altText || name,
       caption: metadata.caption || '',
-      folderId: metadata.folderId || null,
+      folderId: (!metadata.folderId || metadata.folderId === 'root') ? null : metadata.folderId,
       tags: metadata.tags || [],
       size,
       mimeType,
@@ -309,7 +309,7 @@ export const useMediaStore = create<MediaState>((set, get) => ({
       videoProvider: parsed.provider,
       altText: data.altText || name,
       caption: data.caption || '',
-      folderId: data.folderId || null,
+      folderId: (!data.folderId || data.folderId === 'root') ? null : data.folderId,
       tags: data.tags || ['video', parsed.provider],
       size: 0,
       mimeType: 'video/embed',
@@ -364,7 +364,7 @@ export const useMediaStore = create<MediaState>((set, get) => ({
       originalUrl: sanitizedUrl,
       altText: data.altText?.trim() || name,
       caption: data.caption?.trim() || '',
-      folderId: data.folderId || null,
+      folderId: (!data.folderId || data.folderId === 'root') ? null : data.folderId,
       tags: data.tags?.length ? data.tags : ['web-image'],
       size: 0,
       mimeType: 'image/web',

@@ -10,7 +10,8 @@ import {
   Sparkles, 
   Globe, 
   Loader2, 
-  Folder
+  Folder,
+  FolderPlus
 } from 'lucide-react';
 import { Dialog, DialogContent } from '@/components/ui/Dialog';
 import { Button } from '@/components/Button';
@@ -58,17 +59,25 @@ export const MediaUploadModal: React.FC<MediaUploadModalProps> = ({
   defaultFolderId = null,
   onSuccess,
 }) => {
-  const { uploadFile, addEmbedVideo, addWebImage, folders } = useMediaStore();
+  const { uploadFile, addEmbedVideo, addWebImage, createFolder, folders } = useMediaStore();
   const addToast = useToastStore((s) => s.addToast);
 
   // Active Tab state: 'upload' | 'embed' | 'web-image'
   const [activeTab, setActiveTab] = useState('upload');
 
-  // Shared Folder & WebP State
+  // Shared Destination Folder & WebP State
   const [targetFolderId, setTargetFolderId] = useState<string | null>(defaultFolderId);
   const [autoWebp, setAutoWebp] = useState(true);
 
-  // Background scroll lock
+  // Inline "Add Folder" state
+  const [isCreatingFolder, setIsCreatingFolder] = useState(false);
+  const [newFolderName, setNewFolderName] = useState('');
+  const [isSavingFolder, setIsSavingFolder] = useState(false);
+
+  // Shared Processing State for Footer Save Button
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  // Background scroll lock while open
   useEffect(() => {
     if (open) {
       const prevOverflow = document.body.style.overflow;
@@ -88,7 +97,6 @@ export const MediaUploadModal: React.FC<MediaUploadModalProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [queue, setQueue] = useState<UploadQueueItem[]>([]);
-  const [isProcessingUpload, setIsProcessingUpload] = useState(false);
 
   // Clean up object URLs created for queue previews
   useEffect(() => {
@@ -162,89 +170,15 @@ export const MediaUploadModal: React.FC<MediaUploadModalProps> = ({
     setQueue([]);
   };
 
-  const handleStartUpload = async () => {
-    if (queue.length === 0) return;
-    setIsProcessingUpload(true);
-    const uploadedList: MediaItem[] = [];
-
-    for (const item of queue) {
-      if (item.status === 'completed') continue;
-
-      updateQueueItem(item.id, { status: 'uploading', progress: 20 });
-      try {
-        updateQueueItem(item.id, { progress: 60 });
-        const uploaded = await uploadFile(item.file, {
-          name: item.name,
-          altText: item.altText,
-          caption: item.caption,
-          folderId: targetFolderId,
-          tags: item.tags,
-          autoWebp,
-        });
-
-        updateQueueItem(item.id, {
-          status: 'completed',
-          progress: 100,
-          uploadedItem: uploaded,
-        });
-        uploadedList.push(uploaded);
-      } catch (err: any) {
-        updateQueueItem(item.id, {
-          status: 'error',
-          errorMessage: err.message || 'Upload failed',
-        });
-      }
-    }
-
-    setIsProcessingUpload(false);
-    if (uploadedList.length > 0) {
-      addToast(`Successfully uploaded ${uploadedList.length} file(s)`, 'success');
-      if (onSuccess) onSuccess(uploadedList);
-    }
-  };
-
   // --- TAB 2: EMBED VIDEO STATE ---
   const [videoUrl, setVideoUrl] = useState('');
   const [videoTitle, setVideoTitle] = useState('');
   const [videoAlt, setVideoAlt] = useState('');
-  const [isProcessingVideo, setIsProcessingVideo] = useState(false);
 
   const parsedVideo = useMemo(() => {
     if (!videoUrl.trim()) return null;
     return parseVideoEmbed(videoUrl);
   }, [videoUrl]);
-
-  const handleAddVideo = async () => {
-    if (!videoUrl.trim()) {
-      addToast('Please enter a video URL', 'error');
-      return;
-    }
-    if (!parsedVideo || !parsedVideo.isValid) {
-      addToast('Invalid video URL. Please provide a YouTube, Vimeo, or direct MP4/WebM URL.', 'error');
-      return;
-    }
-
-    setIsProcessingVideo(true);
-    try {
-      const saved = await addEmbedVideo({
-        url: videoUrl.trim(),
-        name: videoTitle.trim() || parsedVideo.titleSuggestion || 'Embedded Video',
-        altText: videoAlt.trim() || videoTitle.trim() || 'Video embed',
-        folderId: targetFolderId,
-        tags: ['video', parsedVideo.provider],
-      });
-
-      addToast('Embedded video registered in Media Gallery', 'success');
-      if (onSuccess) onSuccess([saved]);
-      setVideoUrl('');
-      setVideoTitle('');
-      setVideoAlt('');
-    } catch (err: any) {
-      addToast(err.message || 'Failed to embed video', 'error');
-    } finally {
-      setIsProcessingVideo(false);
-    }
-  };
 
   // --- TAB 3: WEB IMAGE STATE ---
   const [webImageUrl, setWebImageUrl] = useState('');
@@ -253,7 +187,6 @@ export const MediaUploadModal: React.FC<MediaUploadModalProps> = ({
   const [webImageError, setWebImageError] = useState<string | null>(null);
   const [isValidatingWebImage, setIsValidatingWebImage] = useState(false);
   const [webImagePreview, setWebImagePreview] = useState<{ url: string; width?: number; height?: number } | null>(null);
-  const [isProcessingWebImage, setIsProcessingWebImage] = useState(false);
 
   // Validate web image with debounce when URL changes
   useEffect(() => {
@@ -299,50 +232,149 @@ export const MediaUploadModal: React.FC<MediaUploadModalProps> = ({
     };
   }, [webImageUrl]);
 
-  const handleAddWebImage = async () => {
-    const trimmed = webImageUrl.trim();
-    if (!trimmed) {
-      setWebImageError('Invalid URL');
-      return;
-    }
+  // --- ADD FOLDER HANDLER ---
+  const handleCreateFolderSubmit = async () => {
+    const trimmed = newFolderName.trim();
+    if (!trimmed) return;
 
-    if (webImageError) {
-      addToast(webImageError, 'error');
-      return;
-    }
-
-    setIsProcessingWebImage(true);
+    setIsSavingFolder(true);
     try {
-      const result = await validateImageUrl(trimmed);
-      if (!result.isValid) {
-        setWebImageError(result.error || "Couldn't load image");
-        addToast(result.error || "Couldn't load image", 'error');
-        return;
-      }
-
-      const saved = await addWebImage({
-        url: trimmed,
-        name: webImageTitle.trim() || extractFilenameFromUrl(trimmed),
-        altText: webImageAlt.trim() || webImageTitle.trim() || 'Web image asset',
-        folderId: targetFolderId,
-        tags: ['web-image'],
-      });
-
-      addToast('Web image linked successfully in Media Gallery', 'success');
-      if (onSuccess) onSuccess([saved]);
-      setWebImageUrl('');
-      setWebImageTitle('');
-      setWebImageAlt('');
-      setWebImagePreview(null);
-      setWebImageError(null);
+      const created = await createFolder(trimmed);
+      setTargetFolderId(created.id);
+      setNewFolderName('');
+      setIsCreatingFolder(false);
+      addToast(`Folder "${created.name}" created and selected`, 'success');
     } catch (err: any) {
-      addToast(err.message || 'Failed to add web image', 'error');
+      addToast(err.message || 'Failed to create folder', 'error');
     } finally {
-      setIsProcessingWebImage(false);
+      setIsSavingFolder(false);
     }
   };
 
-  const pendingQueueCount = queue.filter((q) => q.status === 'pending' || q.status === 'uploading').length;
+  // --- UNIFIED SAVE PATH FOR ALL TABS (Requirement 4 & 5) ---
+  const canSave = useMemo(() => {
+    if (activeTab === 'upload') {
+      return queue.length > 0 && queue.some((q) => q.status === 'pending');
+    }
+    if (activeTab === 'embed') {
+      return Boolean(videoUrl.trim() && parsedVideo?.isValid);
+    }
+    if (activeTab === 'web-image') {
+      return Boolean(webImageUrl.trim() && !webImageError && webImagePreview && !isValidatingWebImage);
+    }
+    return false;
+  }, [activeTab, queue, videoUrl, parsedVideo, webImageUrl, webImageError, webImagePreview, isValidatingWebImage]);
+
+  const saveButtonLabel = useMemo(() => {
+    if (activeTab === 'upload') {
+      const pendingCount = queue.filter((q) => q.status === 'pending').length;
+      return pendingCount > 0 ? `Add Media (${pendingCount})` : 'Add Media';
+    }
+    if (activeTab === 'embed') {
+      return 'Add Media';
+    }
+    if (activeTab === 'web-image') {
+      return 'Add Media';
+    }
+    return 'Add Media';
+  }, [activeTab, queue]);
+
+  const handleSaveMedia = async () => {
+    if (!canSave || isProcessing) return;
+
+    setIsProcessing(true);
+    const normalizedFolder = (!targetFolderId || targetFolderId === 'root') ? null : targetFolderId;
+    const savedItems: MediaItem[] = [];
+
+    try {
+      if (activeTab === 'upload') {
+        for (const item of queue) {
+          if (item.status === 'completed') continue;
+
+          updateQueueItem(item.id, { status: 'uploading', progress: 30 });
+          try {
+            updateQueueItem(item.id, { progress: 70 });
+            const uploaded = await uploadFile(item.file, {
+              name: item.name,
+              altText: item.altText,
+              caption: item.caption,
+              folderId: normalizedFolder,
+              tags: item.tags,
+              autoWebp,
+            });
+
+            updateQueueItem(item.id, {
+              status: 'completed',
+              progress: 100,
+              uploadedItem: uploaded,
+            });
+            savedItems.push(uploaded);
+          } catch (err: any) {
+            updateQueueItem(item.id, {
+              status: 'error',
+              errorMessage: err.message || 'Upload failed',
+            });
+          }
+        }
+      } else if (activeTab === 'embed') {
+        if (!parsedVideo || !parsedVideo.isValid) {
+          throw new Error('Please enter a valid YouTube, Vimeo, or direct MP4/WebM URL.');
+        }
+
+        const saved = await addEmbedVideo({
+          url: videoUrl.trim(),
+          name: videoTitle.trim() || parsedVideo.titleSuggestion || 'Embedded Video',
+          altText: videoAlt.trim() || videoTitle.trim() || 'Video embed',
+          folderId: normalizedFolder,
+          tags: ['video', parsedVideo.provider],
+        });
+        savedItems.push(saved);
+        setVideoUrl('');
+        setVideoTitle('');
+        setVideoAlt('');
+      } else if (activeTab === 'web-image') {
+        const trimmed = webImageUrl.trim();
+        const check = await validateImageUrl(trimmed);
+        if (!check.isValid) {
+          setWebImageError(check.error || "Couldn't load image");
+          throw new Error(check.error || "Couldn't load image");
+        }
+
+        const saved = await addWebImage({
+          url: trimmed,
+          name: webImageTitle.trim() || extractFilenameFromUrl(trimmed),
+          altText: webImageAlt.trim() || webImageTitle.trim() || 'Web image asset',
+          folderId: normalizedFolder,
+          tags: ['web-image'],
+        });
+        savedItems.push(saved);
+        setWebImageUrl('');
+        setWebImageTitle('');
+        setWebImageAlt('');
+        setWebImagePreview(null);
+        setWebImageError(null);
+      }
+
+      if (savedItems.length > 0) {
+        addToast(
+          savedItems.length === 1 
+            ? `Added "${savedItems[0].name}" successfully` 
+            : `Added ${savedItems.length} media items`, 
+          'success'
+        );
+
+        if (onSuccess) onSuccess(savedItems);
+        // Force refresh gallery store to ensure items appear immediately across all gallery views
+        await useMediaStore.getState().init(true);
+        onOpenChange(false);
+      }
+    } catch (err: any) {
+      addToast(err.message || 'Failed to save media', 'error');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const targetFolderName = folders.find((f) => f.id === targetFolderId)?.name || 'All Media (Root)';
 
   return (
@@ -361,7 +393,7 @@ export const MediaUploadModal: React.FC<MediaUploadModalProps> = ({
               </div>
               <div className="min-w-0">
                 <h2 className="text-base font-bold text-foreground truncate">
-                  Add Media to Gallery
+                  Add Media
                 </h2>
                 <p className="text-[11px] text-muted-foreground truncate hidden sm:block">
                   Upload local assets, embed streaming video, or link web images.
@@ -379,63 +411,137 @@ export const MediaUploadModal: React.FC<MediaUploadModalProps> = ({
             </button>
           </div>
 
-          {/* Tab Bar: Upload | Embed Video | Web Image */}
+          {/* Tab Control (Requirement 1: Equal padding, filled pill active state, hover/focus, no overflow, light/dark) */}
           <div className="px-5 sm:px-6 pt-3 pb-2.5 border-b border-border/50 bg-surface-1/50 shrink-0">
-            <TabsList className="w-full sm:w-auto grid grid-cols-3 sm:inline-flex h-9 bg-surface-2 p-0.5 rounded-xl border border-border/80">
-              <TabsTrigger value="upload" className="text-xs font-semibold gap-1.5 justify-center">
-                <FileUp className="w-3.5 h-3.5 text-primary" />
-                <span>Upload</span>
+            <TabsList className="w-full grid grid-cols-3 h-10 bg-muted/50 p-1 rounded-xl border border-border/70 gap-1 overflow-hidden">
+              <TabsTrigger 
+                value="upload" 
+                className="w-full text-xs font-semibold py-1.5 px-3 rounded-lg justify-center transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-xs data-[state=active]:border-border/80"
+              >
+                <FileUp className="w-3.5 h-3.5 text-primary shrink-0" />
+                <span className="truncate">Upload</span>
                 {queue.length > 0 && (
-                  <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] bg-primary/20 text-primary font-mono font-bold">
+                  <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] bg-primary/20 text-primary font-mono font-bold shrink-0">
                     {queue.length}
                   </span>
                 )}
               </TabsTrigger>
-              <TabsTrigger value="embed" className="text-xs font-semibold gap-1.5 justify-center">
-                <Film className="w-3.5 h-3.5 text-purple-400" />
-                <span>Embed Video</span>
+              <TabsTrigger 
+                value="embed" 
+                className="w-full text-xs font-semibold py-1.5 px-3 rounded-lg justify-center transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-xs data-[state=active]:border-border/80"
+              >
+                <Film className="w-3.5 h-3.5 text-purple-400 shrink-0" />
+                <span className="truncate">Embed Video</span>
               </TabsTrigger>
-              <TabsTrigger value="web-image" className="text-xs font-semibold gap-1.5 justify-center">
-                <Globe className="w-3.5 h-3.5 text-sky-500" />
-                <span>Web Image</span>
+              <TabsTrigger 
+                value="web-image" 
+                className="w-full text-xs font-semibold py-1.5 px-3 rounded-lg justify-center transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-xs data-[state=active]:border-border/80"
+              >
+                <Globe className="w-3.5 h-3.5 text-sky-500 shrink-0" />
+                <span className="truncate">Web Image</span>
               </TabsTrigger>
             </TabsList>
           </div>
 
-          {/* Scrollable Content Body with stable min-height */}
+          {/* Scrollable Body Content */}
           <div className="flex-1 overflow-y-auto px-5 sm:px-6 py-5 space-y-5 custom-scrollbar bg-surface-0 min-h-[360px]">
-            {/* Destination Folder & WebP Options Bar (Active for all tabs) */}
-            <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-xl bg-surface-1 border border-border text-xs">
-              <div className="flex items-center gap-2 flex-1 min-w-[200px]">
-                <Folder className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                <Label className="text-xs text-muted-foreground shrink-0 font-medium">Destination:</Label>
-                <Select
-                  value={targetFolderId || 'root'}
-                  onValueChange={(v) => setTargetFolderId(v === 'root' ? null : v)}
-                >
-                  <SelectTrigger className="h-8 flex-1 max-w-[240px] bg-surface-2 border-border text-xs font-medium">
-                    <SelectValue placeholder="All Media (Root)" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="root">📁 All Media (Root)</SelectItem>
-                    {folders.map((f) => (
-                      <SelectItem key={f.id} value={f.id}>
-                        📁 {f.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+            {/* Destination Dropdown & Add Folder Button (Requirement 2 & 3: Perfect vertical alignment, same height) */}
+            <div className="space-y-2.5 p-3.5 rounded-xl bg-surface-1 border border-border text-xs">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                {/* Destination Dropdown and Add Folder Row */}
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 flex-1">
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Folder className="w-4 h-4 text-muted-foreground shrink-0" />
+                    <Label className="text-xs font-medium text-foreground whitespace-nowrap">
+                      Destination:
+                    </Label>
+                  </div>
+
+                  {/* Dropdown with same h-9 height */}
+                  <Select
+                    value={targetFolderId || 'root'}
+                    onValueChange={(v) => setTargetFolderId(v === 'root' ? null : v)}
+                  >
+                    <SelectTrigger className="h-9 flex-1 sm:max-w-[220px] bg-surface-2 border-border text-xs font-medium">
+                      <SelectValue placeholder="All Media (Root)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="root">📁 All Media (Root)</SelectItem>
+                      {folders.map((f) => (
+                        <SelectItem key={f.id} value={f.id}>
+                          📁 {f.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  {/* Add Folder button: folder-plus icon, same h-9 height, stacks on mobile */}
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => setIsCreatingFolder((prev) => !prev)}
+                    className="h-9 px-3 text-xs font-semibold rounded-xl gap-1.5 border-border shrink-0 hover:bg-surface-2"
+                  >
+                    <FolderPlus className="w-3.5 h-3.5 text-primary" />
+                    <span>Add Folder</span>
+                  </Button>
+                </div>
+
+                {/* Auto-convert to WebP toggle (Upload tab only) */}
+                {activeTab === 'upload' && (
+                  <div className="flex items-center gap-2 shrink-0 pt-1 sm:pt-0 border-t sm:border-t-0 border-border/50">
+                    <Switch checked={autoWebp} onCheckedChange={setAutoWebp} />
+                    <span
+                      onClick={() => setAutoWebp(!autoWebp)}
+                      className="text-xs cursor-pointer flex items-center gap-1 select-none text-muted-foreground hover:text-foreground font-medium"
+                    >
+                      <Sparkles className="w-3 h-3 text-primary" /> Auto-convert to WebP
+                    </span>
+                  </div>
+                )}
               </div>
 
-              {activeTab === 'upload' && (
-                <div className="flex items-center gap-2 shrink-0">
-                  <Switch checked={autoWebp} onCheckedChange={setAutoWebp} />
-                  <span
-                    onClick={() => setAutoWebp(!autoWebp)}
-                    className="text-xs cursor-pointer flex items-center gap-1 select-none text-foreground font-medium"
-                  >
-                    <Sparkles className="w-3 h-3 text-primary" /> Auto-convert to WebP
-                  </span>
+              {/* Inline Create Folder Input when "Add Folder" is clicked */}
+              {isCreatingFolder && (
+                <div className="pt-2 border-t border-border/60 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 animate-in fade-in duration-150">
+                  <Input
+                    autoFocus
+                    placeholder="Enter new folder name..."
+                    value={newFolderName}
+                    onChange={(e) => setNewFolderName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleCreateFolderSubmit();
+                      } else if (e.key === 'Escape') {
+                        setIsCreatingFolder(false);
+                      }
+                    }}
+                    className="h-9 text-xs bg-surface-2 border-border flex-1"
+                  />
+                  <div className="flex items-center gap-1.5 shrink-0 justify-end">
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={handleCreateFolderSubmit}
+                      disabled={!newFolderName.trim() || isSavingFolder}
+                      className="h-9 px-3 text-xs font-semibold rounded-xl"
+                    >
+                      {isSavingFolder ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Create'}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setIsCreatingFolder(false);
+                        setNewFolderName('');
+                      }}
+                      className="h-9 px-2 text-xs text-muted-foreground hover:text-foreground"
+                    >
+                      Cancel
+                    </Button>
+                  </div>
                 </div>
               )}
             </div>
@@ -487,11 +593,11 @@ export const MediaUploadModal: React.FC<MediaUploadModalProps> = ({
                 </div>
               </div>
 
-              {/* Upload Queue Section */}
+              {/* Upload Queue Section (Duplicate button removed as per Requirement 4) */}
               {queue.length > 0 && (
                 <div className="space-y-2.5 animate-in fade-in duration-200">
                   <div className="flex items-center justify-between text-xs font-semibold text-foreground px-1">
-                    <span>Upload Queue ({queue.length})</span>
+                    <span>Selected Files ({queue.length})</span>
                     <button
                       type="button"
                       onClick={clearQueue}
@@ -535,7 +641,7 @@ export const MediaUploadModal: React.FC<MediaUploadModalProps> = ({
                             </div>
                           </div>
 
-                          {/* Status / Remove Button */}
+                          {/* Status / Remove Action */}
                           <div className="flex items-center gap-2 shrink-0">
                             {item.status === 'completed' && (
                               <span className="flex items-center gap-1 text-emerald-500 font-semibold text-[11px]">
@@ -590,32 +696,11 @@ export const MediaUploadModal: React.FC<MediaUploadModalProps> = ({
                       </div>
                     ))}
                   </div>
-
-                  {pendingQueueCount > 0 && (
-                    <Button
-                      type="button"
-                      onClick={handleStartUpload}
-                      disabled={isProcessingUpload}
-                      className="w-full h-9 text-xs font-bold rounded-xl shadow-xs gap-2"
-                    >
-                      {isProcessingUpload ? (
-                        <>
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                          Uploading & Optimizing...
-                        </>
-                      ) : (
-                        <>
-                          <Upload className="w-3.5 h-3.5" />
-                          Upload {pendingQueueCount} File(s) to Gallery
-                        </>
-                      )}
-                    </Button>
-                  )}
                 </div>
               )}
             </TabsContent>
 
-            {/* TAB 2: EMBED VIDEO */}
+            {/* TAB 2: EMBED VIDEO (Existing UI preserved without duplicate button) */}
             <TabsContent value="embed" className="space-y-4 mt-0">
               <div className="space-y-1">
                 <h3 className="text-sm font-bold text-foreground">Video Embed URL</h3>
@@ -624,32 +709,20 @@ export const MediaUploadModal: React.FC<MediaUploadModalProps> = ({
                 </p>
               </div>
 
-              {/* Single row on desktop, stacked on mobile */}
-              <div className="flex flex-col sm:flex-row gap-2.5 items-stretch sm:items-start">
-                <div className="flex-1 relative">
-                  <Input
-                    type="url"
-                    placeholder="https://www.youtube.com/watch?v=... or https://vimeo.com/..."
-                    value={videoUrl}
-                    onChange={(e) => {
-                      setVideoUrl(e.target.value);
-                      const parsed = parseVideoEmbed(e.target.value);
-                      if (parsed.isValid && parsed.titleSuggestion && !videoTitle) {
-                        setVideoTitle(parsed.titleSuggestion);
-                      }
-                    }}
-                    className="h-9.5 text-xs bg-surface-2 border-border"
-                  />
-                </div>
-
-                <Button
-                  type="button"
-                  onClick={handleAddVideo}
-                  disabled={!parsedVideo?.isValid || isProcessingVideo}
-                  className="h-9.5 px-4 text-xs font-bold rounded-xl shrink-0 sm:w-32 shadow-xs"
-                >
-                  {isProcessingVideo ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Embed Video'}
-                </Button>
+              <div>
+                <Input
+                  type="url"
+                  placeholder="https://www.youtube.com/watch?v=... or https://vimeo.com/..."
+                  value={videoUrl}
+                  onChange={(e) => {
+                    setVideoUrl(e.target.value);
+                    const parsed = parseVideoEmbed(e.target.value);
+                    if (parsed.isValid && parsed.titleSuggestion && !videoTitle) {
+                      setVideoTitle(parsed.titleSuggestion);
+                    }
+                  }}
+                  className="h-9 text-xs bg-surface-2 border-border"
+                />
               </div>
 
               {/* Real-time Video Preview Card */}
@@ -698,7 +771,7 @@ export const MediaUploadModal: React.FC<MediaUploadModalProps> = ({
               )}
             </TabsContent>
 
-            {/* TAB 3: WEB IMAGE */}
+            {/* TAB 3: WEB IMAGE (Existing UI preserved without duplicate button) */}
             <TabsContent value="web-image" className="space-y-4 mt-0">
               <div className="space-y-1">
                 <h3 className="text-sm font-bold text-foreground">External Image Link</h3>
@@ -707,43 +780,22 @@ export const MediaUploadModal: React.FC<MediaUploadModalProps> = ({
                 </p>
               </div>
 
-              {/* Single row on desktop, stacked on mobile */}
-              <div className="flex flex-col sm:flex-row gap-2.5 items-stretch sm:items-start">
-                <div className="flex-1 space-y-1">
-                  <Input
-                    type="url"
-                    placeholder="Paste an image link, e.g. https://example.com/photo.jpg"
-                    value={webImageUrl}
-                    onChange={(e) => setWebImageUrl(e.target.value)}
-                    className={cn(
-                      "h-9.5 text-xs bg-surface-2 border-border",
-                      webImageError && "border-destructive focus-visible:ring-destructive/30"
-                    )}
-                  />
-                  {webImageError && (
-                    <p className="text-[11px] text-destructive flex items-center gap-1 font-medium pl-1">
-                      <AlertCircle className="w-3 h-3" /> {webImageError}
-                    </p>
+              <div className="space-y-1">
+                <Input
+                  type="url"
+                  placeholder="Paste an image link, e.g. https://example.com/photo.jpg"
+                  value={webImageUrl}
+                  onChange={(e) => setWebImageUrl(e.target.value)}
+                  className={cn(
+                    "h-9 text-xs bg-surface-2 border-border",
+                    webImageError && "border-destructive focus-visible:ring-destructive/30"
                   )}
-                </div>
-
-                <Button
-                  type="button"
-                  onClick={handleAddWebImage}
-                  disabled={!webImageUrl.trim() || isValidatingWebImage || Boolean(webImageError) || isProcessingWebImage}
-                  className="h-9.5 px-4 text-xs font-bold rounded-xl shrink-0 sm:w-32 shadow-xs"
-                >
-                  {isProcessingWebImage ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  ) : isValidatingWebImage ? (
-                    <>
-                      <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />
-                      Checking...
-                    </>
-                  ) : (
-                    'Add Image'
-                  )}
-                </Button>
+                />
+                {webImageError && (
+                  <p className="text-[11px] text-destructive flex items-center gap-1 font-medium pl-1">
+                    <AlertCircle className="w-3 h-3" /> {webImageError}
+                  </p>
+                )}
               </div>
 
               {/* Loading State */}
@@ -802,21 +854,39 @@ export const MediaUploadModal: React.FC<MediaUploadModalProps> = ({
             </TabsContent>
           </div>
 
-          {/* Fixed Footer */}
+          {/* Fixed Footer (Requirement 4: Close secondary, Add Media primary, right-aligned, disabled until valid) */}
           <div className="px-5 sm:px-6 py-3.5 border-t border-border/80 flex items-center justify-between shrink-0 bg-surface-1/90 backdrop-blur-md">
-            <div className="text-[11px] text-muted-foreground flex items-center gap-1.5 truncate">
-              <span className="w-2 h-2 rounded-full bg-emerald-500" />
-              <span className="truncate">Folder: <strong className="text-foreground">{targetFolderName}</strong></span>
+            {/* Left: Destination summary */}
+            <div className="text-[11px] text-muted-foreground flex items-center gap-1.5 truncate pr-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+              <span className="truncate">Destination: <strong className="text-foreground">{targetFolderName}</strong></span>
             </div>
 
-            <div className="flex items-center gap-2">
+            {/* Right: Actions */}
+            <div className="flex items-center gap-2.5 shrink-0">
               <Button
                 type="button"
                 variant="secondary"
                 onClick={() => onOpenChange(false)}
-                className="h-8.5 px-4 text-xs font-semibold rounded-xl"
+                className="h-9 px-4 text-xs font-semibold rounded-xl"
               >
                 Close
+              </Button>
+
+              <Button
+                type="button"
+                onClick={handleSaveMedia}
+                disabled={!canSave || isProcessing}
+                className="h-9 px-4 text-xs font-bold rounded-xl shadow-xs gap-1.5"
+              >
+                {isProcessing ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Saving...</span>
+                  </>
+                ) : (
+                  <span>{saveButtonLabel}</span>
+                )}
               </Button>
             </div>
           </div>

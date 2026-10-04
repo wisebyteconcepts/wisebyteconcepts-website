@@ -26,13 +26,17 @@ export const TagInput: React.FC<TagInputProps> = ({
 }) => {
   const [inputValue, setInputValue] = useState('');
 
-  const addTag = (text: string) => {
-    const raw = text.split(',');
+  const addTagsFromText = (text: string) => {
+    if (!text) return;
+    const raw = text.split(/[,\n]/);
+    const existingLower = new Set(value.map((t) => t.trim().toLowerCase().replace(/^#/, '')));
     const newTags: string[] = [];
 
     raw.forEach((r) => {
-      const clean = r.trim().toLowerCase().replace(/^#/, '');
-      if (clean && !value.includes(clean) && !newTags.includes(clean)) {
+      const clean = r.trim().replace(/^#/, '');
+      const cleanLower = clean.toLowerCase();
+      if (clean && !existingLower.has(cleanLower)) {
+        existingLower.add(cleanLower);
         newTags.push(clean);
       }
     });
@@ -46,10 +50,18 @@ export const TagInput: React.FC<TagInputProps> = ({
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' || e.key === ',') {
       e.preventDefault();
-      addTag(inputValue);
+      addTagsFromText(inputValue);
     } else if (e.key === 'Backspace' && !inputValue && value.length > 0) {
       e.preventDefault();
       onChange(value.slice(0, -1));
+    }
+  };
+
+  const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    const pasteText = e.clipboardData.getData('text');
+    if (pasteText && (pasteText.includes(',') || pasteText.includes('\n'))) {
+      e.preventDefault();
+      addTagsFromText(pasteText);
     }
   };
 
@@ -77,7 +89,8 @@ export const TagInput: React.FC<TagInputProps> = ({
             <button
               type="button"
               onClick={() => removeTag(index)}
-              className="text-muted-foreground hover:text-destructive transition-colors ml-0.5"
+              className="text-muted-foreground hover:text-destructive transition-colors ml-0.5 cursor-pointer"
+              title="Remove tag"
             >
               <X className="w-3 h-3" />
             </button>
@@ -89,8 +102,9 @@ export const TagInput: React.FC<TagInputProps> = ({
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
           onKeyDown={handleKeyDown}
+          onPaste={handlePaste}
           onBlur={() => {
-            if (inputValue.trim()) addTag(inputValue);
+            if (inputValue.trim()) addTagsFromText(inputValue);
           }}
           placeholder={value.length === 0 ? placeholder : "Add more tags..."}
           className="flex-1 min-w-[140px] h-7 px-2 text-xs bg-transparent text-foreground placeholder:text-muted-foreground/60 focus:outline-none"
@@ -101,3 +115,5 @@ export const TagInput: React.FC<TagInputProps> = ({
     </div>
   );
 };
+
+export default TagInput;

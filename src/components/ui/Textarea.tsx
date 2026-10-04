@@ -15,7 +15,7 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
       <div className={cn("relative group/textarea w-full", containerClassName)}>
         <textarea
           className={cn(
-            "flex min-h-[90px] w-full rounded-xl border border-border-strong bg-surface-3 px-3.5 py-2.5 text-sm text-text-primary shadow-xs transition-all duration-200 placeholder:text-text-muted focus-visible:outline-none focus-visible:border-accent focus-ring-accent disabled:cursor-not-allowed disabled:opacity-50 font-sans",
+            "flex min-h-[90px] w-full rounded-xl border border-border bg-surface-3 px-3.5 py-2.5 text-xs sm:text-sm text-text-primary shadow-xs transition-all duration-200 placeholder:text-text-muted focus-visible:outline-none focus-visible:border-accent focus-ring-accent disabled:cursor-not-allowed disabled:opacity-50 font-sans",
             error && "border-destructive focus-visible:border-destructive",
             className
           )}

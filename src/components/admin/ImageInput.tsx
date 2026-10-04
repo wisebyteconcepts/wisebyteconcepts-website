@@ -6,7 +6,7 @@ import { Button } from '@/components/Button';
 import { MediaPickerModal } from '@/components/media/MediaPickerModal';
 
 interface ImageInputProps {
-  label: string;
+  label?: string;
   value: string | null;
   onChange: (value: string | null) => void;
   description?: string;
@@ -19,22 +19,26 @@ export const ImageInput = ({ label, value, onChange, description, required }: Im
 
   return (
     <div className="space-y-2.5 w-full">
-      <div className="flex justify-between items-center">
-        <FormLabel required={required} className="text-xs font-semibold">
-          {label}
-        </FormLabel>
-        {value && (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() => setPickerOpen(true)}
-            className="h-6 text-[11px] text-primary hover:underline gap-1 p-0"
-          >
-            <RefreshCw className="w-3 h-3" /> Change via Gallery
-          </Button>
-        )}
-      </div>
+      {(label || value) && (
+        <div className="flex justify-between items-center">
+          {label ? (
+            <FormLabel required={required} className="text-xs font-semibold">
+              {label}
+            </FormLabel>
+          ) : <span />}
+          {value && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setPickerOpen(true)}
+              className="h-6 text-[11px] text-primary hover:underline gap-1 p-0"
+            >
+              <RefreshCw className="w-3 h-3" /> Change via Gallery
+            </Button>
+          )}
+        </div>
+      )}
       {description && <p className="text-[11px] text-muted-foreground">{description}</p>}
 
       {value ? (

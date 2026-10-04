@@ -106,6 +106,7 @@ export interface MarkdownEditorProps {
   onChange: (value: string) => void;
   placeholder?: string;
   rows?: number;
+  minHeight?: string;
   required?: boolean;
   className?: string;
 }
@@ -118,6 +119,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   onChange,
   placeholder = "Write comprehensive specifications in Markdown...",
   rows = 8,
+  minHeight,
   required,
   className,
 }) => {
@@ -387,6 +389,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
               onChange={(e) => onChange(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder={placeholder}
+              style={minHeight ? { minHeight } : undefined}
               className="w-full p-4 text-sm font-mono bg-transparent text-foreground placeholder:text-muted-foreground/60 focus:outline-none resize-y min-h-[180px] leading-relaxed"
             />
           </>

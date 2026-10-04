@@ -60,7 +60,7 @@ export const TabsTrigger = ({ value, children, className }: { value: string, chi
       data-state={isActive ? "active" : "inactive"}
       onClick={() => setActiveTab(value)}
       className={cn(
-        "relative inline-flex h-8 items-center justify-center gap-2 whitespace-nowrap rounded-lg px-3 text-xs font-medium border transition-all duration-150 focus-visible:outline-none focus-visible:border-accent focus-ring-accent disabled:pointer-events-none disabled:opacity-50 select-none shrink-0 cursor-pointer",
+        "relative inline-flex h-9 items-center justify-center gap-2 whitespace-nowrap rounded-lg px-3.5 text-xs font-semibold border transition-all duration-150 focus-visible:outline-none focus-visible:border-accent focus-ring-accent disabled:pointer-events-none disabled:opacity-50 select-none shrink-0 cursor-pointer",
         isActive
           ? "bg-surface-2 text-text-primary shadow-xs border-border/80"
           : "bg-transparent text-text-secondary hover:bg-[var(--hover-overlay)] hover:text-text-primary border-transparent",

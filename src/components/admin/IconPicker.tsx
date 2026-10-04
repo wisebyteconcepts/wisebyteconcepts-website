@@ -14,6 +14,7 @@ export interface IconPickerProps {
   label?: string;
   className?: string;
   compact?: boolean;
+  required?: boolean;
 }
 
 export const IconPicker: React.FC<IconPickerProps> = ({
@@ -22,6 +23,7 @@ export const IconPicker: React.FC<IconPickerProps> = ({
   label = "Select Icon",
   className,
   compact = false,
+  required = false,
 }) => {
   const [mode, setMode] = useState<'library' | 'url'>('library');
   const [isPickerOpen, setIsPickerOpen] = useState(false);
@@ -46,7 +48,7 @@ export const IconPicker: React.FC<IconPickerProps> = ({
       <div className={cn("space-y-1.5 w-full", className)}>
         {label && (
           <div className="flex items-center justify-between">
-            <FormLabel className="text-xs font-semibold">{label}</FormLabel>
+            <FormLabel required={required} className="text-xs font-semibold">{label}</FormLabel>
             {isUrl && (
               <span className="text-[10px] font-mono text-muted-foreground uppercase">URL</span>
             )}
@@ -106,7 +108,7 @@ export const IconPicker: React.FC<IconPickerProps> = ({
   return (
     <div className={cn("space-y-2.5 w-full", className)}>
       <div className="flex items-center justify-between">
-        <FormLabel className="text-xs font-semibold">{label}</FormLabel>
+        <FormLabel required={required} className="text-xs font-semibold">{label}</FormLabel>
         <div className="flex gap-1.5 p-0.5 rounded-lg bg-surface-2 border border-border/60">
           <button 
             type="button"

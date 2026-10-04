@@ -60,11 +60,11 @@ describe('Media Web Image URL Validation & Helpers', () => {
   });
 });
 
-describe('Media Filter Compatibility for Web Images', () => {
+describe('Media Filter Compatibility & Destination Folder Normalization', () => {
   const mockMediaList: MediaItem[] = [
     {
       id: '1',
-      name: 'Local Upload',
+      name: 'Local Upload Root',
       type: 'image',
       url: '/uploads/local.jpg',
       altText: 'Local',
@@ -78,11 +78,11 @@ describe('Media Filter Compatibility for Web Images', () => {
     },
     {
       id: '2',
-      name: 'Remote Web Image',
+      name: 'Remote Web Image In Folder',
       type: 'web-image',
       url: 'https://example.com/remote.png',
       altText: 'Remote',
-      folderId: null,
+      folderId: 'folder-services',
       tags: ['web-image'],
       size: 0,
       mimeType: 'image/web',
@@ -92,11 +92,11 @@ describe('Media Filter Compatibility for Web Images', () => {
     },
     {
       id: '3',
-      name: 'Video',
+      name: 'Video With String Root',
       type: 'video',
       url: 'https://youtube.com/watch?v=123',
       altText: 'Video',
-      folderId: null,
+      folderId: 'root', // legacy or string 'root'
       tags: [],
       size: 0,
       mimeType: 'video/embed',
@@ -125,5 +125,27 @@ describe('Media Filter Compatibility for Web Images', () => {
     );
     expect(selectableItems.length).toBe(2);
     expect(selectableItems.some((i) => i.type === 'web-image')).toBe(true);
+  });
+
+  it('normalizes root folder filtering consistently across null, undefined, and "root"', () => {
+    const isItemInRoot = (folderId: string | null | undefined) => !folderId || folderId === 'root';
+
+    const rootItems = mockMediaList.filter((item) => isItemInRoot(item.folderId));
+    expect(rootItems.length).toBe(2); // item 1 (null) and item 3 ('root')
+    expect(rootItems.map((i) => i.id)).toEqual(['1', '3']);
+
+    const folderItems = mockMediaList.filter((item) => item.folderId === 'folder-services');
+    expect(folderItems.length).toBe(1);
+    expect(folderItems[0].id).toBe('2');
+  });
+
+  it('normalizes targetFolderId to null when input is "root", null, or empty string', () => {
+    const normalizeFolder = (f: string | null | undefined) => (!f || f === 'root') ? null : f;
+
+    expect(normalizeFolder('root')).toBeNull();
+    expect(normalizeFolder(null)).toBeNull();
+    expect(normalizeFolder('')).toBeNull();
+    expect(normalizeFolder(undefined)).toBeNull();
+    expect(normalizeFolder('folder-123')).toBe('folder-123');
   });
 });

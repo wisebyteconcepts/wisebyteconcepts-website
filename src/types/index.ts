@@ -150,6 +150,22 @@ export interface Project {
   liveLink: string; // validated url (live website or download link)
   gitRepository?: string; // validated optional url (public repos only)
 
+  // Call to Action Tab
+  ctaHeading?: string;
+  ctaText?: string;
+  ctaButtonText?: string;
+  ctaButtonLink?: string;
+  ctaSecondaryButtonText?: string;
+  ctaSecondaryButtonLink?: string;
+  ctaVisual?: ServiceCtaVisual;
+
+  // SEO Tab
+  metaTitle?: string;
+  metaDescription?: string;
+  keywords?: string[];
+  focusKeyword?: string;
+  ogImage?: string;
+
   // Backward compatibility aliases for existing components and queries
   name?: string;
   description?: string;

@@ -28,7 +28,7 @@ export const SelectTrigger = ({ className, children }: { className?: string, chi
       type="button"
       onClick={() => setOpen(!open)}
       className={cn(
-        "flex h-10 w-full items-center justify-between rounded-xl border border-border-strong bg-surface-3 px-3.5 py-2 text-sm text-text-primary shadow-xs placeholder:text-text-muted focus:outline-none focus-visible:border-accent focus-ring-accent disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-150 select-none cursor-pointer",
+        "flex h-9 w-full items-center justify-between rounded-xl border border-border bg-surface-3 px-3.5 py-1.5 text-xs sm:text-sm text-text-primary shadow-xs placeholder:text-text-muted focus:outline-none focus-visible:border-accent focus-ring-accent disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-150 select-none cursor-pointer",
         className
       )}
     >

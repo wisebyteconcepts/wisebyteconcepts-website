@@ -7,7 +7,7 @@ import { MediaPickerModal } from '@/components/media/MediaPickerModal';
 import { useMediaStore } from '@/store/mediaStore';
 
 interface ImagesInputProps {
-  label: string;
+  label?: string;
   value: string[];
   onChange: (value: string[]) => void;
   description?: string;
@@ -54,9 +54,11 @@ export const ImagesInput = ({
     <div className="space-y-2.5 w-full">
       <div className="flex justify-between items-center">
         <div className="flex items-center gap-2">
-          <FormLabel required={required} className="text-xs font-semibold mb-0">
-            {label}
-          </FormLabel>
+          {label && (
+            <FormLabel required={required} className="text-xs font-semibold mb-0">
+              {label}
+            </FormLabel>
+          )}
           {value.length > 0 && (
             <span className="text-[10px] font-mono font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground border border-border/50">
               {value.length} {value.length === 1 ? 'image' : 'images'}

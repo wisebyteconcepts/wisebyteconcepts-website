@@ -46,7 +46,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
         disabled={disabled}
         value={value}
         className={cn(
-          "flex h-10 w-full rounded-xl border border-border-strong bg-surface-3 px-3.5 py-2 text-sm text-text-primary shadow-xs transition-all duration-200 placeholder:text-text-muted focus-visible:outline-none focus-visible:border-accent focus-ring-accent disabled:cursor-not-allowed disabled:opacity-50 font-sans",
+          "flex h-9 w-full rounded-xl border border-border bg-surface-3 px-3.5 py-1.5 text-xs sm:text-sm text-text-primary shadow-xs transition-all duration-200 placeholder:text-text-muted focus-visible:outline-none focus-visible:border-accent focus-ring-accent disabled:cursor-not-allowed disabled:opacity-50 font-sans",
           startIcon && "pl-10",
           (endIcon || showClear) && "pr-10",
           addonLeft && "rounded-l-none border-l-0",

@@ -114,7 +114,7 @@ export const MediaGallery: React.FC<MediaGalleryProps> = ({
   const [targetMoveFolder, setTargetMoveFolder] = useState<string | null>(null);
 
   useEffect(() => {
-    init();
+    init(true);
   }, [init]);
 
   // Extract all unique tags
@@ -146,10 +146,11 @@ export const MediaGallery: React.FC<MediaGalleryProps> = ({
       }
 
       // Folder filter
-      if (selectedFolderId === 'root' && item.folderId !== null) {
-        return false;
-      } else if (selectedFolderId !== 'all' && selectedFolderId !== 'root' && item.folderId !== selectedFolderId) {
-        return false;
+      const isItemInRoot = !item.folderId || item.folderId === 'root';
+      if (selectedFolderId === 'root') {
+        if (!isItemInRoot) return false;
+      } else if (selectedFolderId !== 'all') {
+        if (item.folderId !== selectedFolderId) return false;
       }
 
       // Collection filter

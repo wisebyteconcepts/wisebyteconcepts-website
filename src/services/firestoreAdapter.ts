@@ -327,10 +327,14 @@ export class FirestoreAdapter implements StorageService {
   async getMediaItems(): Promise<MediaItem[]> {
     try {
       const snapshot = await getDocs(collection(db, 'media'));
-      if (snapshot.empty) {
-        return localFallback.getMediaItems();
-      }
-      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as MediaItem));
+      const firestoreItems = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as MediaItem));
+      const localItems = await localFallback.getMediaItems();
+
+      // Merge local items with Firestore items to ensure all newly created and persisted items appear immediately
+      const itemMap = new Map<string, MediaItem>();
+      localItems.forEach((item) => itemMap.set(item.id, item));
+      firestoreItems.forEach((item) => itemMap.set(item.id, item));
+      return Array.from(itemMap.values());
     } catch (error) {
       handleFirestoreError(error, OperationType.LIST, 'media');
       return localFallback.getMediaItems();
@@ -338,8 +342,9 @@ export class FirestoreAdapter implements StorageService {
   }
 
   async createMediaItem(item: MediaItem): Promise<MediaItem> {
+    const cleaned = cleanForFirestore(item);
     try {
-      await setDoc(doc(db, 'media', item.id), item);
+      await setDoc(doc(db, 'media', item.id), cleaned);
       await localFallback.createMediaItem(item);
       return item;
     } catch (error) {
@@ -349,8 +354,9 @@ export class FirestoreAdapter implements StorageService {
   }
 
   async updateMediaItem(item: MediaItem): Promise<MediaItem> {
+    const cleaned = cleanForFirestore(item);
     try {
-      await setDoc(doc(db, 'media', item.id), item);
+      await setDoc(doc(db, 'media', item.id), cleaned);
       await localFallback.updateMediaItem(item);
       return item;
     } catch (error) {

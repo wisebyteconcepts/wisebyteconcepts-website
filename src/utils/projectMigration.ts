@@ -187,6 +187,20 @@ export function normalizeProject(raw: any, defaultParentService: string = ''): P
     liveLink,
     gitRepository,
 
+    ctaHeading: raw.ctaHeading || undefined,
+    ctaText: raw.ctaText || undefined,
+    ctaButtonText: raw.ctaButtonText || 'View Live Project',
+    ctaButtonLink: raw.ctaButtonLink || liveLink || '/contact',
+    ctaSecondaryButtonText: raw.ctaSecondaryButtonText || undefined,
+    ctaSecondaryButtonLink: raw.ctaSecondaryButtonLink || undefined,
+    ctaVisual: raw.ctaVisual || undefined,
+
+    metaTitle: raw.metaTitle || undefined,
+    metaDescription: raw.metaDescription || undefined,
+    keywords: Array.isArray(raw.keywords) ? raw.keywords : [],
+    focusKeyword: raw.focusKeyword || undefined,
+    ogImage: raw.ogImage || displayPicture || undefined,
+
     // Backward compatibility aliases
     name: title,
     description: shortDescription,

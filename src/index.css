@@ -68,9 +68,46 @@
   --shadow-glow: 0 0 30px rgba(59, 130, 246, 0.25);
   --shadow-glow-strong: 0 0 50px rgba(59, 130, 246, 0.45);
 
-  --radius-xl: 0.75rem;
-  --radius-2xl: 1rem;
+  /* Spacing Scale (4/8px grid system) */
+  --spacing-0: 0px;
+  --spacing-0-5: 2px;
+  --spacing-1: 4px;     /* 4px */
+  --spacing-1-5: 6px;   /* 6px */
+  --spacing-2: 8px;     /* 8px */
+  --spacing-2-5: 10px;  /* 10px */
+  --spacing-3: 12px;    /* 12px */
+  --spacing-3-5: 14px;  /* 14px */
+  --spacing-4: 16px;    /* 16px */
+  --spacing-5: 20px;    /* 20px */
+  --spacing-6: 24px;    /* 24px */
+  --spacing-7: 28px;    /* 28px */
+  --spacing-8: 32px;    /* 32px */
+  --spacing-9: 36px;    /* 36px */
+  --spacing-10: 40px;   /* 40px */
+  --spacing-11: 44px;   /* 44px */
+  --spacing-12: 48px;   /* 48px */
+  --spacing-14: 56px;   /* 56px */
+  --spacing-16: 64px;   /* 64px */
+  --spacing-20: 80px;   /* 80px */
+  --spacing-24: 96px;   /* 96px */
 
+  /* Standard Control Heights */
+  --control-height-sm: 32px; /* 2rem / h-8 */
+  --control-height-md: 36px; /* 2.25rem / h-9 */
+  --control-height-lg: 40px; /* 2.5rem / h-10 */
+  --control-height-xl: 48px; /* 3rem / h-12 */
+
+  /* Radii Scale */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-xl: 12px;
+  --radius-2xl: 16px;
+  --radius-3xl: 24px;
+  --radius-full: 9999px;
+
+  /* Font Scale */
   --font-sans: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
   --font-display: 'Space Grotesk', system-ui, sans-serif;
   --font-space: 'Space Grotesk', system-ui, sans-serif;

@@ -32,8 +32,8 @@ export const CrudPageShell = ({
           </div>
           <p className="text-muted-foreground text-lg">{description}</p>
         </div>
-        <Button onClick={onAdd} className="rounded-full px-8 shadow-glow-primary">
-          <Plus className="w-4 h-4 mr-2" /> {addLabel}
+        <Button onClick={onAdd} className="rounded-xl px-5 shadow-sm">
+          <Plus className="w-4 h-4 mr-1.5" /> {addLabel}
         </Button>
       </div>
 

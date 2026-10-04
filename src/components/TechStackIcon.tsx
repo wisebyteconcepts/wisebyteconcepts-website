@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 
 export interface TechStackIconProps {
   stack?: Partial<TechStack>;
+  tech?: Partial<TechStack>;
   iconType?: TechStackIconType;
   icon?: any;
   iconLink?: string;
@@ -17,7 +18,8 @@ export interface TechStackIconProps {
 }
 
 export const TechStackIcon: React.FC<TechStackIconProps> = ({
-  stack,
+  stack: propStack,
+  tech,
   iconType: propIconType,
   icon: propIcon,
   iconLink: propIconLink,
@@ -27,6 +29,7 @@ export const TechStackIcon: React.FC<TechStackIconProps> = ({
   size,
   fallback: Fallback = Layers,
 }) => {
+  const stack = tech || propStack;
   const [imageError, setImageError] = useState(false);
 
   // Derive values from either stack prop or individual props
