@@ -79,6 +79,17 @@ export interface Service {
   metaTitle?: string;
   metaDescription?: string;
   keywords?: string[];
+  focusKeyword?: string;
+  ogImage?: string;
+  ogImageAlt?: string;
+  canonicalUrl?: string;
+  noIndex?: boolean;
+  noFollow?: boolean;
+  twitterCardType?: 'summary' | 'summary_large_image';
+  twitterTitle?: string;
+  twitterDescription?: string;
+  twitterImage?: string;
+  enableStructuredData?: boolean;
 
   // Backward compatibility aliases for legacy access
   name?: string;
@@ -165,6 +176,15 @@ export interface Project {
   keywords?: string[];
   focusKeyword?: string;
   ogImage?: string;
+  ogImageAlt?: string;
+  canonicalUrl?: string;
+  noIndex?: boolean;
+  noFollow?: boolean;
+  twitterCardType?: 'summary' | 'summary_large_image';
+  twitterTitle?: string;
+  twitterDescription?: string;
+  twitterImage?: string;
+  enableStructuredData?: boolean;
 
   // Backward compatibility aliases for existing components and queries
   name?: string;

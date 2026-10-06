@@ -63,6 +63,17 @@ export const serviceSchema = z.object({
   metaTitle: z.string().optional(),
   metaDescription: z.string().optional(),
   keywords: z.array(z.string()).default([]),
+  focusKeyword: z.string().optional(),
+  ogImage: z.string().optional(),
+  ogImageAlt: z.string().optional(),
+  canonicalUrl: z.string().optional(),
+  noIndex: z.boolean().default(false),
+  noFollow: z.boolean().default(false),
+  twitterCardType: z.enum(['summary', 'summary_large_image']).default('summary_large_image'),
+  twitterTitle: z.string().optional(),
+  twitterDescription: z.string().optional(),
+  twitterImage: z.string().optional(),
+  enableStructuredData: z.boolean().default(true),
 }).superRefine((data, ctx) => {
   if (data.iconType === 'icon' && !data.icon) {
     ctx.addIssue({
@@ -167,13 +178,30 @@ export const projectSchema = z.object({
   // Deployment
   liveLink: z
     .string()
-    .min(1, 'Live URL is required')
-    .url('Live link must be a valid URL (http:// or https://)'),
+    .url('Live link must be a valid URL (http:// or https://)')
+    .optional()
+    .or(z.literal('')),
   gitRepository: z
     .string()
     .url('Git repository must be a valid URL')
     .optional()
     .or(z.literal('')),
+
+  // SEO
+  metaTitle: z.string().optional(),
+  metaDescription: z.string().optional(),
+  keywords: z.array(z.string()).default([]),
+  focusKeyword: z.string().optional(),
+  ogImage: z.string().optional(),
+  ogImageAlt: z.string().optional(),
+  canonicalUrl: z.string().optional(),
+  noIndex: z.boolean().default(false),
+  noFollow: z.boolean().default(false),
+  twitterCardType: z.enum(['summary', 'summary_large_image']).default('summary_large_image'),
+  twitterTitle: z.string().optional(),
+  twitterDescription: z.string().optional(),
+  twitterImage: z.string().optional(),
+  enableStructuredData: z.boolean().default(true),
 }).superRefine((data, ctx) => {
   if (data.iconType === 'icon' && !data.icon) {
     ctx.addIssue({

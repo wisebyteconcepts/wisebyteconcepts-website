@@ -200,5 +200,27 @@ describe('Service Model Unit Tests', () => {
       expect(normalized.coreFeatures.length).toBeGreaterThan(0);
       expect(normalized.deliveredWithin.unit).toBe('Weeks');
     });
+
+    it('should normalize and preserve SEO fields for the public service details page', () => {
+      const rawWithSeo = {
+        title: 'Cloud DevOps Consulting',
+        shortDescription: 'Expert infrastructure optimization',
+        category: 'Cloud & DevOps',
+        metaTitle: 'Cloud DevOps Consulting | Custom Meta Title',
+        metaDescription: 'Custom meta description for Google snippets',
+        canonicalUrl: 'https://wisebyteconcepts.com/services/cloud-devops-consulting',
+        noIndex: false,
+        noFollow: false,
+        twitterCardType: 'summary_large_image',
+        enableStructuredData: true,
+      };
+
+      const normalized = normalizeService(rawWithSeo);
+      expect(normalized.metaTitle).toBe('Cloud DevOps Consulting | Custom Meta Title');
+      expect(normalized.metaDescription).toBe('Custom meta description for Google snippets');
+      expect(normalized.canonicalUrl).toBe('https://wisebyteconcepts.com/services/cloud-devops-consulting');
+      expect(normalized.noIndex).toBe(false);
+      expect(normalized.enableStructuredData).toBe(true);
+    });
   });
 });

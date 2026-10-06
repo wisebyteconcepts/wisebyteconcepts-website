@@ -200,6 +200,15 @@ export function normalizeProject(raw: any, defaultParentService: string = ''): P
     keywords: Array.isArray(raw.keywords) ? raw.keywords : [],
     focusKeyword: raw.focusKeyword || undefined,
     ogImage: raw.ogImage || displayPicture || undefined,
+    ogImageAlt: raw.ogImageAlt || undefined,
+    canonicalUrl: raw.canonicalUrl || undefined,
+    noIndex: Boolean(raw.noIndex),
+    noFollow: Boolean(raw.noFollow),
+    twitterCardType: raw.twitterCardType || 'summary_large_image',
+    twitterTitle: raw.twitterTitle || undefined,
+    twitterDescription: raw.twitterDescription || undefined,
+    twitterImage: raw.twitterImage || undefined,
+    enableStructuredData: raw.enableStructuredData !== false,
 
     // Backward compatibility aliases
     name: title,

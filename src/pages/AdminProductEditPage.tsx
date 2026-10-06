@@ -12,7 +12,8 @@ import {
   Layers, 
   Briefcase, 
   Eye, 
-  Target 
+  Target,
+  FileText 
 } from 'lucide-react';
 import { Button } from '@/components/Button';
 import { 
@@ -34,6 +35,7 @@ import { TechStackIcon } from '@/components/TechStackIcon';
 import { ReorderableCardList } from '@/components/forms/ReorderableCardList';
 import { SeoFields } from '@/components/forms/SeoFields';
 import { CtaSection } from '@/components/forms/CtaSection';
+import { ImportTextModal } from '@/components/forms/ImportTextModal';
 import { useAppStore } from '@/store';
 import { useToastStore } from '@/store/toastStore';
 import { 
@@ -103,6 +105,15 @@ const emptyProject = (defaultParentService: string = ''): Project => ({
   keywords: [],
   focusKeyword: '',
   ogImage: '',
+  ogImageAlt: '',
+  canonicalUrl: '',
+  noIndex: false,
+  noFollow: false,
+  twitterCardType: 'summary_large_image',
+  twitterTitle: '',
+  twitterDescription: '',
+  twitterImage: '',
+  enableStructuredData: true,
 
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
@@ -129,10 +140,27 @@ export const AdminProductEditPage: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState('basic');
   const [slugCustomized, setSlugCustomized] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
   // Modal "Add Tech Stack" state
   const [isAddTechStackOpen, setIsAddTechStackOpen] = useState(false);
   const [isSavingTechStack, setIsSavingTechStack] = useState(false);
+
+  const handleApplyProductImport = (imported: Partial<Project>) => {
+    setForm((prev) => ({
+      ...prev,
+      ...imported,
+      deliveredWithin: {
+        ...prev.deliveredWithin,
+        ...(imported.deliveredWithin || {}),
+      },
+      coreFeatures: imported.coreFeatures || prev.coreFeatures,
+      deliverables: imported.deliverables || prev.deliverables,
+    }));
+    if (imported.slug) {
+      setSlugCustomized(true);
+    }
+  };
 
   useEffect(() => {
     if (isEditing && id) {
@@ -226,12 +254,7 @@ export const AdminProductEditPage: React.FC = () => {
       return;
     }
 
-    if (!form.liveLink.trim()) {
-      addToast('Live URL is required in the Deployment tab', 'error');
-      setActiveTab('deployment');
-      return;
-    }
-    if (!isValidUrl(form.liveLink)) {
+    if (form.liveLink && form.liveLink.trim() && !isValidUrl(form.liveLink.trim())) {
       addToast('Live URL must be a valid web address (e.g. https://example.com)', 'error');
       setActiveTab('deployment');
       return;
@@ -290,11 +313,20 @@ export const AdminProductEditPage: React.FC = () => {
       ctaSecondaryButtonLink: form.ctaSecondaryButtonLink?.trim() || undefined,
       ctaVisual: form.ctaVisual,
 
-      metaTitle: form.metaTitle?.trim() || undefined,
-      metaDescription: form.metaDescription?.trim() || undefined,
+      metaTitle: form.metaTitle?.trim() || `${form.title.trim()} | Wise Byte Concepts`,
+      metaDescription: form.metaDescription?.trim() || form.shortDescription.trim(),
       keywords: form.keywords || [],
       focusKeyword: form.focusKeyword?.trim() || undefined,
       ogImage: form.ogImage || form.displayPicture || undefined,
+      ogImageAlt: form.ogImageAlt?.trim() || undefined,
+      canonicalUrl: form.canonicalUrl?.trim() || undefined,
+      noIndex: Boolean(form.noIndex),
+      noFollow: Boolean(form.noFollow),
+      twitterCardType: form.twitterCardType || 'summary_large_image',
+      twitterTitle: form.twitterTitle?.trim() || undefined,
+      twitterDescription: form.twitterDescription?.trim() || undefined,
+      twitterImage: form.twitterImage?.trim() || undefined,
+      enableStructuredData: form.enableStructuredData !== false,
 
       name: form.title.trim(),
       description: form.shortDescription.trim(),
@@ -435,9 +467,21 @@ export const AdminProductEditPage: React.FC = () => {
 
         {/* TAB 1: BASIC DETAILS */}
         <TabsContent value="basic" className="space-y-6 p-6 rounded-2xl bg-card border border-border/50 backdrop-blur-sm shadow-xs animate-in fade-in duration-300">
-          <div className="pb-3 border-b border-border/40">
-            <h2 className="text-base font-semibold text-foreground">Project Identity & Classification</h2>
-            <p className="text-xs text-muted-foreground">Title, unique slug, parent service mapping, description, tags, and visibility status.</p>
+          <div className="pb-3 border-b border-border/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h2 className="text-base font-semibold text-foreground">Project Identity & Classification</h2>
+              <p className="text-xs text-muted-foreground">Title, unique slug, parent service mapping, description, tags, and visibility status.</p>
+            </div>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => setIsImportModalOpen(true)}
+              className="gap-1.5 self-start sm:self-auto shrink-0 h-8 px-3 rounded-xl border-border bg-surface-2 hover:bg-surface-3 text-xs font-semibold cursor-pointer shadow-2xs"
+            >
+              <FileText className="w-3.5 h-3.5 text-primary" />
+              <span>Import from text</span>
+            </Button>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -828,7 +872,6 @@ export const AdminProductEditPage: React.FC = () => {
               value={form.liveLink}
               onChange={(e) => update('liveLink', e.target.value)}
               placeholder="https://app.example.com"
-              required
               description="Direct hyperlink to the deployed application, staging instance, or digital product."
             />
 
@@ -842,9 +885,16 @@ export const AdminProductEditPage: React.FC = () => {
           </div>
         </TabsContent>
 
-        {/* TAB 7: SEO (Requirement 4: Shared SeoFields) */}
+        {/* TAB 7: SEO */}
         <TabsContent value="seo" className="space-y-6 p-6 rounded-2xl bg-card border border-border/50 backdrop-blur-sm shadow-xs animate-in fade-in duration-300">
           <SeoFields
+            type="Product"
+            sourceTitle={form.title}
+            sourceShortDescription={form.shortDescription}
+            sourceDisplayPicture={form.displayPicture}
+            sourceTags={form.tags}
+            sourceCategory={form.category}
+            sourceLiveLink={form.liveLink}
             metaTitle={form.metaTitle || ''}
             onMetaTitleChange={(val) => update('metaTitle', val)}
             metaDescription={form.metaDescription || ''}
@@ -852,12 +902,30 @@ export const AdminProductEditPage: React.FC = () => {
             slug={form.slug}
             onSlugChange={(val) => update('slug', slugify(val))}
             pathPrefix="products"
-            focusKeyword={form.focusKeyword}
+            focusKeyword={form.focusKeyword || ''}
             onFocusKeywordChange={(val) => update('focusKeyword', val)}
+            keywords={form.keywords || []}
+            onKeywordsChange={(tags) => update('keywords', tags)}
             ogImage={form.ogImage}
             onOgImageChange={(val) => update('ogImage', val || undefined)}
-            keywords={form.keywords}
-            onKeywordsChange={(tags) => update('keywords', tags)}
+            ogImageAlt={form.ogImageAlt || ''}
+            onOgImageAltChange={(val) => update('ogImageAlt', val)}
+            canonicalUrl={form.canonicalUrl || ''}
+            onCanonicalUrlChange={(val) => update('canonicalUrl', val)}
+            noIndex={form.noIndex || false}
+            onNoIndexChange={(val) => update('noIndex', val)}
+            noFollow={form.noFollow || false}
+            onNoFollowChange={(val) => update('noFollow', val)}
+            twitterCardType={form.twitterCardType || 'summary_large_image'}
+            onTwitterCardTypeChange={(val) => update('twitterCardType', val)}
+            twitterTitle={form.twitterTitle || ''}
+            onTwitterTitleChange={(val) => update('twitterTitle', val)}
+            twitterDescription={form.twitterDescription || ''}
+            onTwitterDescriptionChange={(val) => update('twitterDescription', val)}
+            twitterImage={form.twitterImage || ''}
+            onTwitterImageChange={(val) => update('twitterImage', val || undefined)}
+            enableStructuredData={form.enableStructuredData !== false}
+            onEnableStructuredDataChange={(val) => update('enableStructuredData', val)}
             defaultTitlePlaceholder={form.title}
             defaultDescriptionPlaceholder={form.shortDescription}
           />
@@ -936,6 +1004,15 @@ export const AdminProductEditPage: React.FC = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Import from text Modal */}
+      <ImportTextModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        targetType="Product"
+        existingCategories={projectCategories}
+        onApplyProduct={handleApplyProductImport}
+      />
     </div>
   );
 };

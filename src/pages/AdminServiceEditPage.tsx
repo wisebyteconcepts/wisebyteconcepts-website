@@ -36,6 +36,7 @@ import { ReorderableCardList } from '@/components/forms/ReorderableCardList';
 import { SeoFields } from '@/components/forms/SeoFields';
 import { CtaSection } from '@/components/forms/CtaSection';
 import { CreatableCategorySelect } from '@/components/forms/CreatableCategorySelect';
+import { ImportTextModal } from '@/components/forms/ImportTextModal';
 import { useAppStore } from '@/store';
 import { useToastStore } from '@/store/toastStore';
 import { 
@@ -104,6 +105,17 @@ const emptyService = (): Service => ({
   metaTitle: "",
   metaDescription: "",
   keywords: [],
+  focusKeyword: "",
+  ogImage: "",
+  ogImageAlt: "",
+  canonicalUrl: "",
+  noIndex: false,
+  noFollow: false,
+  twitterCardType: "summary_large_image",
+  twitterTitle: "",
+  twitterDescription: "",
+  twitterImage: "",
+  enableStructuredData: true,
 
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
@@ -131,10 +143,27 @@ export const AdminServiceEditPage: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState("content");
   const [slugCustomized, setSlugCustomized] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
   // Modal "Add Tech Stack" state
   const [isAddTechStackOpen, setIsAddTechStackOpen] = useState(false);
   const [isSavingTechStack, setIsSavingTechStack] = useState(false);
+
+  const handleApplyServiceImport = (imported: Partial<Service>) => {
+    setForm((prev) => ({
+      ...prev,
+      ...imported,
+      deliveredWithin: {
+        ...prev.deliveredWithin,
+        ...(imported.deliveredWithin || {}),
+      },
+      coreFeatures: imported.coreFeatures || prev.coreFeatures,
+      deliverables: imported.deliverables || prev.deliverables,
+    }));
+    if (imported.slug) {
+      setSlugCustomized(true);
+    }
+  };
 
   useEffect(() => {
     if (isEditing && id) {
@@ -252,6 +281,17 @@ export const AdminServiceEditPage: React.FC = () => {
       metaTitle: form.metaTitle?.trim() || `${form.title.trim()} | Wise Byte Concepts`,
       metaDescription: form.metaDescription?.trim() || form.shortDescription.trim(),
       keywords: form.keywords || [],
+      focusKeyword: form.focusKeyword?.trim() || undefined,
+      ogImage: form.ogImage?.trim() || form.displayPicture || undefined,
+      ogImageAlt: form.ogImageAlt?.trim() || undefined,
+      canonicalUrl: form.canonicalUrl?.trim() || undefined,
+      noIndex: Boolean(form.noIndex),
+      noFollow: Boolean(form.noFollow),
+      twitterCardType: form.twitterCardType || 'summary_large_image',
+      twitterTitle: form.twitterTitle?.trim() || undefined,
+      twitterDescription: form.twitterDescription?.trim() || undefined,
+      twitterImage: form.twitterImage?.trim() || undefined,
+      enableStructuredData: form.enableStructuredData !== false,
 
       name: form.title.trim(),
       header: form.title.trim(),
@@ -394,9 +434,21 @@ export const AdminServiceEditPage: React.FC = () => {
 
         {/* TAB 1: CONTENT */}
         <TabsContent value="content" className="space-y-6 p-6 rounded-2xl bg-card border border-border/50 backdrop-blur-sm shadow-xs animate-in fade-in duration-300">
-          <div className="pb-3 border-b border-border/40">
-            <h2 className="text-base font-semibold text-foreground">Service Content & Identity</h2>
-            <p className="text-xs text-muted-foreground">Define title, unique slug, descriptive text, taxonomy, and visibility status.</p>
+          <div className="pb-3 border-b border-border/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h2 className="text-base font-semibold text-foreground">Service Content & Identity</h2>
+              <p className="text-xs text-muted-foreground">Define title, unique slug, descriptive text, taxonomy, and visibility status.</p>
+            </div>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => setIsImportModalOpen(true)}
+              className="gap-1.5 self-start sm:self-auto shrink-0 h-8 px-3 rounded-xl border-border bg-surface-2 hover:bg-surface-3 text-xs font-semibold cursor-pointer shadow-2xs"
+            >
+              <FileText className="w-3.5 h-3.5 text-primary" />
+              <span>Import from text</span>
+            </Button>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -890,9 +942,17 @@ export const AdminServiceEditPage: React.FC = () => {
           </div>
         </TabsContent>
 
-        {/* TAB 7: SEO (Requirement 4: Shared SeoFields) */}
+        {/* TAB 7: SEO */}
         <TabsContent value="seo" className="space-y-6 p-6 rounded-2xl bg-card border border-border/50 backdrop-blur-sm shadow-xs animate-in fade-in duration-300">
           <SeoFields
+            type="Service"
+            sourceTitle={form.title}
+            sourceShortDescription={form.shortDescription}
+            sourceDisplayPicture={form.displayPicture}
+            sourceTags={form.tags}
+            sourceCategory={form.category}
+            sourceAmount={form.amount}
+            sourceCurrency={form.currency}
             metaTitle={form.metaTitle || ''}
             onMetaTitleChange={(val) => update('metaTitle', val)}
             metaDescription={form.metaDescription || ''}
@@ -900,8 +960,30 @@ export const AdminServiceEditPage: React.FC = () => {
             slug={form.slug}
             onSlugChange={(val) => update('slug', slugify(val))}
             pathPrefix="services"
-            keywords={form.keywords}
+            focusKeyword={form.focusKeyword || ''}
+            onFocusKeywordChange={(val) => update('focusKeyword', val)}
+            keywords={form.keywords || []}
             onKeywordsChange={(tags) => update('keywords', tags)}
+            ogImage={form.ogImage}
+            onOgImageChange={(val) => update('ogImage', val || undefined)}
+            ogImageAlt={form.ogImageAlt || ''}
+            onOgImageAltChange={(val) => update('ogImageAlt', val)}
+            canonicalUrl={form.canonicalUrl || ''}
+            onCanonicalUrlChange={(val) => update('canonicalUrl', val)}
+            noIndex={form.noIndex || false}
+            onNoIndexChange={(val) => update('noIndex', val)}
+            noFollow={form.noFollow || false}
+            onNoFollowChange={(val) => update('noFollow', val)}
+            twitterCardType={form.twitterCardType || 'summary_large_image'}
+            onTwitterCardTypeChange={(val) => update('twitterCardType', val)}
+            twitterTitle={form.twitterTitle || ''}
+            onTwitterTitleChange={(val) => update('twitterTitle', val)}
+            twitterDescription={form.twitterDescription || ''}
+            onTwitterDescriptionChange={(val) => update('twitterDescription', val)}
+            twitterImage={form.twitterImage || ''}
+            onTwitterImageChange={(val) => update('twitterImage', val || undefined)}
+            enableStructuredData={form.enableStructuredData !== false}
+            onEnableStructuredDataChange={(val) => update('enableStructuredData', val)}
             defaultTitlePlaceholder={form.title}
             defaultDescriptionPlaceholder={form.shortDescription}
           />
@@ -980,6 +1062,15 @@ export const AdminServiceEditPage: React.FC = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Import from text Modal */}
+      <ImportTextModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        targetType="Service"
+        existingCategories={serviceCategories}
+        onApplyService={handleApplyServiceImport}
+      />
     </div>
   );
 };

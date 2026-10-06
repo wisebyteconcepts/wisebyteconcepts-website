@@ -209,6 +209,18 @@ describe('Project Model Unit Tests', () => {
       expect(parsed.success).toBe(true);
     });
 
+    it('should allow blank or empty liveLink without errors', () => {
+      const blankLiveLink = { ...validProjectPayload, liveLink: '' };
+      const parsed = projectSchema.safeParse(blankLiveLink);
+      expect(parsed.success).toBe(true);
+    });
+
+    it('should reject invalid non-empty liveLink', () => {
+      const invalidUrl = { ...validProjectPayload, liveLink: 'not-a-url' };
+      const parsed = projectSchema.safeParse(invalidUrl);
+      expect(parsed.success).toBe(false);
+    });
+
     it('should reject when required fields are missing', () => {
       const invalid = { ...validProjectPayload, title: '', liveLink: 'invalid-url' };
       const parsed = projectSchema.safeParse(invalid);

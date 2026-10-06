@@ -59,7 +59,7 @@ export const TagInput: React.FC<TagInputProps> = ({
 
   const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
     const pasteText = e.clipboardData.getData('text');
-    if (pasteText && (pasteText.includes(',') || pasteText.includes('\n'))) {
+    if (pasteText && pasteText.trim()) {
       e.preventDefault();
       addTagsFromText(pasteText);
     }

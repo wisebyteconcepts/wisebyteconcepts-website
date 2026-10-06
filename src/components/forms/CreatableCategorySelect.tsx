@@ -151,7 +151,7 @@ export const CreatableCategorySelect: React.FC<CreatableCategorySelectProps> = (
               ) : (
                 <Plus className="w-3.5 h-3.5 shrink-0" />
               )}
-              <span className="truncate">Create &quot;{cleanQuery}&quot;</span>
+              <span className="truncate">+ Create &quot;{cleanQuery}&quot;</span>
             </button>
           )}
 

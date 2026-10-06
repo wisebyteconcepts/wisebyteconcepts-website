@@ -23,6 +23,7 @@ import {
 import { Badge } from '@/components/ui/Badge';
 import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
+import { Switch } from '@/components/ui/Switch';
 import {
   InputBlock,
   PasswordInputBlock,
@@ -40,26 +41,14 @@ import * as LucideIcons from 'lucide-react';
 import { 
   Trash2, 
   Shield, 
-  Plus,
   X,
   Lock, 
   Briefcase, 
   ShoppingBag, 
-  Camera,
   Code, 
   Code2, 
   Search,
-  Smartphone,
-  Cloud,
-  Database,
-  Palette,
-  Server,
-  Monitor as MonitorIcon,
-  Globe as GlobeIcon,
-  CircleDot,
-  Terminal,
   ArrowLeft,
-  ChevronRight,
   ExternalLink,
   Github,
   Globe,
@@ -76,7 +65,6 @@ import {
   Monitor,
   Settings,
   Star,
-  EyeOff,
   Pencil,
   LucideIcon
 } from 'lucide-react';
@@ -90,7 +78,7 @@ import { TechStackIcon } from '@/components/TechStackIcon';
 import { MarkdownContent } from '@/components/ui/MarkdownEditor';
 import DecryptedText from '@/components/ui/DecryptedText';
 import { useParams } from 'react-router-dom';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion } from 'motion/react';
 
 const DynamicIcon = ({ name, className, fallback: Fallback }: { name?: any; className?: string; fallback: LucideIcon }) => {
   return <Icon value={name} className={className} fallback={Fallback} />;
@@ -1127,9 +1115,33 @@ export const AdminDashboardPage = () => {
 };
 
 export const AdminServicesPage = () => {
-  const { services, deleteService, reorderServices } = useAppStore();
+  const { services, deleteService, reorderServices, updateService } = useAppStore();
   const addToast = useToastStore((state) => state.addToast);
   const navigate = useNavigate();
+
+  const handleToggleActive = async (s: Service, currentActive: boolean) => {
+    const next = !currentActive;
+    const previous = { ...s };
+    // Optimistic update
+    useAppStore.setState((state) => ({
+      services: state.services.map((item) =>
+        item.id === s.id ? { ...item, active: next, isActive: next } : item
+      ),
+    }));
+
+    try {
+      await updateService({ ...s, active: next, isActive: next });
+      addToast(`Service "${s.title || s.name || ''}" is now ${next ? 'Active' : 'Hidden'}`, 'success');
+    } catch (error: any) {
+      // Revert plus error toast on failure
+      useAppStore.setState((state) => ({
+        services: state.services.map((item) =>
+          item.id === s.id ? previous : item
+        ),
+      }));
+      addToast('Failed to update service status. Reverted.', 'error');
+    }
+  };
 
   const openAdd = () => {
     navigate('/admin/services/new');
@@ -1218,17 +1230,15 @@ export const AdminServicesPage = () => {
                         </div>
                       </TableCell>
                       <TableCell className="hidden md:table-cell">
-                        {isAct ? (
-                          <div className="flex items-center gap-2">
-                            <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                            <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-primary">Active</span>
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-2 opacity-30">
-                            <EyeOff className="h-3 w-3" />
-                            <span className="text-[10px] font-mono font-bold uppercase tracking-widest">Hidden</span>
-                          </div>
-                        )}
+                        <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                          <Switch
+                            checked={Boolean(isAct)}
+                            onCheckedChange={() => handleToggleActive(s, Boolean(isAct))}
+                          />
+                          <span className={`text-[10px] font-mono font-bold uppercase tracking-wider ${isAct ? 'text-primary' : 'text-muted-foreground'}`}>
+                            {isAct ? 'Active' : 'Hidden'}
+                          </span>
+                        </div>
                       </TableCell>
                       <TableCell className="text-right pr-4">
                         <div className="flex justify-end gap-1">
@@ -1253,9 +1263,33 @@ export const AdminServicesPage = () => {
 };
 
 export const AdminProductsPage = () => {
-  const { products, services, deleteProduct, reorderProducts } = useAppStore();
+  const { products, services, deleteProduct, reorderProducts, updateProduct } = useAppStore();
   const addToast = useToastStore((state) => state.addToast);
   const navigate = useNavigate();
+
+  const handleToggleActive = async (p: Product, currentActive: boolean) => {
+    const next = !currentActive;
+    const previous = { ...p };
+    // Optimistic update
+    useAppStore.setState((state) => ({
+      products: state.products.map((item) =>
+        item.id === p.id ? { ...item, active: next, isActive: next } : item
+      ),
+    }));
+
+    try {
+      await updateProduct({ ...p, active: next, isActive: next });
+      addToast(`Project "${p.title || p.name || ''}" is now ${next ? 'Active' : 'Hidden'}`, 'success');
+    } catch (error: any) {
+      // Revert plus error toast on failure
+      useAppStore.setState((state) => ({
+        products: state.products.map((item) =>
+          item.id === p.id ? previous : item
+        ),
+      }));
+      addToast('Failed to update project status. Reverted.', 'error');
+    }
+  };
 
   const openAdd = () => {
     navigate('/admin/products/new');
@@ -1355,17 +1389,15 @@ export const AdminProductsPage = () => {
                         )}
                       </TableCell>
                       <TableCell className="hidden sm:table-cell">
-                        {isAct ? (
-                          <div className="flex items-center gap-2">
-                            <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                            <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-primary">Active</span>
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-2 opacity-40">
-                            <EyeOff className="h-3 w-3" />
-                            <span className="text-[10px] font-mono font-bold uppercase tracking-widest">Hidden</span>
-                          </div>
-                        )}
+                        <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                          <Switch
+                            checked={Boolean(isAct)}
+                            onCheckedChange={() => handleToggleActive(p, Boolean(isAct))}
+                          />
+                          <span className={`text-[10px] font-mono font-bold uppercase tracking-wider ${isAct ? 'text-primary' : 'text-muted-foreground'}`}>
+                            {isAct ? 'Active' : 'Hidden'}
+                          </span>
+                        </div>
                       </TableCell>
                       <TableCell className="text-right pr-4">
                         <div className="flex justify-end gap-1">
@@ -1529,478 +1561,7 @@ export const AdminTechStacksPage = () => {
 
 export const AdminSkillsPage = AdminTechStacksPage;
 
-export const ServiceDetailPage = () => {
-  const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
-  const services = useAppStore((state) => state.services);
-  const products = useAppStore((state) => state.products);
-  const skills = useAppStore((state) => state.skills);
-  const { user, isAuthenticated } = useAuthStore();
-  const isAdmin = Boolean(isAuthenticated && user);
-  
-  const service = services.find(s => s.id === id || s.slug === id);
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
-
-  const title = service ? (service.title || service.name || "Untitled Service") : "";
-  const bannerImg = service ? (service.bannerPicture || service.displayPicture || service.bannerImage || service.thumbnail) : undefined;
-  const isVisible = Boolean(service && ((service.active !== false && service.isActive !== false) || isAdmin));
-
-  useEffect(() => {
-    if (selectedImage) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
-    }
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
-  }, [selectedImage]);
-
-  useEffect(() => {
-    if (service) {
-      const metaTitle = service.metaTitle || `${title} | Wise Byte Concepts`;
-      document.title = metaTitle;
-      const metaDesc = service.metaDescription || service.shortDescription;
-      if (metaDesc) {
-        const metaTag = document.querySelector('meta[name="description"]');
-        if (metaTag) metaTag.setAttribute('content', metaDesc);
-      }
-    }
-  }, [service, title]);
-
-  const relatedProducts = useMemo(() => {
-    if (!service) return [];
-    const relatedIds = service.relatedProjects || [];
-    return [...products]
-      .filter(p => p.serviceId === service.id || relatedIds.includes(p.id))
-      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-  }, [products, service]);
-
-  const getTechIcon = (techName: string) => {
-    const skill = skills.find(s => s.name.toLowerCase() === techName.toLowerCase());
-    if (skill) {
-      return <TechStackIcon stack={skill} className="w-4 h-4" fallback={CircleDot} />;
-    }
-
-    const t = techName.toLowerCase();
-    if (t.includes('react') || t.includes('frontend') || t.includes('ui') || t.includes('next')) return <MonitorIcon className="w-4 h-4" />;
-    if (t.includes('node') || t.includes('backend') || t.includes('server') || t.includes('api') || t.includes('express') || t.includes('nest')) return <Server className="w-4 h-4" />;
-    if (t.includes('postgre') || t.includes('db') || t.includes('sql') || t.includes('mongo') || t.includes('redis') || t.includes('firebase')) return <Database className="w-4 h-4" />;
-    if (t.includes('tailwind') || t.includes('css') || t.includes('design') || t.includes('sass') || t.includes('figma')) return <Palette className="w-4 h-4" />;
-    if (t.includes('typescript') || t.includes('js') || t.includes('code') || t.includes('python') || t.includes('c#')) return <Code2 className="w-4 h-4" />;
-    if (t.includes('cloud') || t.includes('azure') || t.includes('aws') || t.includes('gcp') || t.includes('docker')) return <Cloud className="w-4 h-4" />;
-    if (t.includes('mobile') || t.includes('ios') || t.includes('android') || t.includes('maui') || t.includes('flutter')) return <Smartphone className="w-4 h-4" />;
-    if (t.includes('web') || t.includes('browser') || t.includes('rest')) return <GlobeIcon className="w-4 h-4" />;
-    return <CircleDot className="w-4 h-4" />;
-  };
-
-  if (!service || !isVisible) {
-    return (
-      <div className="min-h-[70vh] flex flex-col items-center justify-center text-center px-6">
-        <div className="w-20 h-20 bg-surface-4 border border-border rounded-3xl flex items-center justify-center mb-8">
-          <Briefcase className="w-10 h-10 text-text-muted" />
-        </div>
-        <h1 className="text-4xl font-bold mb-4 text-text-primary">Service Node Not Found</h1>
-        <p className="text-text-muted max-w-md mb-8">The requested technical service module could not be located in our registry.</p>
-        <Button onClick={() => navigate('/services')}>
-          <ArrowLeft className="mr-2 w-4 h-4" /> Go to Services
-        </Button>
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex flex-col relative">
-      <AnimatePresence>
-        {selectedImage && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[9999] flex items-center justify-center p-4 md:p-8 pointer-events-auto touch-none overflow-hidden"
-          >
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-black/90 backdrop-blur-2xl"
-              onClick={() => setSelectedImage(null)}
-            />
-            
-            <motion.div
-              layoutId={selectedImage}
-              initial={{ scale: 0.9, opacity: 0, y: 20 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              className="relative z-10 max-w-6xl w-full max-h-full flex items-center justify-center"
-            >
-              <button 
-                onClick={() => setSelectedImage(null)}
-                className="absolute -top-12 right-0 md:-right-12 md:top-0 p-2 text-white/50 hover:text-white transition-colors z-20 cursor-pointer"
-                id="close-modal-btn"
-                aria-label="Close modal"
-              >
-                <X className="w-8 h-8" />
-              </button>
-              
-              <div className="relative w-full h-full flex flex-col items-center justify-center p-4">
-                <img 
-                  src={selectedImage} 
-                  alt="Enlarged technical view"
-                  className="w-full h-auto max-h-[85vh] object-contain rounded-xl shadow-[0_0_50px_rgba(0,0,0,0.5)] border border-border"
-                />
-                
-                <div className="mt-6 text-center">
-                  <p className="text-white/40 text-[10px] font-mono tracking-[0.3em] uppercase mb-1">
-                    Technical Implementation Record
-                  </p>
-                  <p className="text-white/80 text-sm font-medium">
-                    {title} System Preview
-                  </p>
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Hero Section with Banner Picture fallback */}
-      <section className="relative pt-32 pb-12 overflow-hidden border-b border-border">
-        {bannerImg && (
-          <div className="absolute inset-0 -z-20 opacity-20">
-            <img src={bannerImg} alt={title} className="w-full h-full object-cover blur-xs" />
-            <div className="absolute inset-0 bg-gradient-to-t from-background via-background/90 to-background/60" />
-          </div>
-        )}
-        <GlowOrb color="primary" size="lg" className="top-[-10%] right-[-10%] opacity-20" />
-        <GlowOrb color="secondary" size="md" className="bottom-[-20%] left-[-10%] opacity-10" />
-        <div className="absolute top-0 right-0 w-1/2 h-full bg-primary/5 blur-[120px] -z-10" />
-        <div className="container mx-auto px-6">
-          <button 
-            onClick={() => navigate('/services')}
-            className="inline-flex items-center text-xs font-sans font-medium text-muted-foreground hover:text-primary transition-colors mb-12 uppercase tracking-[0.2em] cursor-pointer transform-gpu"
-          >
-            <ArrowLeft className="mr-2 w-3 h-3" /> All Services
-          </button>
-
-          <div className="flex flex-col gap-6 mb-8">
-            <div className="max-w-3xl">
-              <div className="flex items-center gap-3 mb-8">
-                <span className="px-4 py-1.5 bg-primary/10 text-primary text-[11px] font-bold tracking-[0.4em] uppercase rounded-full font-display">
-                  {service.category}
-                </span>
-                {!service.active && (
-                  <span className="px-3 py-1 bg-amber-500/10 text-amber-500 border border-amber-500/20 text-[10px] font-mono uppercase tracking-wider rounded-md font-bold">
-                    Admin Preview (Inactive)
-                  </span>
-                )}
-              </div>
-              
-              <div className="flex flex-col md:flex-row md:items-center gap-8 mb-0">
-                 <div className="w-20 h-20 bg-primary/10 rounded-2xl flex items-center justify-center border border-primary/20 backdrop-blur-xl relative group overflow-hidden shrink-0 shadow-glow-sm">
-                    {service.iconType === 'image' && service.iconImage ? (
-                      <img src={service.iconImage} alt={title} className="w-12 h-12 object-contain" />
-                    ) : (
-                      <DynamicIcon name={service.icon} className="w-10 h-10 text-primary relative z-10" fallback={Briefcase} />
-                    )}
-                 </div>
-                 <div>
-                   <h1 className="text-3xl md:text-5xl font-bold mb-2 tracking-tight leading-tight">
-                    {title}
-                   </h1>
-                   <p className="text-base text-muted-foreground leading-relaxed max-w-2xl">
-                    {service.caption || service.shortDescription}
-                  </p>
-                 </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Main Content */}
-      <div className="container mx-auto px-6 py-16 md:py-20">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16">
-          {/* Left Column: Description & Value Props */}
-          <div className="lg:col-span-7 space-y-14">
-            <div>
-              <h2 className="text-2xl font-bold mb-6 flex items-center gap-3 text-foreground">
-                <Terminal className="w-6 h-6 text-primary" /> Service Specifications
-              </h2>
-              <div className="p-6 md:p-8 rounded-2xl bg-surface-1 border border-border/60">
-                <MarkdownContent 
-                  content={service.fullDescription || service.shortDescription || ''} 
-                />
-              </div>
-            </div>
-
-            {/* Core Features: { icon, title, description } */}
-            {((service.coreFeatures && service.coreFeatures.length > 0) || (service.features && service.features.length > 0)) && (
-              <div>
-                <h2 className="text-2xl font-bold mb-6 flex items-center gap-3 text-foreground">
-                  <Cpu className="w-6 h-6 text-primary" /> Core Features
-                </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {(service.coreFeatures && service.coreFeatures.length > 0 ? service.coreFeatures : (service.features || []).map(f => ({ icon: 'CheckCircle2', title: f, description: '' }))).map((feat: any, i: number) => {
-                    const featTitle = typeof feat === 'string' ? feat : feat.title;
-                    const featDesc = typeof feat === 'object' ? feat.description : '';
-                    const featIcon = typeof feat === 'object' ? feat.icon : 'CheckCircle2';
-                    return (
-                      <div key={i} className="p-4 bg-surface-2 border border-border shadow-xs rounded-xl flex items-start gap-4 group hover:border-accent/40 transition-colors">
-                        <div className="mt-0.5 w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                          <DynamicIcon name={featIcon} className="w-4 h-4 text-primary" fallback={CheckCircle2} />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <span className="text-sm font-bold text-text-primary block mb-1 group-hover:text-primary transition-colors">{featTitle}</span>
-                          {featDesc && <p className="text-xs text-muted-foreground leading-relaxed">{featDesc}</p>}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Gallery Collection */}
-            {service.gallery && service.gallery.length > 0 && (
-              <div className="mt-12">
-                <h2 className="text-2xl font-bold mb-6 flex items-center gap-3 text-foreground">
-                  <Camera className="w-6 h-6 text-primary" /> Visual Repository
-                </h2>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                  {service.gallery.map((img, i) => (
-                    <div 
-                      key={i} 
-                      className="group relative aspect-square rounded-xl overflow-hidden bg-surface-1 border border-border cursor-pointer shadow-xs"
-                      onClick={() => setSelectedImage(img)}
-                    >
-                      <img 
-                        src={img} 
-                        alt={`${title} gallery ${i}`} 
-                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 transform-gpu will-change-transform [backface-visibility:hidden]" 
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                        <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 scale-50 opacity-0 group-hover:scale-100 group-hover:opacity-100 transition-all duration-300 transform-gpu will-change-transform [perspective:1000px] [backface-visibility:hidden]">
-                          <Plus className="w-6 h-6 text-white" />
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Right Column: Pricing, Value proposition & Tech Stack */}
-          <div className="lg:col-span-5 space-y-6">
-            {/* Pricing Card: Custom Quote shows "Contact Us" instead of a price */}
-            <GlassCard className="border-primary/20 bg-primary/5 p-7">
-              <p className="text-[11px] font-bold text-primary uppercase tracking-[0.4em] mb-4">Investment Roadmap</p>
-              {service.pricingModel === 'Custom Quote' || (service.pricing && service.pricing.type === 'custom') ? (
-                <div className="space-y-3">
-                  <div className="text-3xl font-bold text-foreground">Contact Us</div>
-                  <p className="text-xs text-muted-foreground leading-relaxed">
-                    Scope, deliverables, and specifications are determined on a consultation basis.
-                  </p>
-                  <Button 
-                    variant="glass" 
-                    size="sm" 
-                    onClick={() => navigate(service.ctaButtonLink || '/contact')}
-                    className="w-full mt-2 font-bold cursor-pointer"
-                  >
-                    Request Custom Quote
-                  </Button>
-                </div>
-              ) : service.pricingModel === 'Range' ? (
-                <div>
-                  <div className="flex items-baseline gap-2 mb-2">
-                    <span className="text-3xl font-bold text-foreground">
-                      {service.currency || '$'}{service.minAmount?.toLocaleString() ?? 0} – {service.currency || '$'}{service.maxAmount?.toLocaleString() ?? 0}
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-muted-foreground uppercase tracking-widest font-semibold flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-primary/40 animate-pulse" />
-                    Estimated Investment Range
-                  </p>
-                </div>
-              ) : (
-                <div>
-                  <div className="flex items-baseline gap-2 mb-2">
-                    <span className="text-3xl md:text-4xl font-bold text-foreground">
-                      {service.pricingModel === 'Starting At' ? 'From ' : ''}
-                      {service.currency || '$'}{(service.amount !== undefined ? service.amount : service.pricing?.amount)?.toLocaleString() ?? 'Quote Required'}
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-muted-foreground uppercase tracking-widest font-semibold flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-primary/40 animate-pulse" />
-                    {service.pricingModel === 'Fixed' ? 'Finalized Fixed Rate' : 'Initial Estimate'}
-                  </p>
-                </div>
-              )}
-            </GlassCard>
-
-            {/* Expected Deliverables: { icon, title, description } */}
-            {service.deliverables && service.deliverables.length > 0 && (
-              <GlassCard>
-                <h3 className="text-base font-bold mb-4 flex items-center gap-2 text-foreground">
-                  <CheckCircle2 className="w-5 h-5 text-primary" /> Tangible Deliverables
-                </h3>
-                <ul className="space-y-3.5">
-                  {service.deliverables.map((item: any, i: number) => {
-                    const delivTitle = typeof item === 'string' ? item : item.title;
-                    const delivDesc = typeof item === 'object' ? item.description : '';
-                    const delivIcon = typeof item === 'object' ? item.icon : 'CheckCircle2';
-                    return (
-                      <li key={i} className="flex items-start gap-3">
-                        <div className="mt-0.5 w-6 h-6 rounded-md bg-accent-soft text-accent flex items-center justify-center shrink-0">
-                          <DynamicIcon name={delivIcon} className="w-3.5 h-3.5 text-accent" fallback={ChevronRight} />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-sm font-semibold text-text-primary">{delivTitle}</div>
-                          {delivDesc && <div className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{delivDesc}</div>}
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </GlassCard>
-            )}
-
-            {/* Delivered Within */}
-            {service.deliveredWithin && (
-              <GlassCard>
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                    <Clock className="w-5 h-5 text-primary" />
-                  </div>
-                  <div>
-                    <p className="text-[11px] font-bold text-primary uppercase tracking-[0.4em] mb-1">Delivered Within</p>
-                    <p className="font-bold text-foreground">
-                      {service.deliveredWithin.unit === 'Depends Upon Project'
-                        ? 'Depends Upon Project'
-                        : `${service.deliveredWithin.range || ''} ${service.deliveredWithin.unit}`.trim()}
-                    </p>
-                  </div>
-                </div>
-              </GlassCard>
-            )}
-
-            {/* Technologies Employed (Tech Stack model) */}
-            {((service.techStacks && service.techStacks.length > 0) || (service.technologies && service.technologies.length > 0)) && (
-              <GlassCard>
-                <h3 className="text-base font-bold mb-4 flex items-center gap-2 text-foreground">
-                  <Layers className="w-5 h-5 text-primary" /> Technologies Used
-                </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  {(service.techStacks && service.techStacks.length > 0 ? service.techStacks : service.technologies || []).map((techIdOrName, i) => {
-                    const stack = skills.find(s => s.id === techIdOrName || s.name.toLowerCase() === techIdOrName.toLowerCase());
-                    const displayName = stack ? stack.name : techIdOrName;
-                    return (
-                      <div key={i} className="flex items-center gap-2.5 p-2.5 bg-surface-4 border border-border rounded-xl hover:border-accent/40 hover:bg-surface-3 transition-all group">
-                        <div className="text-text-muted group-hover:text-accent transition-colors shrink-0">
-                          {stack ? <TechStackIcon stack={stack} className="w-4 h-4" /> : getTechIcon(displayName)}
-                        </div>
-                        <span className="text-xs font-sans font-medium text-text-secondary group-hover:text-text-primary transition-colors truncate">
-                          {displayName}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </GlassCard>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Related Projects Output */}
-      {relatedProducts.length > 0 && (
-        <section className="bg-surface-1 border-y border-border py-16 md:py-24">
-          <div className="container mx-auto px-6">
-            <div className="flex items-end justify-between mb-12">
-              <div>
-                <h2 className="text-3xl font-bold mb-4 tracking-tight text-text-primary">Related Projects</h2>
-                <p className="text-text-secondary">Project deliverables engineered using this service capability.</p>
-              </div>
-              <Button variant="ghost" onClick={() => navigate('/products')}>
-                View Entire Showcase <ArrowRight className="ml-2 w-4 h-4" />
-              </Button>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {relatedProducts.map(p => (
-                <GlassCard key={p.id} className="p-0 overflow-hidden group hover:border-accent/40">
-                   <div className="aspect-video relative overflow-hidden bg-muted">
-                    {p.imageUrl ? (
-                      <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover transition-transform duration-500" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <DynamicIcon name={p.icon} className="w-12 h-12 text-white/5" fallback={ShoppingBag} />
-                      </div>
-                    )}
-                  </div>
-                  <div className="p-6">
-                    <h3 className="text-xl font-bold mb-2 group-hover:text-primary transition-colors">{p.name}</h3>
-                    <p className="text-muted-foreground text-sm line-clamp-2 mb-4 leading-relaxed">{p.description}</p>
-                    <Link to={`/products/${p.id}`} className="inline-flex items-center text-xs font-mono text-primary hover:underline uppercase tracking-widest">
-                      View Details <ArrowRight className="ml-1 w-3 h-3" />
-                    </Link>
-                  </div>
-                </GlassCard>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* Global CTA Section at bottom */}
-      <section className="py-24 border-t border-border relative overflow-hidden">
-        <div className="container mx-auto px-6 text-center">
-          <div className="max-w-4xl mx-auto flex flex-col items-center">
-            {service.ctaVisual && (
-              <div className="mb-6 flex justify-center">
-                {service.ctaVisual.type === 'image' && service.ctaVisual.value ? (
-                  <img 
-                    src={String(service.ctaVisual.value)} 
-                    alt="CTA visual accent" 
-                    className="w-16 h-16 rounded-2xl object-cover border border-border shadow-md" 
-                  />
-                ) : (
-                  <div className="w-16 h-16 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shadow-glow-sm">
-                    <DynamicIcon name={service.ctaVisual.value} className="w-8 h-8" fallback={Sparkles} />
-                  </div>
-                )}
-              </div>
-            )}
-            <h2 className="text-3xl md:text-5xl font-bold mb-6 tracking-tight text-foreground">
-              {service.ctaText || "Ready to initiate your next project?"}
-            </h2>
-            <p className="text-lg text-muted-foreground mb-10 max-w-2xl mx-auto leading-relaxed">
-              Connect with our engineering team to discuss how we can bring your concept to reality 
-              with our specialized {title.toLowerCase()} expertise.
-            </p>
-            
-            <Button 
-              size="lg" 
-              className="rounded-full px-12 h-14 font-bold hover:shadow-glow transition-all duration-300 group cursor-pointer"
-              onClick={() => {
-                const dest = service.ctaButtonLink || service.cta?.link || '/contact';
-                if (dest.startsWith('http')) {
-                  window.open(dest, '_blank');
-                } else {
-                  navigate(dest);
-                }
-              }}
-            >
-              {service.ctaButtonText || service.cta?.label || "Contact Us"}
-              <ArrowRight className="ml-2 w-5 h-5 transition-transform group-hover:translate-x-1" />
-            </Button>
-          </div>
-        </div>
-      </section>
-    </div>
-  );
-};
+export { ServiceDetailPage } from './ServiceDetailPage';
 
 export const ProductDetailPage = () => {
   const { id } = useParams<{ id: string }>();

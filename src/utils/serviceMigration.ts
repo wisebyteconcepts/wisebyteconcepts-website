@@ -1,5 +1,6 @@
 import { Service, ServiceIconType, ServicePricingModel, ServiceDeliveredUnit } from '@/types';
 import { normalizeIcon } from '@/types/icon';
+export { isValidUrl } from '@/utils/projectMigration';
 
 export const DEFAULT_SERVICE_CATEGORIES = [
   'Development',
@@ -216,6 +217,17 @@ export function normalizeService(raw: any): Service {
     metaTitle,
     metaDescription,
     keywords,
+    focusKeyword: raw.focusKeyword || undefined,
+    ogImage: raw.ogImage || undefined,
+    ogImageAlt: raw.ogImageAlt || undefined,
+    canonicalUrl: raw.canonicalUrl || undefined,
+    noIndex: Boolean(raw.noIndex),
+    noFollow: Boolean(raw.noFollow),
+    twitterCardType: raw.twitterCardType || 'summary_large_image',
+    twitterTitle: raw.twitterTitle || undefined,
+    twitterDescription: raw.twitterDescription || undefined,
+    twitterImage: raw.twitterImage || undefined,
+    enableStructuredData: raw.enableStructuredData !== false,
 
     // Legacy backwards compatibility aliases
     name: title,
