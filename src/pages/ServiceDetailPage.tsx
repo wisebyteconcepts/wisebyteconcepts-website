@@ -6,7 +6,6 @@ import {
   Briefcase, 
   Clock, 
   CheckCircle2, 
-  ChevronDown, 
   ChevronLeft, 
   ChevronRight, 
   Layers, 
@@ -14,21 +13,27 @@ import {
   X, 
   Sparkles,
   DollarSign,
-  Maximize2
+  Maximize2,
+  ShoppingBag
 } from 'lucide-react';
 import { useAppStore } from '@/store';
+import { 
+  formatServicePrice, 
+  formatServicePricingDetails, 
+  normalizeCurrencyCode 
+} from '@/utils/currency';
 import { useAuthStore } from '@/store/authStore';
 import { Button } from '@/components/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Icon } from '@/components/ui/Icon';
 import { MarkdownContent } from '@/components/ui/MarkdownEditor';
-import { cn } from '@/lib/utils';
 
 export const ServiceDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
   const services = useAppStore((state) => state.services);
+  const products = useAppStore((state) => state.products);
   const isLoaded = useAppStore((state) => state.isLoaded);
   const { user, isAuthenticated } = useAuthStore();
   const isAdmin = Boolean(isAuthenticated && user);
@@ -45,9 +50,6 @@ export const ServiceDetailPage: React.FC = () => {
   const isVisible = Boolean(service && (service.active !== false || isAdmin));
 
   // State
-  const [isOverviewExpanded, setIsOverviewExpanded] = useState(false);
-  const [openFeatures, setOpenFeatures] = useState<Record<number, boolean>>({ 0: true });
-  const [openDeliverables, setOpenDeliverables] = useState<Record<number, boolean>>({ 0: true });
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
   // Gallery items (clean list)
@@ -55,6 +57,27 @@ export const ServiceDetailPage: React.FC = () => {
     if (!service || !Array.isArray(service.gallery)) return [];
     return service.gallery.filter((img) => typeof img === 'string' && img.trim().length > 0);
   }, [service]);
+
+  // Related projects (linked directly or sharing category, only if any exist)
+  const relatedProjects = useMemo(() => {
+    if (!service) return [];
+    const serviceId = service.id;
+    const serviceCat = service.category ? service.category.trim().toLowerCase() : '';
+    const directLinkedIds = new Set(Array.isArray(service.relatedProjects) ? service.relatedProjects : []);
+
+    return products
+      .filter((p) => {
+        if (p.active === false && !isAdmin) return false;
+        if (p.isActive === false && !isAdmin) return false;
+
+        if (directLinkedIds.has(p.id)) return true;
+        if (p.parentService === serviceId || p.serviceId === serviceId) return true;
+        if (serviceCat && p.category && p.category.trim().toLowerCase() === serviceCat) return true;
+
+        return false;
+      })
+      .slice(0, 3);
+  }, [service, products, isAdmin]);
 
   // Related services (same category, only if any exist)
   const relatedServices = useMemo(() => {
@@ -79,54 +102,7 @@ export const ServiceDetailPage: React.FC = () => {
 
   // Pricing formatting helper
   const pricingInfo = useMemo(() => {
-    if (!service) return null;
-    const model = String(service.pricingModel || (service.pricing && (service.pricing as any).type) || '');
-    const currency = service.currency?.replace(/[^A-Z$€£¥₹]/g, '') || '$';
-
-    if (model === 'Custom Quote' || model === 'custom') {
-      return {
-        price: 'Custom Quote',
-        typeLabel: 'Consultation & Custom Scope',
-        isCustom: true,
-      };
-    }
-    if (model === 'Range') {
-      if (service.minAmount !== undefined && service.maxAmount !== undefined) {
-        return {
-          price: `${currency}${service.minAmount.toLocaleString()} – ${currency}${service.maxAmount.toLocaleString()}`,
-          typeLabel: 'Estimated Project Range',
-          isCustom: false,
-        };
-      }
-    }
-    if (model === 'Starting At' || model === 'starting_from') {
-      const amt = service.amount !== undefined ? service.amount : service.pricing?.amount;
-      if (amt !== undefined) {
-        return {
-          price: `From ${currency}${amt.toLocaleString()}`,
-          typeLabel: 'Starting Investment',
-          isCustom: false,
-        };
-      }
-    }
-    if (model === 'Fixed' || model === 'fixed') {
-      const amt = service.amount !== undefined ? service.amount : service.pricing?.amount;
-      if (amt !== undefined) {
-        return {
-          price: `${currency}${amt.toLocaleString()}`,
-          typeLabel: 'Fixed Rate',
-          isCustom: false,
-        };
-      }
-    }
-    if (service.amount !== undefined && service.amount > 0) {
-      return {
-        price: `${currency}${service.amount.toLocaleString()}`,
-        typeLabel: 'Project Rate',
-        isCustom: false,
-      };
-    }
-    return null;
+    return formatServicePricingDetails(service);
   }, [service]);
 
   // Duration formatting helper
@@ -152,6 +128,26 @@ export const ServiceDetailPage: React.FC = () => {
       navigate(ctaButtonLink);
     }
   };
+
+  // Bottom CTA details (Heading and Button)
+  const serviceAny = service as any;
+  const bottomCtaHeading = (serviceAny?.ctaHeading || service?.ctaText || '').trim();
+  const bottomCtaSubtext = (serviceAny?.ctaHeading && service?.ctaText && serviceAny.ctaHeading.trim() !== service.ctaText.trim())
+    ? service.ctaText.trim()
+    : '';
+  const bottomCtaButtonText = (service?.ctaButtonText || '').trim();
+  const bottomCtaButtonLink = (service?.ctaButtonLink || '').trim();
+
+  const handleBottomCtaClick = () => {
+    if (!bottomCtaButtonLink) return;
+    if (bottomCtaButtonLink.startsWith('http://') || bottomCtaButtonLink.startsWith('https://')) {
+      window.open(bottomCtaButtonLink, '_blank', 'noopener,noreferrer');
+    } else {
+      navigate(bottomCtaButtonLink);
+    }
+  };
+
+  const hasBottomCta = Boolean(bottomCtaHeading || bottomCtaButtonText);
 
   // SEO & Head Metadata Dynamic Wiring
   useEffect(() => {
@@ -240,7 +236,7 @@ export const ServiceDetailPage: React.FC = () => {
         structuredData.offers = {
           '@type': 'Offer',
           price: String(service.amount),
-          priceCurrency: service.currency?.replace(/[^A-Z]/g, '') || 'USD',
+          priceCurrency: normalizeCurrencyCode(service.currency),
         };
       }
       jsonLdScript.text = JSON.stringify(structuredData);
@@ -326,17 +322,6 @@ export const ServiceDetailPage: React.FC = () => {
     );
   }
 
-  const toggleFeature = (index: number) => {
-    setOpenFeatures((prev) => ({ ...prev, [index]: !prev[index] }));
-  };
-
-  const toggleDeliverable = (index: number) => {
-    setOpenDeliverables((prev) => ({ ...prev, [index]: !prev[index] }));
-  };
-
-  // Determine if overview text is long enough for collapse
-  const isLongOverview = fullDesc.length > 500;
-
   return (
     <div className="min-h-screen bg-background text-foreground pb-24 md:pb-20">
       {/* ============================================================ */}
@@ -405,20 +390,6 @@ export const ServiceDetailPage: React.FC = () => {
                   </p>
                 )}
               </div>
-
-              {/* Tags (if any exist) */}
-              {Array.isArray(service.tags) && service.tags.length > 0 && (
-                <div className="flex flex-wrap items-center gap-2 pt-1">
-                  {service.tags.map((tag, idx) => (
-                    <span 
-                      key={idx}
-                      className="text-xs font-mono px-2.5 py-1 rounded-lg bg-surface-2 border border-border/80 text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      #{tag}
-                    </span>
-                  ))}
-                </div>
-              )}
 
               {/* Hero CTA Button */}
               <div className="pt-2 flex flex-wrap items-center gap-4">
@@ -520,7 +491,7 @@ export const ServiceDetailPage: React.FC = () => {
           {/* LEFT COLUMN: OVERVIEW, FEATURES, DELIVERABLES, GALLERY (lg:col-span-8) */}
           <div className="lg:col-span-8 space-y-12">
             {/* ============================================================ */}
-            {/* 3. OVERVIEW SECTION (Full Description with Read More)         */}
+            {/* 3. OVERVIEW SECTION (Always Full Description, Line Breaks)    */}
             {/* ============================================================ */}
             {fullDesc.trim().length > 0 && (
               <section className="space-y-4">
@@ -530,50 +501,14 @@ export const ServiceDetailPage: React.FC = () => {
                   </h2>
                 </div>
 
-                <div className="relative rounded-2xl bg-surface-1 border border-border p-6 sm:p-8 overflow-hidden shadow-xs">
-                  <div
-                    className={cn(
-                      "transition-all duration-300 overflow-hidden leading-relaxed",
-                      !isOverviewExpanded && isLongOverview ? "max-h-72" : "max-h-none"
-                    )}
-                  >
-                    <MarkdownContent content={fullDesc} />
-                  </div>
-
-                  {/* Gradient Fade overlay when collapsed */}
-                  {!isOverviewExpanded && isLongOverview && (
-                    <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-surface-1 to-transparent flex items-end justify-center pb-4 pt-8">
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => setIsOverviewExpanded(true)}
-                        className="rounded-xl px-4 h-8 text-xs font-semibold gap-1.5 shadow-md border-border bg-surface-2 hover:bg-surface-3 cursor-pointer"
-                      >
-                        <span>Read full overview</span>
-                        <ChevronDown className="w-3.5 h-3.5" />
-                      </Button>
-                    </div>
-                  )}
-
-                  {isOverviewExpanded && isLongOverview && (
-                    <div className="pt-4 border-t border-border/40 mt-4 flex justify-end">
-                      <button
-                        type="button"
-                        onClick={() => setIsOverviewExpanded(false)}
-                        className="text-xs text-primary font-semibold hover:underline inline-flex items-center gap-1 cursor-pointer"
-                      >
-                        <span>Show less</span>
-                        <ChevronDown className="w-3.5 h-3.5 rotate-180" />
-                      </button>
-                    </div>
-                  )}
+                <div className="rounded-2xl bg-surface-1 border border-border p-6 sm:p-8 shadow-xs leading-relaxed">
+                  <MarkdownContent content={fullDesc} />
                 </div>
               </section>
             )}
 
             {/* ============================================================ */}
-            {/* 4. FEATURES SECTION (Accordion / Expander List)               */}
+            {/* 4. CORE FEATURES SECTION (2-Column Grid Cards)                */}
             {/* ============================================================ */}
             {Array.isArray(service.coreFeatures) && service.coreFeatures.length > 0 && (
               <section className="space-y-4">
@@ -586,66 +521,38 @@ export const ServiceDetailPage: React.FC = () => {
                   </span>
                 </div>
 
-                <div className="space-y-3">
-                  {service.coreFeatures.map((feat, index) => {
-                    const isOpen = Boolean(openFeatures[index]);
-                    return (
-                      <div
-                        key={index}
-                        className={cn(
-                          "rounded-2xl border transition-all duration-200 overflow-hidden shadow-2xs",
-                          isOpen 
-                            ? "bg-surface-1 border-primary/30" 
-                            : "bg-surface-1/70 border-border hover:border-border/90"
-                        )}
-                      >
-                        {/* Header Row */}
-                        <button
-                          type="button"
-                          onClick={() => toggleFeature(index)}
-                          className="w-full p-4 sm:p-5 flex items-center justify-between gap-4 text-left cursor-pointer focus:outline-none"
-                          aria-expanded={isOpen}
-                        >
-                          <div className="flex items-center gap-3.5 min-w-0">
-                            <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shrink-0 shadow-2xs">
-                              <Icon 
-                                value={feat.icon} 
-                                fallback={CheckCircle2} 
-                                className="w-5 h-5 text-primary" 
-                              />
-                            </div>
-                            <span className="text-sm sm:text-base font-bold text-foreground truncate">
-                              {feat.title}
-                            </span>
-                          </div>
-
-                          <div className="p-1 rounded-lg text-muted-foreground hover:text-foreground shrink-0">
-                            <ChevronDown
-                              className={cn(
-                                "w-4 h-4 transition-transform duration-200",
-                                isOpen && "rotate-180"
-                              )}
-                            />
-                          </div>
-                        </button>
-
-                        {/* Expanded Description Body */}
-                        {isOpen && feat.description && (
-                          <div className="px-5 pb-5 pt-1 text-xs sm:text-sm text-muted-foreground leading-relaxed border-t border-border/40 animate-in fade-in duration-200">
-                            <div className="pl-[52px]">
-                              <MarkdownContent content={feat.description} />
-                            </div>
-                          </div>
-                        )}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {service.coreFeatures.map((feat, index) => (
+                    <div
+                      key={index}
+                      className="rounded-2xl border border-border bg-surface-1/90 p-5 sm:p-6 shadow-2xs hover:border-primary/40 hover:shadow-md transition-all flex flex-col justify-start space-y-3"
+                    >
+                      <div className="flex items-center gap-3.5 min-w-0">
+                        <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shrink-0 shadow-2xs">
+                          <Icon 
+                            value={feat.icon} 
+                            fallback={CheckCircle2} 
+                            className="w-5 h-5 text-primary" 
+                          />
+                        </div>
+                        <h3 className="text-sm sm:text-base font-bold text-foreground truncate">
+                          {feat.title}
+                        </h3>
                       </div>
-                    );
-                  })}
+
+                      {feat.description && (
+                        <div className="text-xs sm:text-sm text-muted-foreground leading-relaxed pt-1">
+                          <MarkdownContent content={feat.description} />
+                        </div>
+                      )}
+                    </div>
+                  ))}
                 </div>
               </section>
             )}
 
             {/* ============================================================ */}
-            {/* 5. DELIVERABLES SECTION (Accordion / Expander List)           */}
+            {/* 5. DELIVERABLES SECTION (2-Column Grid Cards)                 */}
             {/* ============================================================ */}
             {Array.isArray(service.deliverables) && service.deliverables.length > 0 && (
               <section className="space-y-4">
@@ -658,60 +565,32 @@ export const ServiceDetailPage: React.FC = () => {
                   </span>
                 </div>
 
-                <div className="space-y-3">
-                  {service.deliverables.map((deliv, index) => {
-                    const isOpen = Boolean(openDeliverables[index]);
-                    return (
-                      <div
-                        key={index}
-                        className={cn(
-                          "rounded-2xl border transition-all duration-200 overflow-hidden shadow-2xs",
-                          isOpen 
-                            ? "bg-surface-1 border-primary/30" 
-                            : "bg-surface-1/70 border-border hover:border-border/90"
-                        )}
-                      >
-                        {/* Header Row */}
-                        <button
-                          type="button"
-                          onClick={() => toggleDeliverable(index)}
-                          className="w-full p-4 sm:p-5 flex items-center justify-between gap-4 text-left cursor-pointer focus:outline-none"
-                          aria-expanded={isOpen}
-                        >
-                          <div className="flex items-center gap-3.5 min-w-0">
-                            <div className="w-10 h-10 rounded-xl bg-accent-soft border border-accent/20 flex items-center justify-center text-accent shrink-0 shadow-2xs">
-                              <Icon 
-                                value={deliv.icon} 
-                                fallback={Package} 
-                                className="w-5 h-5 text-accent" 
-                              />
-                            </div>
-                            <span className="text-sm sm:text-base font-bold text-foreground truncate">
-                              {deliv.title}
-                            </span>
-                          </div>
-
-                          <div className="p-1 rounded-lg text-muted-foreground hover:text-foreground shrink-0">
-                            <ChevronDown
-                              className={cn(
-                                "w-4 h-4 transition-transform duration-200",
-                                isOpen && "rotate-180"
-                              )}
-                            />
-                          </div>
-                        </button>
-
-                        {/* Expanded Description Body */}
-                        {isOpen && deliv.description && (
-                          <div className="px-5 pb-5 pt-1 text-xs sm:text-sm text-muted-foreground leading-relaxed border-t border-border/40 animate-in fade-in duration-200">
-                            <div className="pl-[52px]">
-                              <MarkdownContent content={deliv.description} />
-                            </div>
-                          </div>
-                        )}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {service.deliverables.map((deliv, index) => (
+                    <div
+                      key={index}
+                      className="rounded-2xl border border-border bg-surface-1/90 p-5 sm:p-6 shadow-2xs hover:border-accent/40 hover:shadow-md transition-all flex flex-col justify-start space-y-3"
+                    >
+                      <div className="flex items-center gap-3.5 min-w-0">
+                        <div className="w-10 h-10 rounded-xl bg-accent-soft border border-accent/20 flex items-center justify-center text-accent shrink-0 shadow-2xs">
+                          <Icon 
+                            value={deliv.icon} 
+                            fallback={Package} 
+                            className="w-5 h-5 text-accent" 
+                          />
+                        </div>
+                        <h3 className="text-sm sm:text-base font-bold text-foreground truncate">
+                          {deliv.title}
+                        </h3>
                       </div>
-                    );
-                  })}
+
+                      {deliv.description && (
+                        <div className="text-xs sm:text-sm text-muted-foreground leading-relaxed pt-1">
+                          <MarkdownContent content={deliv.description} />
+                        </div>
+                      )}
+                    </div>
+                  ))}
                 </div>
               </section>
             )}
@@ -817,7 +696,90 @@ export const ServiceDetailPage: React.FC = () => {
         </div>
 
         {/* ============================================================ */}
-        {/* 8. RELATED SERVICES SECTION (Only if any exist)               */}
+        {/* 8. RELATED PROJECTS SECTION (Only if any exist)               */}
+        {/* ============================================================ */}
+        {relatedProjects.length > 0 && (
+          <section className="mt-20 pt-14 border-t border-border/60 space-y-8">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h2 className="text-2xl sm:text-3xl font-bold text-foreground">
+                  Related Projects & Case Studies
+                </h2>
+                <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+                  Production systems, deliverables, and case studies aligned with this service.
+                </p>
+              </div>
+
+              <Link
+                to="/products"
+                className="text-xs font-semibold text-primary hover:underline inline-flex items-center gap-1 shrink-0"
+              >
+                <span>View all projects</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {relatedProjects.map((proj) => {
+                const projImg = proj.displayPicture || proj.bannerPicture || proj.imageUrl || (proj as any).thumbnail;
+                const projTitle = proj.title || proj.name || 'Untitled Project';
+                const projDesc = proj.shortDescription || proj.description || proj.caption || '';
+                const projLink = `/products/${proj.slug || proj.id}`;
+
+                return (
+                  <Link
+                    key={proj.id}
+                    to={projLink}
+                    className="group rounded-3xl border border-border bg-surface-1/90 overflow-hidden shadow-xs hover:shadow-xl hover:border-primary/40 transition-all flex flex-col cursor-pointer"
+                  >
+                    {/* Image Header */}
+                    <div className="aspect-video relative overflow-hidden bg-surface-2">
+                      {projImg ? (
+                        <img
+                          src={projImg}
+                          alt={projTitle}
+                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-surface-3 text-muted-foreground">
+                          <ShoppingBag className="w-10 h-10 opacity-30" />
+                        </div>
+                      )}
+                      {proj.category && (
+                        <span className="absolute top-3 left-3 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-background/90 backdrop-blur-md text-foreground border border-border">
+                          {proj.category}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Content */}
+                    <div className="p-5 sm:p-6 flex-1 flex flex-col justify-between space-y-4">
+                      <div className="space-y-1.5">
+                        <h3 className="text-base sm:text-lg font-bold text-foreground group-hover:text-primary transition-colors leading-snug">
+                          {projTitle}
+                        </h3>
+                        {projDesc && (
+                          <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
+                            {projDesc}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="pt-3 border-t border-border/40 flex items-center justify-between text-xs">
+                        <span className="text-primary font-semibold group-hover:underline inline-flex items-center gap-1 ml-auto">
+                          View project <ArrowRight className="w-3.5 h-3.5" />
+                        </span>
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
+        {/* ============================================================ */}
+        {/* 9. RELATED SERVICES SECTION (Only if any exist)               */}
         {/* ============================================================ */}
         {relatedServices.length > 0 && (
           <section className="mt-20 pt-14 border-t border-border/60 space-y-8">
@@ -843,11 +805,7 @@ export const ServiceDetailPage: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {relatedServices.map((relSvc) => {
                 const relImg = relSvc.bannerPicture || relSvc.displayPicture || relSvc.thumbnail;
-                const relPrice = relSvc.pricingModel === 'Custom Quote'
-                  ? 'Custom Quote'
-                  : relSvc.amount !== undefined
-                    ? `${relSvc.currency?.replace(/[^A-Z$€£¥₹]/g, '') || '$'}${relSvc.amount.toLocaleString()}`
-                    : '';
+                const relPrice = formatServicePrice(relSvc);
 
                 return (
                   <Link
@@ -893,13 +851,49 @@ export const ServiceDetailPage: React.FC = () => {
                           </span>
                         )}
                         <span className="text-primary font-semibold group-hover:underline inline-flex items-center gap-1 ml-auto">
-                          Learn more <ArrowRight className="w-3 h-3" />
+                          Learn more <ArrowRight className="w-3.5 h-3.5" />
                         </span>
                       </div>
                     </div>
                   </Link>
                 );
               })}
+            </div>
+          </section>
+        )}
+
+        {/* ============================================================ */}
+        {/* 10. BOTTOM CALL TO ACTION SECTION (Only if fields entered)   */}
+        {/* ============================================================ */}
+        {hasBottomCta && (
+          <section className="mt-20 pt-10 border-t border-border/50">
+            <div className="rounded-3xl border border-primary/20 bg-gradient-to-br from-surface-1 via-surface-2 to-primary/5 p-8 sm:p-12 md:p-16 text-center shadow-xl relative overflow-hidden">
+              <div className="max-w-2xl mx-auto space-y-6 relative z-10">
+                {bottomCtaHeading && (
+                  <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-foreground tracking-tight leading-tight">
+                    {bottomCtaHeading}
+                  </h2>
+                )}
+                {bottomCtaSubtext && (
+                  <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
+                    {bottomCtaSubtext}
+                  </p>
+                )}
+                {bottomCtaButtonText && (
+                  <div className="pt-2 flex justify-center">
+                    <Button
+                      size="lg"
+                      onClick={handleBottomCtaClick}
+                      className="rounded-xl px-8 h-12 text-sm font-bold shadow-glow-primary gap-2 cursor-pointer transition-all hover:scale-[1.02]"
+                    >
+                      <span>{bottomCtaButtonText}</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </Button>
+                  </div>
+                )}
+              </div>
+              <div className="absolute -bottom-24 -right-24 w-72 h-72 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
+              <div className="absolute -top-24 -left-24 w-72 h-72 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
             </div>
           </section>
         )}

@@ -78,6 +78,7 @@ import { TechStackIcon } from '@/components/TechStackIcon';
 import { MarkdownContent } from '@/components/ui/MarkdownEditor';
 import DecryptedText from '@/components/ui/DecryptedText';
 import { useParams } from 'react-router-dom';
+import { formatServicePrice } from '@/utils/currency';
 import { motion } from 'motion/react';
 
 const DynamicIcon = ({ name, className, fallback: Fallback }: { name?: any; className?: string; fallback: LucideIcon }) => {
@@ -272,14 +273,21 @@ export const HomePage = () => {
                         <Link to={`/services/${s.slug || s.id}`}>
                           <h3 className="text-2xl font-display font-bold mb-3 group-hover:text-primary transition-colors cursor-pointer">{title}</h3>
                         </Link>
-                        <p className="text-muted-foreground text-sm leading-relaxed mb-8 line-clamp-3">{s.shortDescription}</p>
+                        <p className="text-muted-foreground text-sm leading-relaxed mb-6 line-clamp-3">{s.shortDescription}</p>
                         
-                        <Link to={`/services/${s.slug || s.id}`} className="mt-auto">
-                          <Button variant="ghost" className="justify-start px-0 hover:bg-transparent hover:text-primary gap-2 transition-all group/btn text-xs uppercase tracking-widest font-bold cursor-pointer">
-                            Engineering Details
-                            <ArrowRight className="w-4 h-4 transition-transform group-hover/btn:translate-x-1" />
-                          </Button>
-                        </Link>
+                        <div className="mt-auto pt-4 border-t border-border/40 flex items-center justify-between gap-2">
+                          {formatServicePrice(s) ? (
+                            <span className="text-xs font-mono font-bold text-foreground">
+                              {formatServicePrice(s)}
+                            </span>
+                          ) : <span />}
+                          <Link to={`/services/${s.slug || s.id}`}>
+                            <Button variant="ghost" className="justify-start px-0 hover:bg-transparent hover:text-primary gap-1.5 transition-all group/btn text-xs uppercase tracking-widest font-bold cursor-pointer">
+                              Engineering Details
+                              <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover/btn:translate-x-1" />
+                            </Button>
+                          </Link>
+                        </div>
                       </div>
                     </GlassCard>
                   );
@@ -647,14 +655,21 @@ export const ServicesPage = () => {
                   <Link to={`/services/${s.slug || s.id}`}>
                     <h3 className="text-2xl font-display font-bold mb-3 group-hover:text-primary transition-colors cursor-pointer">{title}</h3>
                   </Link>
-                  <p className="text-muted-foreground text-sm leading-relaxed mb-8 line-clamp-3">{s.shortDescription}</p>
+                  <p className="text-muted-foreground text-sm leading-relaxed mb-6 line-clamp-3">{s.shortDescription}</p>
                   
-                  <Link to={`/services/${s.slug || s.id}`} className="mt-auto">
-                    <Button variant="ghost" className="justify-start px-0 hover:bg-transparent hover:text-primary gap-2 transition-all group/btn text-xs uppercase tracking-widest font-bold cursor-pointer">
-                      Engineering Details
-                      <ArrowRight className="w-4 h-4 transition-transform group-hover/btn:translate-x-1" />
-                    </Button>
-                  </Link>
+                  <div className="mt-auto pt-4 border-t border-border/40 flex items-center justify-between gap-2">
+                    {formatServicePrice(s) ? (
+                      <span className="text-xs font-mono font-bold text-foreground">
+                        {formatServicePrice(s)}
+                      </span>
+                    ) : <span />}
+                    <Link to={`/services/${s.slug || s.id}`}>
+                      <Button variant="ghost" className="justify-start px-0 hover:bg-transparent hover:text-primary gap-1.5 transition-all group/btn text-xs uppercase tracking-widest font-bold cursor-pointer">
+                        Engineering Details
+                        <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover/btn:translate-x-1" />
+                      </Button>
+                    </Link>
+                  </div>
                 </div>
               </GlassCard>
             );
@@ -1214,7 +1229,14 @@ export const AdminServicesPage = () => {
                           <span className="truncate">{title}</span>
                           {isFeat && <Star className="h-3.5 w-3.5 fill-accent text-accent shrink-0" />}
                         </div>
-                        <div className="text-[10px] text-text-muted font-mono lowercase tracking-tighter">/{String(s.slug || s.id).toLowerCase()}</div>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <span className="text-[10px] text-text-muted font-mono lowercase tracking-tighter">/{String(s.slug || s.id).toLowerCase()}</span>
+                          {formatServicePrice(s) && (
+                            <span className="text-[10px] font-mono font-bold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
+                              {formatServicePrice(s)}
+                            </span>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell className="hidden md:table-cell">
                         <Badge variant="secondary" className="capitalize font-mono text-[10px]">{s.category}</Badge>

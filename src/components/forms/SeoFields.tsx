@@ -27,6 +27,7 @@ import { Button } from '@/components/Button';
 import { Badge } from '@/components/ui/Badge';
 import { cn } from '@/lib/utils';
 import { slugify, isValidUrl } from '@/utils/serviceMigration';
+import { normalizeCurrencyCode, formatCurrency } from '@/utils/currency';
 
 export interface SeoFieldsProps {
   type?: 'Service' | 'Product';
@@ -494,7 +495,7 @@ export const SeoFields: React.FC<SeoFieldsProps> = ({
         offers: {
           '@type': 'Offer',
           price: sourceAmount !== undefined ? String(sourceAmount) : '0',
-          priceCurrency: sourceCurrency?.replace(/[^A-Z]/g, '') || 'USD',
+          priceCurrency: normalizeCurrencyCode(sourceCurrency),
           availability: 'https://schema.org/InStock',
           url: sourceLiveLink || effectiveCanonical,
         },
@@ -526,7 +527,7 @@ export const SeoFields: React.FC<SeoFieldsProps> = ({
         servData.offers = {
           '@type': 'Offer',
           price: String(sourceAmount),
-          priceCurrency: sourceCurrency?.replace(/[^A-Z]/g, '') || 'USD',
+          priceCurrency: normalizeCurrencyCode(sourceCurrency),
         };
       }
       return JSON.stringify(servData, null, 2);
@@ -1282,9 +1283,16 @@ export const SeoFields: React.FC<SeoFieldsProps> = ({
                 </div>
 
                 <div className="p-3.5 space-y-1 bg-surface-2/60 border-t border-border/60">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block truncate">
-                    WISEBYTECONCEPTS.COM
-                  </span>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block truncate">
+                      WISEBYTECONCEPTS.COM
+                    </span>
+                    {sourceAmount !== undefined && sourceAmount > 0 && (
+                      <span className="text-[10px] font-mono font-bold text-emerald-400">
+                        {formatCurrency(sourceAmount, sourceCurrency)}
+                      </span>
+                    )}
+                  </div>
                   <h5 className="text-xs font-bold text-foreground line-clamp-1 leading-snug">
                     {effectiveTitle}
                   </h5>
@@ -1323,9 +1331,16 @@ export const SeoFields: React.FC<SeoFieldsProps> = ({
                       <p className="text-[11px] text-muted-foreground line-clamp-2 leading-relaxed">
                         {effectiveTwitterDescription}
                       </p>
-                      <span className="text-[10px] text-muted-foreground flex items-center gap-1 pt-0.5">
-                        <Globe className="w-2.5 h-2.5" /> wisebyteconcepts.com
-                      </span>
+                      <div className="flex items-center justify-between pt-0.5 text-[10px] text-muted-foreground">
+                        <span className="flex items-center gap-1">
+                          <Globe className="w-2.5 h-2.5" /> wisebyteconcepts.com
+                        </span>
+                        {sourceAmount !== undefined && sourceAmount > 0 && (
+                          <span className="font-mono font-bold text-emerald-400">
+                            {formatCurrency(sourceAmount, sourceCurrency)}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 ) : (

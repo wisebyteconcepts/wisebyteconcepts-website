@@ -17,6 +17,7 @@ import {
   ParseResult 
 } from '@/utils/textImportParser';
 import { Service, Product } from '@/types';
+import { formatServicePrice } from '@/utils/currency';
 
 export interface ImportTextModalProps {
   isOpen: boolean;
@@ -347,6 +348,27 @@ export const ImportTextModal: React.FC<ImportTextModalProps> = ({
                         {parseResult.data.tags?.length ? parseResult.data.tags.join(', ') : 'None'}
                       </span>
                     </div>
+
+                    {parseResult.type === 'Service' && (
+                      (() => {
+                        const serviceData = parseResult.data as Partial<Service>;
+                        if (!serviceData.pricingModel && serviceData.amount === undefined) return null;
+                        return (
+                          <div className="p-2.5 rounded-lg bg-surface-2/80 border border-border">
+                            <span className="text-[10px] font-semibold text-muted-foreground uppercase block">Pricing / Commercial</span>
+                            <span className="font-bold text-emerald-400 truncate block">
+                              {formatServicePrice({
+                                pricingModel: serviceData.pricingModel,
+                                amount: serviceData.amount,
+                                minAmount: serviceData.minAmount,
+                                maxAmount: serviceData.maxAmount,
+                                currency: serviceData.currency,
+                              })}
+                            </span>
+                          </div>
+                        );
+                      })()
+                    )}
                   </div>
 
                   {/* Short description preview */}

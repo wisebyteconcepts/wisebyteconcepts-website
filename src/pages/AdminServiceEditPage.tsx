@@ -50,6 +50,7 @@ import {
   DEFAULT_CURRENCIES, 
   normalizeService 
 } from '@/utils/serviceMigration';
+import { formatServicePrice } from '@/utils/currency';
 import { cn } from '@/lib/utils';
 
 const DELIVERED_UNITS: ServiceDeliveredUnit[] = ['Days', 'Weeks', 'Month', 'Depends Upon Project'];
@@ -794,6 +795,14 @@ export const AdminServiceEditPage: React.FC = () => {
                   />
                 </div>
               )}
+
+              {/* Display Format Preview */}
+              <div className="pt-3 border-t border-border/40 flex items-center justify-between text-xs">
+                <span className="text-muted-foreground font-medium">Public Display Preview:</span>
+                <span className="font-bold font-mono text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20">
+                  {formatServicePrice(form) || 'No price set'}
+                </span>
+              </div>
             </div>
           )}
         </TabsContent>
