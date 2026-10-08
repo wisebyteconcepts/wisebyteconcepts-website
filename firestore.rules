@@ -97,5 +97,14 @@ service cloud.firestore {
     match /mediaAuditLogs/{logId} {
       allow read, create: if isAdmin();
     }
+
+    // Queries (Contact form submissions)
+    match /queries/{queryId} {
+      allow create: if true;
+      allow read, delete: if isAdmin();
+      allow update: if isAdmin() || (
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['notified'])
+      );
+    }
   }
 }

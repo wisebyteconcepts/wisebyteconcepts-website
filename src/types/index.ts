@@ -258,5 +258,39 @@ export interface AuthState {
   token?: string;
 }
 
+// Contact Form Query Types
+export type QueryStatus = 'New' | 'In progress' | 'Resolved';
+
+export interface QueryServiceItem {
+  id: string;
+  name: string;
+  category?: string;
+}
+
+export interface QueryProjectItem {
+  id: string;
+  name: string;
+  parentService?: string;
+}
+
+export interface Query {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  message: string;
+  services: QueryServiceItem[];
+  projects: QueryProjectItem[];
+  budget: string;
+  timeline: string;
+  contactMethod: 'email' | 'phone' | 'whatsapp';
+  createdAt: string;
+  status: QueryStatus;
+  isRead: boolean;
+  notes?: string;
+  notified?: boolean; // Future push notification flag
+  updatedAt?: string;
+}
+
 export * from './media';
 export * from './icon';

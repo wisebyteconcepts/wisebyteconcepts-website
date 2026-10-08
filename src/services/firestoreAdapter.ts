@@ -7,7 +7,7 @@ import {
   writeBatch 
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { Service, Product, Skill, TechStack, MediaItem, MediaFolder, MediaCollection, MediaAuditLog, OperationType } from '@/types';
+import { Service, Product, Skill, TechStack, MediaItem, MediaFolder, MediaCollection, MediaAuditLog, Query, OperationType } from '@/types';
 import { StorageService } from './storageService';
 import { auth } from '../lib/firebase';
 import { storage as localFallback } from './localStorageAdapter';
@@ -489,6 +489,53 @@ export class FirestoreAdapter implements StorageService {
     } catch (error) {
       handleFirestoreError(error, OperationType.CREATE, `mediaAuditLogs/${log.id}`);
       return localFallback.createMediaAuditLog(log);
+    }
+  }
+
+  // Queries (Contact Inquiries)
+  async getQueries(): Promise<Query[]> {
+    try {
+      const snapshot = await getDocs(collection(db, 'queries'));
+      if (snapshot.empty) {
+        return localFallback.getQueries();
+      }
+      const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Query));
+      return items.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    } catch (error) {
+      handleFirestoreError(error, OperationType.LIST, 'queries');
+      return localFallback.getQueries();
+    }
+  }
+
+  async createQuery(query: Query): Promise<Query> {
+    try {
+      await setDoc(doc(db, 'queries', query.id), cleanForFirestore(query));
+      await localFallback.createQuery(query);
+      return query;
+    } catch (error) {
+      handleFirestoreError(error, OperationType.CREATE, `queries/${query.id}`);
+      return localFallback.createQuery(query);
+    }
+  }
+
+  async updateQuery(query: Query): Promise<Query> {
+    try {
+      await setDoc(doc(db, 'queries', query.id), cleanForFirestore(query), { merge: true });
+      await localFallback.updateQuery(query);
+      return query;
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, `queries/${query.id}`);
+      return localFallback.updateQuery(query);
+    }
+  }
+
+  async deleteQuery(id: string): Promise<void> {
+    try {
+      await deleteDoc(doc(db, 'queries', id));
+      await localFallback.deleteQuery(id);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, `queries/${id}`);
+      await localFallback.deleteQuery(id);
     }
   }
 

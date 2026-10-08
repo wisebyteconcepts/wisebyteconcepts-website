@@ -1,6 +1,8 @@
+import { useMemo } from 'react';
 import { Link, useLocation, useNavigate, Outlet } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
-import { LayoutDashboard, ShoppingBag, Briefcase, Layers, LogOut, Terminal, ExternalLink, Image as ImageIcon } from 'lucide-react';
+import { useAppStore } from '@/store';
+import { LayoutDashboard, ShoppingBag, Briefcase, Layers, Inbox, LogOut, Terminal, ExternalLink, Image as ImageIcon } from 'lucide-react';
 import { GlowOrb, Button } from '@/components';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '@/lib/utils';
@@ -15,11 +17,15 @@ export const AdminLayout = () => {
     navigate('/admin/login');
   };
 
+  const queries = useAppStore((state) => state.queries || []);
+  const unreadQueriesCount = useMemo(() => queries.filter((q) => !q.isRead).length, [queries]);
+
   const navItems = [
     { name: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
     { name: 'Services', path: '/admin/services', icon: Briefcase },
     { name: 'Projects', path: '/admin/products', icon: ShoppingBag, aliases: ['/admin/projects'] },
     { name: 'Tech Stacks', path: '/admin/tech-stacks', icon: Layers, aliases: ['/admin/skills'] },
+    { name: 'Queries', path: '/admin/queries', icon: Inbox, badge: unreadQueriesCount },
   ];
 
   const isMediaActive = location.pathname === '/admin/media' || location.pathname.startsWith('/admin/media');
@@ -90,6 +96,11 @@ export const AdminLayout = () => {
                 >
                   <item.icon className={cn("w-4 h-4 shrink-0", active ? "text-accent" : "text-text-muted")} />
                   <span>{item.name}</span>
+                  {item.badge !== undefined && item.badge > 0 && (
+                    <span className="ml-1.5 px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold bg-accent text-on-accent shrink-0 shadow-xs">
+                      {item.badge}
+                    </span>
+                  )}
                 </Link>
               );
             })}

@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Service, Product, Skill, TechStack } from '@/types';
+import { Service, Product, Skill, TechStack, Query } from '@/types';
 import { api } from '@/services/api';
 import { DEFAULT_CLASSIFICATIONS } from '@/utils/techStackMigration';
 import { DEFAULT_SERVICE_CATEGORIES } from '@/utils/serviceMigration';
@@ -13,7 +13,15 @@ interface AppState {
   techStacks: TechStack[];
   skills: TechStack[]; // Backwards compatibility alias
   classifications: string[];
+  queries: Query[];
   isLoaded: boolean;
+
+  // Actions for Queries
+  addQuery: (query: Query) => Promise<void>;
+  updateQuery: (query: Query) => Promise<void>;
+  deleteQuery: (id: string) => Promise<void>;
+  markQueryRead: (id: string, isRead: boolean) => Promise<void>;
+  loadQueries: () => Promise<void>;
 
   // Actions for Services
   addService: (service: Service) => Promise<void>;
@@ -62,10 +70,44 @@ export const useAppStore = create<AppState>((set, get) => ({
   techStacks: [],
   skills: [],
   classifications: DEFAULT_CLASSIFICATIONS,
+  queries: [],
   isLoaded: false,
 
   resetToDefaults: async () => {
     await get().init();
+  },
+
+  addQuery: async (query) => {
+    const created = await api.data.createQuery(query);
+    set((state) => ({
+      queries: [created, ...state.queries.filter((q) => q.id !== created.id)],
+    }));
+  },
+
+  updateQuery: async (query) => {
+    const updated = await api.data.updateQuery(query);
+    set((state) => ({
+      queries: state.queries.map((q) => (q.id === updated.id ? updated : q)),
+    }));
+  },
+
+  deleteQuery: async (id) => {
+    await api.data.deleteQuery(id);
+    set((state) => ({
+      queries: state.queries.filter((q) => q.id !== id),
+    }));
+  },
+
+  markQueryRead: async (id, isRead) => {
+    const target = get().queries.find((q) => q.id === id);
+    if (!target) return;
+    const updated: Query = { ...target, isRead };
+    await get().updateQuery(updated);
+  },
+
+  loadQueries: async () => {
+    const list = await api.data.getQueries();
+    set({ queries: list });
   },
 
   addService: async (service) => {
@@ -242,12 +284,13 @@ export const useAppStore = create<AppState>((set, get) => ({
     if (isLoaded) return;
 
     try {
-      const [services, products, techStacks, classifications, storedServiceCategories] = await Promise.all([
+      const [services, products, techStacks, classifications, storedServiceCategories, loadedQueries] = await Promise.all([
         api.data.getServices(),
         api.data.getProducts(),
         api.data.getTechStacks(),
         api.data.getClassifications(),
         api.data.getServiceCategories(),
+        api.data.getQueries(),
       ]);
 
       // Deduplicate
@@ -296,6 +339,14 @@ export const useAppStore = create<AppState>((set, get) => ({
         ...itemProjectCategories
       ]));
 
+      // Deduplicate and sort queries newest first
+      const seenQueryIds = new Set();
+      const uniqueQueries = (loadedQueries || []).filter(q => {
+        if (!q.id || seenQueryIds.has(q.id)) return false;
+        seenQueryIds.add(q.id);
+        return true;
+      }).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
       set({ 
         services: uniqueServices,
         serviceCategories: mergedServiceCategories,
@@ -304,6 +355,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         techStacks: uniqueStacks,
         skills: uniqueStacks,
         classifications: mergedClassifications,
+        queries: uniqueQueries,
         isLoaded: true 
       });
     } catch (error) {

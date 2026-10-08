@@ -22,6 +22,7 @@ const AdminServiceEditPage = lazy(() => import('./pages').then(m => ({ default: 
 const AdminProductsPage = lazy(() => import('./pages').then(m => ({ default: m.AdminProductsPage })));
 const AdminProductEditPage = lazy(() => import('./pages').then(m => ({ default: m.AdminProductEditPage })));
 const AdminTechStacksPage = lazy(() => import('./pages').then(m => ({ default: m.AdminTechStacksPage })));
+const AdminQueriesPage = lazy(() => import('./pages').then(m => ({ default: m.AdminQueriesPage })));
 const AdminMediaPage = lazy(() => import('./pages').then(m => ({ default: m.AdminMediaPage })));
 const ServiceDetailPage = lazy(() => import('./pages').then(m => ({ default: m.ServiceDetailPage })));
 const ProductDetailPage = lazy(() => import('./pages').then(m => ({ default: m.ProductDetailPage })));
@@ -93,6 +94,7 @@ export default function App() {
                 <Route path="projects/edit/:id" element={<AdminProductEditPage />} />
                 <Route path="tech-stacks" element={<AdminTechStacksPage />} />
                 <Route path="skills" element={<Navigate to="/admin/tech-stacks" replace />} />
+                <Route path="queries" element={<AdminQueriesPage />} />
                 <Route index element={<Navigate to="/admin/dashboard" replace />} />
                 <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
               </Route>

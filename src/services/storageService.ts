@@ -1,4 +1,4 @@
-import { Service, Product, Skill, TechStack, MediaItem, MediaFolder, MediaCollection, MediaAuditLog } from '@/types';
+import { Service, Product, Skill, TechStack, MediaItem, MediaFolder, MediaCollection, MediaAuditLog, Query } from '@/types';
 
 export interface StorageService {
   // Services
@@ -53,6 +53,12 @@ export interface StorageService {
   // Media Audit Logs
   getMediaAuditLogs(): Promise<MediaAuditLog[]>;
   createMediaAuditLog(log: MediaAuditLog): Promise<MediaAuditLog>;
+
+  // Queries (Contact Inquiries)
+  getQueries(): Promise<Query[]>;
+  createQuery(query: Query): Promise<Query>;
+  updateQuery(query: Query): Promise<Query>;
+  deleteQuery(id: string): Promise<void>;
 
   // Batch
   batchUpdate(collectionName: string, updates: any[]): Promise<void>;

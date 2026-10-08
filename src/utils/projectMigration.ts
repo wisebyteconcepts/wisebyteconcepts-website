@@ -189,8 +189,8 @@ export function normalizeProject(raw: any, defaultParentService: string = ''): P
 
     ctaHeading: raw.ctaHeading || undefined,
     ctaText: raw.ctaText || undefined,
-    ctaButtonText: raw.ctaButtonText || 'View Live Project',
-    ctaButtonLink: raw.ctaButtonLink || liveLink || '/contact',
+    ctaButtonText: raw.ctaButtonText || 'Discuss Your Project',
+    ctaButtonLink: raw.ctaButtonLink || '/contact',
     ctaSecondaryButtonText: raw.ctaSecondaryButtonText || undefined,
     ctaSecondaryButtonLink: raw.ctaSecondaryButtonLink || undefined,
     ctaVisual: raw.ctaVisual || undefined,

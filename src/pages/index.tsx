@@ -21,7 +21,6 @@ import {
   TableRow,
 } from '@/components/ui/Table';
 import { Badge } from '@/components/ui/Badge';
-import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
 import { Switch } from '@/components/ui/Switch';
 import {
@@ -46,7 +45,6 @@ import {
   Briefcase, 
   ShoppingBag, 
   Code, 
-  Code2, 
   Search,
   ArrowLeft,
   ExternalLink,
@@ -58,8 +56,6 @@ import {
   Clock,
   ArrowRight,
   Mail,
-  Phone,
-  MapPin,
   Zap,
   Sparkles,
   Monitor,
@@ -1595,6 +1591,24 @@ export const ProductDetailPage = () => {
   const product = products.find(p => p.id === id || p.slug === id);
   const service = services.find(s => s.id === (product?.parentService || product?.serviceId));
 
+  const parentServiceId = product?.parentService || (product as any)?.serviceId || service?.id;
+  const productAny = product as any;
+  const ctaButtonText = (
+    product?.ctaButtonText ||
+    productAny?.cta?.buttonText ||
+    productAny?.cta?.ctaButtonText ||
+    productAny?.cta?.label ||
+    productAny?.ctaButton ||
+    'Inquire About This Project'
+  ).trim();
+  const ctaContactUrl = parentServiceId
+    ? `/contact?service=${encodeURIComponent(parentServiceId)}&project=${encodeURIComponent(product?.id || '')}`
+    : `/contact?project=${encodeURIComponent(product?.id || '')}`;
+
+  const handleInquireClick = () => {
+    navigate(ctaContactUrl);
+  };
+
   const [activeGalleryIndex, setActiveGalleryIndex] = useState<number | null>(null);
 
   // SEO Synchronization
@@ -1736,11 +1750,19 @@ export const ProductDetailPage = () => {
                 {product.shortDescription || product.description}
               </p>
 
-              {/* Deployment Action Buttons */}
+              {/* Deployment & Inquire Action Buttons */}
               <div className="flex flex-wrap items-center gap-3.5 pt-2">
+                <Button 
+                  size="lg" 
+                  onClick={handleInquireClick}
+                  className="rounded-xl px-7 gap-2 shadow-glow-primary font-semibold cursor-pointer"
+                >
+                  <span>{ctaButtonText}</span>
+                  <ArrowRight className="w-4 h-4" />
+                </Button>
                 {liveLink && (
                   <a href={liveLink} target="_blank" rel="noopener noreferrer">
-                    <Button size="lg" className="rounded-xl px-7 gap-2 shadow-glow-primary font-semibold cursor-pointer">
+                    <Button variant="glass" size="lg" className="rounded-xl px-6 gap-2 font-semibold cursor-pointer">
                       <Globe className="w-4 h-4" /> Live Application <ExternalLink className="w-3.5 h-3.5 opacity-70" />
                     </Button>
                   </a>
@@ -2011,17 +2033,54 @@ export const ProductDetailPage = () => {
                     </div>
                   </div>
 
-                  <Button 
-                    variant="glass" 
-                    className="w-full justify-between rounded-xl text-xs cursor-pointer"
-                    onClick={() => navigate(`/services/${service.slug || service.id}`)}
-                  >
-                    <span>Explore Service Portfolio</span>
-                    <ArrowRight className="w-3.5 h-3.5 ml-2" />
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="glass" 
+                      className="flex-1 justify-between rounded-xl text-xs cursor-pointer"
+                      onClick={() => navigate(`/services/${service.slug || service.id}`)}
+                    >
+                      <span>Explore Service</span>
+                      <ArrowRight className="w-3.5 h-3.5 ml-1" />
+                    </Button>
+                    <Button 
+                      className="flex-1 justify-between rounded-xl text-xs cursor-pointer shadow-xs"
+                      onClick={handleInquireClick}
+                    >
+                      <span>Scope Project</span>
+                      <ArrowRight className="w-3.5 h-3.5 ml-1" />
+                    </Button>
+                  </div>
                 </div>
               )}
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Bottom Call to Action Section */}
+      <section className="py-16 md:py-20 border-t border-border/50 bg-surface-1/40">
+        <div className="container mx-auto px-6">
+          <div className="rounded-3xl border border-primary/20 bg-gradient-to-br from-surface-1 via-surface-2 to-primary/5 p-8 sm:p-12 md:p-16 text-center shadow-xl relative overflow-hidden max-w-4xl mx-auto">
+            <div className="max-w-2xl mx-auto space-y-6 relative z-10">
+              <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-foreground tracking-tight leading-tight">
+                {product.ctaHeading || productAny?.cta?.heading || 'Ready to engineer a similar solution for your organization?'}
+              </h2>
+              <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
+                {product.ctaText || productAny?.cta?.text || productAny?.cta?.description || 'Connect with our engineering leads to discuss your scope, deliverables, and production roadmap.'}
+              </p>
+              <div className="pt-2 flex justify-center">
+                <Button
+                  size="lg"
+                  onClick={() => navigate(ctaContactUrl)}
+                  className="rounded-xl px-8 h-12 text-sm font-bold shadow-glow-primary gap-2 cursor-pointer transition-all hover:scale-[1.02]"
+                >
+                  <span>{ctaButtonText}</span>
+                  <ArrowRight className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+            <div className="absolute -bottom-24 -right-24 w-72 h-72 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
+            <div className="absolute -top-24 -left-24 w-72 h-72 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
           </div>
         </div>
       </section>
@@ -2062,125 +2121,8 @@ export const ProductDetailPage = () => {
   );
 };
 
-export const ContactPage = () => {
-  return (
-    <div className="flex flex-col min-h-screen">
-      <SubPageHero 
-        title={<>Get in <span className="text-primary">Touch.</span></>}
-        subtitle="Have a project in mind or just want to chat about technical possibilities? We're always open to new engineering challenges."
-        badge="Project Inquiries"
-      />
-
-      <section className="py-16 md:py-24">
-        <div className="container mx-auto px-6">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-24">
-            <div className="lg:col-span-4 space-y-12">
-              <div>
-                <h3 className="text-[11px] font-bold text-primary uppercase tracking-[0.4em] mb-8 inline-flex items-center px-4 py-1.5 bg-primary/5 dark:bg-primary/10 border border-primary/20 rounded-full">Contact Details</h3>
-                <div className="space-y-8">
-                   <div className="flex items-start gap-4">
-                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                      <Mail className="w-5 h-5 text-primary" />
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest mb-1">Email</p>
-                      <a href="mailto:contact@wisebyteconcepts.com" className="text-lg font-bold hover:text-primary transition-colors">
-                        contact@wisebyteconcepts.com
-                      </a>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-4">
-                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                      <Phone className="w-5 h-5 text-primary" />
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest mb-1">Phone</p>
-                      <p className="text-lg font-bold">+91-XXXXXXXXXX</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-4">
-                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                      <MapPin className="w-5 h-5 text-primary" />
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest mb-1">Location</p>
-                      <p className="text-lg font-bold">India</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-4">
-                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                      <Globe className="w-5 h-5 text-primary" />
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest mb-1">Website</p>
-                      <a href="https://www.wisebyteconcepts.com" target="_blank" className="text-lg font-bold hover:text-primary transition-colors">
-                        www.wisebyteconcepts.com
-                      </a>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-4">
-                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                      <Github className="w-5 h-5 text-primary" />
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest mb-1">GitHub</p>
-                      <a href="https://github.com/wisebyteconcepts" target="_blank" className="text-lg font-bold hover:text-primary transition-colors">
-                        wisebyteconcepts
-                      </a>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <h3 className="text-[11px] font-bold text-primary uppercase tracking-[0.4em] mb-8 inline-flex items-center px-4 py-1.5 bg-primary/5 dark:bg-primary/10 border border-primary/20 rounded-full">Our Brand</h3>
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-primary flex items-center justify-center rounded-lg shadow-sm shrink-0">
-                    <Code2 className="text-white w-5 h-5" />
-                  </div>
-                  <p className="text-xl font-bold font-display">Wise Byte Concepts</p>
-                </div>
-                <p className="text-muted-foreground text-sm mt-2">Delivering precision digital engineering and scalable design systems for the modern era.</p>
-              </div>
-            </div>
-
-            <div className="lg:col-span-8">
-              <GlassCard className="p-8 lg:p-12 border-border/50">
-                <form className="space-y-8" onSubmit={(e) => e.preventDefault()}>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div className="space-y-2">
-                       <label className="text-[10px] font-bold text-primary uppercase tracking-[0.2em] ml-1">Full Name</label>
-                       <Input placeholder="John Doe" className="bg-muted/50 border-border" id="contact-name" />
-                    </div>
-                    <div className="space-y-2">
-                       <label className="text-[10px] font-bold text-primary uppercase tracking-[0.2em] ml-1">Email Address</label>
-                       <Input type="email" placeholder="john@example.com" className="bg-muted/50 border-border" id="contact-email" />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                     <label className="text-[10px] font-bold text-primary uppercase tracking-[0.2em] ml-1">Project Brief</label>
-                     <Input placeholder="What are we building?" className="bg-muted/50 border-border" id="contact-brief" />
-                  </div>
-                  <div className="space-y-2">
-                     <label className="text-[10px] font-bold text-primary uppercase tracking-[0.2em] ml-1">Technical Requirements</label>
-                     <textarea className="w-full min-h-[150px] bg-muted/50 border border-border rounded-xl p-4 text-sm focus:outline-none focus:border-primary/50 transition-colors hide-scrollbar text-foreground" placeholder="Tell us more about your needs..." id="contact-message" />
-                  </div>
-                  <Button size="lg" className="w-full h-14 text-base rounded-xl font-bold">
-                    Send Message
-                  </Button>
-                </form>
-              </GlassCard>
-            </div>
-          </div>
-        </div>
-      </section>
-    </div>
-  );
-};
+export { ContactPage } from './ContactPage';
+export { AdminQueriesPage } from './AdminQueriesPage';
 
 export * from './NotFoundPage';
 export * from './AdminMediaPage';

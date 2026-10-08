@@ -121,9 +121,13 @@ export const ServiceDetailPage: React.FC = () => {
   const ctaButtonText = service?.ctaButtonText || 'Get this service';
   const ctaButtonLink = service?.ctaButtonLink || '/contact';
 
+  const contactUrl = service?.id ? `/contact?service=${encodeURIComponent(service.id)}` : '/contact';
+
   const handleCtaClick = () => {
     if (ctaButtonLink.startsWith('http://') || ctaButtonLink.startsWith('https://')) {
       window.open(ctaButtonLink, '_blank', 'noopener,noreferrer');
+    } else if (ctaButtonLink === '/contact' || !ctaButtonLink || ctaButtonLink.startsWith('/contact')) {
+      navigate(contactUrl);
     } else {
       navigate(ctaButtonLink);
     }
@@ -142,6 +146,8 @@ export const ServiceDetailPage: React.FC = () => {
     if (!bottomCtaButtonLink) return;
     if (bottomCtaButtonLink.startsWith('http://') || bottomCtaButtonLink.startsWith('https://')) {
       window.open(bottomCtaButtonLink, '_blank', 'noopener,noreferrer');
+    } else if (bottomCtaButtonLink === '/contact' || bottomCtaButtonLink.startsWith('/contact')) {
+      navigate(contactUrl);
     } else {
       navigate(bottomCtaButtonLink);
     }

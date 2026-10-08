@@ -1,4 +1,4 @@
-import { Service, Product, Skill, TechStack, MediaItem, MediaFolder, MediaCollection, MediaAuditLog } from '@/types';
+import { Service, Product, Skill, TechStack, MediaItem, MediaFolder, MediaCollection, MediaAuditLog, Query } from '@/types';
 import { StorageService } from './storageService';
 import { DEFAULT_FOLDERS, DEFAULT_MEDIA_ITEMS, DEFAULT_COLLECTIONS } from '@/data/defaultMedia';
 import { normalizeTechStack, DEFAULT_CLASSIFICATIONS } from '@/utils/techStackMigration';
@@ -15,6 +15,7 @@ const KEYS = {
   FOLDERS: 'wbc_media_folders',
   COLLECTIONS: 'wbc_media_collections',
   AUDIT_LOGS: 'wbc_media_audit_logs',
+  QUERIES: 'wbc_queries',
 } as const;
 
 export class LocalStorageAdapter implements StorageService {
@@ -323,6 +324,35 @@ export class LocalStorageAdapter implements StorageService {
     if (logs.length > 500) logs.pop();
     this.setItem(KEYS.AUDIT_LOGS, logs);
     return log;
+  }
+
+  // Queries (Contact Inquiries)
+  async getQueries(): Promise<Query[]> {
+    const raw = this.getItem<Query>(KEYS.QUERIES, []);
+    return raw.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }
+
+  async createQuery(query: Query): Promise<Query> {
+    const queries = this.getItem<Query>(KEYS.QUERIES, []);
+    queries.unshift(query);
+    this.setItem(KEYS.QUERIES, queries);
+    return query;
+  }
+
+  async updateQuery(query: Query): Promise<Query> {
+    const queries = this.getItem<Query>(KEYS.QUERIES, []);
+    const index = queries.findIndex((q) => q.id === query.id);
+    if (index !== -1) {
+      queries[index] = query;
+      this.setItem(KEYS.QUERIES, queries);
+    }
+    return query;
+  }
+
+  async deleteQuery(id: string): Promise<void> {
+    const queries = this.getItem<Query>(KEYS.QUERIES, []);
+    const filtered = queries.filter((q) => q.id !== id);
+    this.setItem(KEYS.QUERIES, filtered);
   }
 
   async batchUpdate(collectionName: string, updates: any[]): Promise<void> {

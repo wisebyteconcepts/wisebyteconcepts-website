@@ -307,8 +307,8 @@ export const AdminProductEditPage: React.FC = () => {
 
       ctaHeading: form.ctaHeading?.trim() || undefined,
       ctaText: form.ctaText?.trim() || undefined,
-      ctaButtonText: form.ctaButtonText?.trim() || 'View Live Project',
-      ctaButtonLink: form.ctaButtonLink?.trim() || form.liveLink || '/contact',
+      ctaButtonText: form.ctaButtonText?.trim() || 'Discuss Your Project',
+      ctaButtonLink: form.ctaButtonLink?.trim() || '/contact',
       ctaSecondaryButtonText: form.ctaSecondaryButtonText?.trim() || undefined,
       ctaSecondaryButtonLink: form.ctaSecondaryButtonLink?.trim() || undefined,
       ctaVisual: form.ctaVisual,
@@ -773,9 +773,9 @@ export const AdminProductEditPage: React.FC = () => {
             onHeadingChange={(val) => update('ctaHeading', val)}
             description={form.ctaText || ''}
             onDescriptionChange={(val) => update('ctaText', val)}
-            buttonText={form.ctaButtonText || 'View Live Project'}
+            buttonText={form.ctaButtonText || 'Discuss Your Project'}
             onButtonTextChange={(val) => update('ctaButtonText', val)}
-            buttonLink={form.ctaButtonLink || form.liveLink || '/contact'}
+            buttonLink={form.ctaButtonLink || '/contact'}
             onButtonLinkChange={(val) => update('ctaButtonLink', val)}
             secondaryButtonText={form.ctaSecondaryButtonText}
             onSecondaryButtonTextChange={(val) => update('ctaSecondaryButtonText', val)}

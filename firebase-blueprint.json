@@ -152,6 +152,30 @@
         "details": { "type": "string" }
       },
       "required": ["id", "action", "performedBy", "timestamp"]
+    },
+    "Query": {
+      "title": "Contact Inquiry",
+      "description": "Inquiry submitted through public contact form",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "phone": { "type": "string" },
+        "message": { "type": "string" },
+        "services": { "type": "array" },
+        "projects": { "type": "array" },
+        "budget": { "type": "string" },
+        "timeline": { "type": "string" },
+        "contactMethod": { "type": "string", "enum": ["email", "phone", "whatsapp"] },
+        "createdAt": { "type": "string" },
+        "status": { "type": "string", "enum": ["New", "In progress", "Resolved"] },
+        "isRead": { "type": "boolean" },
+        "notes": { "type": "string" },
+        "notified": { "type": "boolean" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "name", "email", "message", "createdAt", "status", "isRead"]
     }
   },
   "firestore": {
@@ -194,6 +218,10 @@
     "mediaAuditLogs/{logId}": {
       "schema": "MediaAuditLog",
       "description": "Security and activity audit logs for media actions"
+    },
+    "queries/{queryId}": {
+      "schema": "Query",
+      "description": "Contact inquiries submitted by visitors"
     }
   }
 }
