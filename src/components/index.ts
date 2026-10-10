@@ -24,3 +24,6 @@ export * from './ui/Icon';
 export * from './TechStackIcon';
 export * from './IconPicker';
 export * from './media';
+export * from './CategoryBadge';
+export * from './ServiceCard';
+export * from './ProjectCard';

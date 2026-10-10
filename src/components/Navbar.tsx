@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { Menu, X, Github, Code2, Sun, Moon } from 'lucide-react';
+import { Menu, X, Github, Code2, Sun, Moon, Home, Briefcase, FolderGit2, Layers, Mail } from 'lucide-react';
 import { Button } from './Button';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -183,12 +183,6 @@ export const Navbar = ({
 
         {/* Mobile Toggle */}
         <div className="flex items-center gap-2 md:hidden">
-          <button
-            onClick={cycleTheme}
-            className="p-2 rounded-lg hover:bg-[var(--hover-overlay)] text-text-primary"
-          >
-            {getThemeIcon()}
-          </button>
           <button 
             className="p-2 text-text-primary hover:bg-[var(--hover-overlay)] rounded-lg transition-colors"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -206,37 +200,73 @@ export const Navbar = ({
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className="md:hidden bg-surface-5 border-t border-border shadow-popover overflow-hidden"
+            transition={{ duration: 0.2 }}
+            className="md:hidden bg-surface-0/95 backdrop-blur-xl border-t border-border shadow-popover overflow-hidden"
           >
-            <div className="container mx-auto px-6 py-8 flex flex-col gap-6">
-              {links.map((link) => (
-                <Link 
-                  key={link.path} 
-                  to={link.path}
-                  className={cn(
-                    'text-xl font-bold transition-colors',
-                    isActive(link.path) ? 'text-accent' : 'text-text-secondary hover:text-text-primary'
-                  )}
-                >
-                  {link.name}
-                </Link>
-              ))}
+            <div className="container mx-auto px-5 py-5 flex flex-col gap-5">
+              {/* Navigation Links */}
+              <nav aria-label="Mobile Navigation" className="flex flex-col gap-1.5">
+                {links.map((link) => {
+                  const active = isActive(link.path);
+                  const Icon = 
+                    link.path === '/' ? Home :
+                    link.path === '/services' ? Briefcase :
+                    link.path === '/products' ? FolderGit2 :
+                    link.path === '/tech-stacks' ? Layers :
+                    Mail;
+
+                  return (
+                    <Link 
+                      key={link.path} 
+                      to={link.path}
+                      className={cn(
+                        'min-h-[46px] px-3.5 py-2.5 rounded-xl text-[15px] font-medium transition-colors flex items-center justify-between group',
+                        active 
+                          ? 'bg-accent/10 text-accent font-semibold border border-accent/20' 
+                          : 'text-text-secondary hover:text-text-primary hover:bg-[var(--hover-overlay)]'
+                      )}
+                    >
+                      <div className="flex items-center gap-3">
+                        {/* Left accent bar for active link */}
+                        <div className={cn(
+                          'w-1 h-4 rounded-full transition-colors',
+                          active ? 'bg-accent' : 'bg-transparent'
+                        )} />
+                        <Icon className={cn(
+                          'w-4 h-4 shrink-0 transition-colors',
+                          active ? 'text-accent' : 'text-text-muted group-hover:text-text-primary'
+                        )} />
+                        <span>{link.name}</span>
+                      </div>
+
+                      {/* Small accent dot on the right for active item */}
+                      {active && (
+                        <span className="w-1.5 h-1.5 rounded-full bg-accent shadow-[0_0_6px_var(--color-accent)]" />
+                      )}
+                    </Link>
+                  );
+                })}
+              </nav>
+
               <div className="h-px bg-divider w-full" />
-              <div className="flex flex-col gap-6">
-                <div className="flex items-center justify-between">
-                  <span className="text-text-muted font-medium">Appearance</span>
+
+              {/* Utility / Footer Actions in Mobile Pane */}
+              <div className="flex flex-col gap-4">
+                <div className="flex items-center justify-between px-1">
+                  <span className="text-xs font-mono font-medium uppercase tracking-wider text-text-muted">Appearance</span>
                   <div className="flex bg-surface-1 p-1 rounded-lg border border-border">
                     {(['light', 'dark'] as const).map((t) => (
                       <button
                         key={t}
                         onClick={() => setTheme(t)}
                         className={cn(
-                          'px-3 py-1.5 rounded-md text-xs font-bold capitalize transition-all',
+                          'min-h-[32px] px-3 py-1 rounded-md text-xs font-bold capitalize transition-all flex items-center gap-1.5',
                           theme === t 
                             ? 'bg-surface-2 text-text-primary shadow-xs' 
                             : 'text-text-muted hover:text-text-primary'
                         )}
                       >
+                        {t === 'light' ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
                         {t}
                       </button>
                     ))}
@@ -247,13 +277,14 @@ export const Navbar = ({
                   href={githubUrl} 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="flex items-center gap-3 text-lg font-medium text-text-secondary hover:text-text-primary"
+                  className="min-h-[44px] px-3.5 py-2 rounded-xl text-sm font-medium text-text-secondary hover:text-text-primary hover:bg-[var(--hover-overlay)] flex items-center gap-3 transition-colors"
                 >
-                  <Github className="w-6 h-6" />
-                  GitHub
+                  <Github className="w-4 h-4 shrink-0 text-text-muted" />
+                  <span>GitHub</span>
                 </a>
+
                 <Link to="/contact">
-                  <Button variant="primary" className="w-full py-4 text-lg">
+                  <Button variant="primary" className="w-full min-h-[46px] text-sm font-semibold rounded-xl shadow-xs">
                     Get in Touch
                   </Button>
                 </Link>

@@ -26,9 +26,11 @@ export interface QueryProjectEntry {
 
 export interface QueryPayload {
   id: string;
+  referenceToken?: string;
   name: string;
   email?: string;
   phone?: string;
+  whatsapp?: string;
   message?: string;
   services?: QueryServiceEntry[];
   projects?: QueryProjectEntry[];
@@ -36,6 +38,8 @@ export interface QueryPayload {
   timeline?: string;
   contactMethod?: string;
   createdAt?: string;
+  updatedAt?: string;
+  isUpdate?: boolean;
   honeypot?: string;
   isSpam?: boolean;
 }
@@ -100,8 +104,32 @@ export function isTelegramConfigured(): boolean {
 }
 
 /**
+ * Formats date and time in Indian Standard Time (Asia/Kolkata).
+ * Output example: "10 Oct 2026, 3:45 PM IST"
+ */
+function formatISTDate(dateInput: string | number | Date | null | undefined): string {
+  if (!dateInput) return '—';
+  try {
+    const d = new Date(dateInput);
+    if (isNaN(d.getTime())) return String(dateInput);
+    const day = new Intl.DateTimeFormat('en-GB', { day: 'numeric', timeZone: 'Asia/Kolkata' }).format(d);
+    const month = new Intl.DateTimeFormat('en-GB', { month: 'short', timeZone: 'Asia/Kolkata' }).format(d);
+    const year = new Intl.DateTimeFormat('en-GB', { year: 'numeric', timeZone: 'Asia/Kolkata' }).format(d);
+    const time = new Intl.DateTimeFormat('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+      timeZone: 'Asia/Kolkata',
+    }).format(d);
+    return `${day} ${month} ${year}, ${time} IST`;
+  } catch {
+    return String(dateInput);
+  }
+}
+
+/**
  * Formats a single query into a concise Telegram notification message.
- * Strict requirement: short, no full message body or sensitive details (phone/email).
+ * Strict requirement: short, no full message body.
  */
 export function formatSingleQueryMessage(query: QueryPayload, baseUrl: string): string {
   const cleanBaseUrl = baseUrl.replace(/\/$/, '');
@@ -118,24 +146,51 @@ export function formatSingleQueryMessage(query: QueryPayload, baseUrl: string): 
   const budgetText = query.budget ? escapeHtml(query.budget) : 'Flexible / TBD';
   const timelineText = query.timeline ? escapeHtml(query.timeline) : 'Flexible';
   
-  const formattedDate = new Date(query.createdAt || Date.now()).toLocaleString('en-US', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-    timeZone: 'UTC',
-  });
+  const targetDate = query.isUpdate && query.updatedAt ? query.updatedAt : (query.createdAt || Date.now());
+  const formattedDateIST = formatISTDate(targetDate);
+  const token = query.referenceToken ? query.referenceToken.toUpperCase() : (query.id ? query.id.toUpperCase() : 'WBC-QUERY');
 
-  return [
-    `📬 <b>New query received</b>`,
+  const titleHeader = query.isUpdate 
+    ? `🔄 <b>Query updated</b>`
+    : `📬 <b>New query received</b>`;
+
+  const lines: string[] = [
+    titleHeader,
     ``,
+    `🏷 <b>Reference:</b> <code>${escapeHtml(token)}</code>`,
     `👤 <b>Sender:</b> ${escapeHtml(query.name)}`,
-    `🛠 <b>Service:</b> ${servicesList}`,
-    `📦 <b>Project:</b> ${projectsList}`,
-    `💰 <b>Budget:</b> ${budgetText}`,
-    `⏱ <b>Timeline:</b> ${timelineText}`,
-    `📅 <b>Date:</b> ${escapeHtml(formattedDate)} UTC`,
-    ``,
-    `🔗 <a href="${adminLink}">View Query in Admin Panel</a>`,
-  ].join('\n');
+  ];
+
+  // Email tappable link (mailto:)
+  if (query.email && query.email.trim()) {
+    const cleanEmail = query.email.trim();
+    lines.push(`✉️ <b>Email:</b> <a href="mailto:${escapeHtml(cleanEmail)}">${escapeHtml(cleanEmail)}</a>`);
+  }
+
+  // Phone tappable link (tel:)
+  if (query.phone && query.phone.trim()) {
+    const cleanPhone = query.phone.trim();
+    lines.push(`📞 <b>Phone:</b> <a href="tel:${escapeHtml(cleanPhone)}">${escapeHtml(cleanPhone)}</a>`);
+  }
+
+  // WhatsApp tappable link (https://wa.me/<digits only>)
+  const waTarget = query.whatsapp && query.whatsapp.trim() ? query.whatsapp : query.phone;
+  if (waTarget && waTarget.trim()) {
+    const digitsOnly = waTarget.replace(/\D/g, '');
+    if (digitsOnly) {
+      lines.push(`💬 <b>WhatsApp:</b> <a href="https://wa.me/${digitsOnly}">+${digitsOnly}</a>`);
+    }
+  }
+
+  lines.push(`🛠 <b>Service:</b> ${servicesList}`);
+  lines.push(`📦 <b>Project:</b> ${projectsList}`);
+  lines.push(`💰 <b>Budget:</b> ${budgetText}`);
+  lines.push(`⏱ <b>Timeline:</b> ${timelineText}`);
+  lines.push(`📅 <b>Time:</b> ${escapeHtml(formattedDateIST)}`);
+  lines.push(``);
+  lines.push(`🔗 <a href="${adminLink}">View Query in Admin Panel</a>`);
+
+  return lines.join('\n');
 }
 
 /**

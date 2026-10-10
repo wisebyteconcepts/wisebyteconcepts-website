@@ -8,7 +8,9 @@ import {
   Button,
   Section,
   GlassCard,
-  GlowOrb
+  GlowOrb,
+  ServiceCard,
+  ProjectCard,
 } from '@/components';
 import { 
   Card 
@@ -72,10 +74,10 @@ import {
 import { TechStackForm } from '@/components/forms/TechStackForm';
 import { TechStackIcon } from '@/components/TechStackIcon';
 import { MarkdownContent } from '@/components/ui/MarkdownEditor';
-import DecryptedText from '@/components/ui/DecryptedText';
 import { useParams } from 'react-router-dom';
 import { formatServicePrice } from '@/utils/currency';
-import { motion } from 'motion/react';
+import { motion, useReducedMotion } from 'motion/react';
+import { cn } from '@/lib/utils';
 
 const DynamicIcon = ({ name, className, fallback: Fallback }: { name?: any; className?: string; fallback: LucideIcon }) => {
   return <Icon value={name} className={className} fallback={Fallback} />;
@@ -87,6 +89,7 @@ const DynamicIcon = ({ name, className, fallback: Fallback }: { name?: any; clas
 export const HomePage = () => {
   const { skills, services, products } = useAppStore();
   const navigate = useNavigate();
+  const shouldReduceMotion = useReducedMotion();
 
   const skillsScrollRef = React.useRef<HTMLDivElement>(null);
 
@@ -108,7 +111,6 @@ export const HomePage = () => {
       el.addEventListener('scroll', checkScroll);
       window.addEventListener('resize', checkScroll);
       
-      // Initial check after a short delay to ensure content is rendered
       const timer = setTimeout(checkScroll, 100);
       return () => {
         el.removeEventListener('scroll', checkScroll);
@@ -137,421 +139,637 @@ export const HomePage = () => {
     };
   }, []);
 
+  // Requirement 5: Ignore featured flag on homepage. Show first 6 services and first 6 projects in saved order.
+  const displayServices = useMemo(() => {
+    return services
+      .filter((s) => s.active !== false && s.isActive !== false)
+      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+      .slice(0, 6);
+  }, [services]);
+
+  const displayProjects = useMemo(() => {
+    return products
+      .filter((p) => p.active !== false && p.isActive !== false)
+      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+      .slice(0, 6);
+  }, [products]);
+
+  // Requirement 6: Dynamic background alternation between sections (surface-0 and surface-1)
+  let sectionIndex = 0;
+  const getNextBg = () => {
+    sectionIndex++;
+    return sectionIndex % 2 === 1
+      ? 'bg-surface-1 border-y border-border/60'
+      : 'bg-surface-0';
+  };
+
+  const servicesBg = displayServices.length > 0 ? getNextBg() : '';
+  const whyBg = getNextBg();
+  const featuresBg = getNextBg();
+  const projectsBg = displayProjects.length > 0 ? getNextBg() : '';
+  const missionBg = getNextBg();
+  const techBg = getNextBg();
+  const ctaBg = getNextBg();
+
+  // Helper pill components (Requirement 3: Section captions fully rounded with tinted background and dot; Card category badges smaller pill)
+  const SectionCaption = ({ text }: { text: string }) => (
+    <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-accent/10 border border-accent/25 text-accent text-xs font-display font-semibold uppercase tracking-wider shadow-2xs">
+      <span className="w-1.5 h-1.5 rounded-full bg-accent shrink-0" />
+      <span style={{ fontFamily: "'Space Grotesk', system-ui, sans-serif" }}>{text}</span>
+    </div>
+  );
+
   return (
     <div className="flex flex-col">
-      {/* Hero Section */}
-      <section className="relative min-h-screen flex items-center justify-center pt-32 pb-20 overflow-hidden">
+      {/* 1. Hero Section */}
+      <section className="relative min-h-[85vh] md:min-h-screen flex items-center justify-center pt-28 pb-16 md:pt-36 md:pb-24 overflow-hidden bg-surface-0">
         {/* Animated Background Decorative Elements */}
         <div className="absolute inset-x-0 -top-24 bottom-0 pointer-events-none">
-          <div className="absolute top-0 right-[10%] w-[800px] h-[800px] bg-primary/15 rounded-full blur-[140px] animate-pulse" />
-          <div className="absolute top-1/4 left-[-10%] w-[600px] h-[600px] bg-primary/10 rounded-full blur-[120px] animate-pulse" style={{ animationDelay: '2s' }} />
+          <div className="absolute top-0 right-[10%] w-[550px] md:w-[750px] h-[550px] md:h-[750px] bg-accent/10 rounded-full blur-[140px]" />
+          <div className="absolute top-1/4 left-[-10%] w-[400px] md:w-[600px] h-[400px] md:h-[600px] bg-accent-soft/30 rounded-full blur-[120px]" />
         </div>
         
-        {/* Bottom Fade Mask to fix clipping */}
-        <div className="absolute bottom-0 left-0 right-0 h-80 bg-gradient-to-t from-background via-background/80 to-transparent z-10 pointer-events-none" />
+        {/* Bottom Fade Mask */}
+        <div className="absolute bottom-0 left-0 right-0 h-40 md:h-60 bg-gradient-to-t from-surface-0 via-surface-0/80 to-transparent z-10 pointer-events-none" />
         
-        <div className="max-w-6xl mx-auto px-6 relative z-20 text-center">
+        <div className="max-w-5xl mx-auto px-6 relative z-20 text-center">
+          {/* Section Caption Pill (Requirement 3) */}
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.8 }}
-            className="mb-8 inline-flex items-center py-2 px-4 bg-primary/5 dark:bg-primary/10 rounded-full border border-primary/20"
+            initial={shouldReduceMotion ? false : { opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="mb-6 md:mb-8 inline-flex items-center justify-center"
           >
-            <span className="text-[11px] font-bold uppercase tracking-[0.4em] text-primary font-display">Precision Digital Engineering</span>
+            <SectionCaption text="Precision Digital Engineering" />
           </motion.div>
           
-          <motion.h1
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.2 }}
-            className="text-5xl md:text-8xl font-bold mb-8 tracking-tighter max-w-4xl mx-auto"
-          >
-            <DecryptedText
-              text="Build."
-              animateOn="view"
-              speed={40}
-              maxIterations={10}
-              sequential={true}
-              className="inline-block"
-              encryptedClassName="opacity-60 text-muted-foreground font-mono"
-            />{' '}
-            <DecryptedText
-              text="Design."
-              animateOn="view"
-              speed={40}
-              maxIterations={10}
-              sequential={true}
-              className="inline-block text-primary"
-              encryptedClassName="opacity-60 text-primary/70 font-mono"
-            />{' '}
-            <DecryptedText
-              text="Scale."
-              animateOn="view"
-              speed={40}
-              maxIterations={10}
-              sequential={true}
-              className="inline-block"
-              encryptedClassName="opacity-60 text-muted-foreground font-mono"
-            />
-          </motion.h1>
+          {/* Headline with smooth word-by-word reveal (Requirement 3: no typewriter, no flicker, smooth gradient highlight on Design.) */}
+          <h1 className="text-5xl sm:text-7xl md:text-8xl font-display font-bold mb-6 md:mb-8 tracking-tight max-w-4xl mx-auto leading-[1.06]">
+            {[
+              { text: 'Build.', highlight: false },
+              { text: 'Design.', highlight: true },
+              { text: 'Scale.', highlight: false },
+            ].map((item, idx) => (
+              <motion.span
+                key={item.text}
+                initial={shouldReduceMotion ? false : { opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{
+                  duration: 0.55,
+                  delay: shouldReduceMotion ? 0 : 0.12 + idx * 0.12,
+                  ease: [0.21, 0.47, 0.32, 0.98],
+                }}
+                className={cn(
+                  'inline-block',
+                  item.highlight
+                    ? 'text-transparent bg-clip-text bg-gradient-to-r from-accent via-blue-500 to-indigo-600 dark:from-accent dark:via-sky-400 dark:to-indigo-400'
+                    : 'text-text-primary'
+                )}
+              >
+                {item.text}
+                {idx < 2 && '\u00A0'}
+              </motion.span>
+            ))}
+          </h1>
 
           <motion.p
-            initial={{ opacity: 0, y: 20 }}
+            initial={shouldReduceMotion ? false : { opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.4 }}
-            className="text-muted-foreground text-lg md:text-xl max-w-3xl mx-auto mb-10 leading-relaxed"
+            transition={{ duration: 0.55, delay: shouldReduceMotion ? 0 : 0.48, ease: [0.21, 0.47, 0.32, 0.98] }}
+            className="text-text-secondary text-base sm:text-lg md:text-xl max-w-2xl mx-auto mb-10 leading-relaxed font-normal"
           >
             Modern digital solutions for businesses — from websites and apps to branding and publishing.
           </motion.p>
 
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={shouldReduceMotion ? false : { opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.6 }}
-            className="flex flex-col sm:flex-row items-center justify-center gap-4"
+            transition={{ duration: 0.55, delay: shouldReduceMotion ? 0 : 0.62, ease: [0.21, 0.47, 0.32, 0.98] }}
+            className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full sm:w-auto"
           >
-            <Button size="lg" className="rounded-full px-10 hover:shadow-glow transition-all duration-300" onClick={() => navigate('/contact')}>
+            <Button 
+              size="lg" 
+              className="w-full sm:w-auto rounded-full px-8 py-3 h-12 shadow-sm hover:shadow-card-hover hover:-translate-y-0.5 transition-all duration-300 font-semibold cursor-pointer" 
+              onClick={() => navigate('/contact')}
+            >
               Get Started
             </Button>
-            <Button variant="glass" size="lg" className="rounded-full px-10" onClick={() => navigate('/products')}>
+            <Button 
+              variant="glass" 
+              size="lg" 
+              className="w-full sm:w-auto rounded-full px-8 py-3 h-12 hover:-translate-y-0.5 transition-all duration-300 font-medium cursor-pointer" 
+              onClick={() => navigate('/products')}
+            >
               View Portfolio
             </Button>
           </motion.div>
         </div>
       </section>
 
-      {/* Services Preview */}
-      <Section 
-        title="Core Services" 
-        description="Our specialized technical services are engineered to scale your operations and deliver measurable results."
-        className="bg-surface-1 border-y border-border"
-      >
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {(() => {
-            const activeServices = services.filter((s) => s.active !== false && s.isActive !== false);
-            const featuredServices = activeServices.filter((s) => s.featured || s.isFeatured);
-            const displayServices = (featuredServices.length > 0 ? featuredServices : activeServices)
-              .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+      {/* 2. Core Services (Hidden if 0 services) */}
+      {displayServices.length > 0 && (
+        <section className={cn('py-16 md:py-24', servicesBg)}>
+          <div className="max-w-6xl mx-auto px-6">
+            <div className="max-w-3xl mb-12 md:mb-16">
+              <motion.div
+                initial={shouldReduceMotion ? false : { opacity: 0, y: 8 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: '-40px' }}
+                transition={{ duration: 0.4 }}
+                className="mb-4"
+              >
+                <SectionCaption text="OUR EXPERTISE" />
+              </motion.div>
+              <motion.h2
+                initial={shouldReduceMotion ? false : { opacity: 0, y: 12 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: '-40px' }}
+                transition={{ duration: 0.5, delay: shouldReduceMotion ? 0 : 0.06 }}
+                className="text-3xl sm:text-4xl lg:text-5xl font-display font-bold tracking-tight text-text-primary mb-4"
+              >
+                Core Services
+              </motion.h2>
+              <motion.p
+                initial={shouldReduceMotion ? false : { opacity: 0, y: 12 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: '-40px' }}
+                transition={{ duration: 0.5, delay: shouldReduceMotion ? 0 : 0.12 }}
+                className="text-text-secondary text-base sm:text-lg md:text-xl leading-relaxed"
+              >
+                Our specialized technical services are engineered to scale your operations and deliver measurable results.
+              </motion.p>
+            </div>
 
-            return (
-              <>
-                {displayServices.map((s) => {
-                  const title = s.title || s.name;
-                  const img = s.displayPicture || s.thumbnail;
-                  return (
-                    <GlassCard key={s.id} className="p-0 overflow-hidden group flex flex-col h-full hover:border-accent/40">
-                      <div className="relative">
-                        <div className="aspect-video relative overflow-hidden bg-muted">
-                          {img ? (
-                            <img 
-                              src={img} 
-                              alt={title} 
-                              className="w-full h-full object-cover transition-transform duration-700" 
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/5 to-transparent">
-                              <DynamicIcon name={s.icon} className="w-12 h-12 text-primary/20" fallback={Code} />
-                            </div>
-                          )}
-                          <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent opacity-60" />
-                        </div>
-                        <div className="absolute -bottom-6 right-6 z-20">
-                          <div className="w-12 h-12 rounded-2xl bg-accent-strong flex items-center justify-center transition-all duration-500 group-hover:scale-110 group-hover:-translate-y-1 transform-gpu will-change-transform [backface-visibility:hidden] [perspective:1000px] overflow-hidden shadow-xs">
-                            {s.iconType === 'image' && s.iconImage ? (
-                              <img src={s.iconImage} alt={title} className="w-6 h-6 object-contain" />
-                            ) : (
-                              <DynamicIcon name={s.icon} className="w-6 h-6 text-on-accent" fallback={Code} />
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="p-8 pt-10 flex-grow flex flex-col">
-                        <Link to={`/services/${s.slug || s.id}`}>
-                          <h3 className="text-2xl font-display font-bold mb-3 group-hover:text-primary transition-colors cursor-pointer">{title}</h3>
-                        </Link>
-                        <p className="text-muted-foreground text-sm leading-relaxed mb-6 line-clamp-3">{s.shortDescription}</p>
-                        
-                        <div className="mt-auto pt-4 border-t border-border/40 flex items-center justify-between gap-2">
-                          {formatServicePrice(s) ? (
-                            <span className="text-xs font-mono font-bold text-foreground">
-                              {formatServicePrice(s)}
-                            </span>
-                          ) : <span />}
-                          <Link to={`/services/${s.slug || s.id}`}>
-                            <Button variant="ghost" className="justify-start px-0 hover:bg-transparent hover:text-primary gap-1.5 transition-all group/btn text-xs uppercase tracking-widest font-bold cursor-pointer">
-                              Engineering Details
-                              <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover/btn:translate-x-1" />
-                            </Button>
-                          </Link>
-                        </div>
-                      </div>
-                    </GlassCard>
-                  );
-                })}
-                {displayServices.length === 0 && (
-                  <div className="col-span-full">
-                     <EmptyState icon={Briefcase} title="Registry Offline" description="Service nodes are currently being synchronized." />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {displayServices.map((s, index) => (
+                <motion.div
+                  key={s.id}
+                  initial={shouldReduceMotion ? false : { opacity: 0, y: 24 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, margin: '-40px' }}
+                  transition={{
+                    duration: 0.5,
+                    delay: shouldReduceMotion ? 0 : index * 0.08,
+                    ease: [0.21, 0.47, 0.32, 0.98],
+                  }}
+                  className="h-full"
+                >
+                  <ServiceCard service={s} />
+                </motion.div>
+              ))}
+            </div>
+
+            <div className="mt-12 text-center">
+              <Button 
+                variant="glass" 
+                size="sm" 
+                className="rounded-full px-6 py-2.5 h-10 hover:-translate-y-0.5 transition-all duration-300 font-medium"
+                onClick={() => navigate('/services')}
+              >
+                Access All Services
+              </Button>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* 3. Why Choose Us Section */}
+      <section className={cn('py-16 md:py-24', whyBg)}>
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="max-w-3xl mb-12 md:mb-16">
+            <motion.div
+              initial={shouldReduceMotion ? false : { opacity: 0, y: 8 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-40px' }}
+              transition={{ duration: 0.4 }}
+              className="mb-4"
+            >
+              <SectionCaption text="VALUE PROPOSITION" />
+            </motion.div>
+            <motion.h2
+              initial={shouldReduceMotion ? false : { opacity: 0, y: 12 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-40px' }}
+              transition={{ duration: 0.5, delay: shouldReduceMotion ? 0 : 0.06 }}
+              className="text-3xl sm:text-4xl lg:text-5xl font-display font-bold tracking-tight text-text-primary mb-4"
+            >
+              Why Choose Us
+            </motion.h2>
+            <motion.p
+              initial={shouldReduceMotion ? false : { opacity: 0, y: 12 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-40px' }}
+              transition={{ duration: 0.5, delay: shouldReduceMotion ? 0 : 0.12 }}
+              className="text-text-secondary text-base sm:text-lg md:text-xl leading-relaxed"
+            >
+              Engineered for reliability, performance, and long-term sustainable growth.
+            </motion.p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {[
+              { title: 'Modern Tech Stack', desc: 'Built using up-to-date frameworks and tools to ensure longevity and efficiency.', icon: Cpu },
+              { title: 'Scalable Solutions', desc: 'Designed to grow with your business, handling increased loads effortlessly.', icon: Layers },
+              { title: 'Clean Architecture', desc: 'Maintainable and performance-focused systems built with precision.', icon: Code },
+              { title: 'End-to-End Service', desc: 'Comprehensive support from conceptual design to production deployment.', icon: Zap },
+              { title: 'Attention to Detail', desc: 'Surgical precision in design, code quality, and final delivery.', icon: CheckCircle2 },
+              { title: 'Reliable Support', desc: 'Dedicated ongoing maintenance and technical assistance.', icon: Clock },
+            ].map((item, index) => (
+              <motion.div
+                key={item.title}
+                initial={shouldReduceMotion ? false : { opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: '-40px' }}
+                transition={{
+                  duration: 0.5,
+                  delay: shouldReduceMotion ? 0 : index * 0.08,
+                  ease: [0.21, 0.47, 0.32, 0.98],
+                }}
+                className="h-full flex flex-col"
+              >
+                <div className="feature-hover-card p-8 rounded-2xl bg-surface-2 border border-border/70 shadow-card flex flex-col h-full group">
+                  <div className="feature-hover-card-icon w-12 h-12 shrink-0 rounded-xl bg-accent-soft text-accent-strong flex items-center justify-center mb-6">
+                    <item.icon className="w-6 h-6" />
                   </div>
-                )}
-              </>
-            );
-          })()}
-        </div>
-        <div className="mt-12 text-center">
-          <Button variant="glass" size="sm" onClick={() => navigate('/services')}>Access All Services</Button>
-        </div>
-      </Section>
-
-      {/* Why Choose Us Section */}
-      <Section 
-        title="Why Choose Us" 
-        description="Engineered for reliability, performance, and long-term growth."
-      >
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {[
-            { title: 'Modern Tech Stack', desc: 'Built using up-to-date frameworks and tools to ensure longevity and efficiency.', icon: Cpu },
-            { title: 'Scalable Solutions', desc: 'Designed to grow with your business, handling increased loads effortlessly.', icon: Layers },
-            { title: 'Clean Architecture', desc: 'Maintainable and performance-focused systems built with precision.', icon: Code },
-            { title: 'End-to-End Service', desc: 'Comprehensive support from conceptual design to production deployment.', icon: Zap },
-            { title: 'Attention to Detail', desc: 'Surgical precision in design, code quality, and final delivery.', icon: CheckCircle2 },
-            { title: 'Reliable Support', desc: 'Dedicated ongoing maintenance and technical assistance.', icon: Clock }
-          ].map((item) => (
-            <div key={item.title} className="p-8 rounded-3xl bg-background/50 border border-border/50 hover:border-primary/30 transition-all duration-300 group">
-              <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center mb-6 group-hover:bg-primary/20 transition-colors">
-                <item.icon className="w-6 h-6 text-primary" />
-              </div>
-              <h3 className="text-xl font-bold mb-4">{item.title}</h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
-            </div>
-          ))}
-        </div>
-      </Section>
-
-      {/* Features Section */}
-      <Section 
-        title="Key Features" 
-        description="The technical standards we uphold in every project we undertake."
-        className="bg-muted/10 border-y border-border/50"
-      >
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-          {[
-            { title: 'Responsive Design', desc: 'Flawless experiences across all devices and screen sizes.', icon: Monitor },
-            { title: 'Fast Performance', desc: 'Optimized load times and smooth interactions.', icon: Zap },
-            { title: 'SEO-Friendly Structure', desc: 'Built for visibility and search engine optimization.', icon: Search },
-            { title: 'Secure Systems', desc: 'Hardened security protocols to protect your data.', icon: Shield },
-            { title: 'Cross-Platform Compatibility', desc: 'Consistent performance across all modern browsers.', icon: Globe },
-            { title: 'User-Centric Design', desc: 'Interfaces designed around the needs of your users.', icon: Sparkles }
-          ].map((feature) => (
-            <div key={feature.title} className="flex gap-4 p-4 border-l border-border/50 hover:border-primary transition-colors pl-6">
-              <feature.icon className="w-5 h-5 text-primary shrink-0 mt-1" />
-              <div>
-                <h4 className="font-bold mb-1">{feature.title}</h4>
-                <p className="text-xs text-muted-foreground leading-relaxed">{feature.desc}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </Section>
-
-      {/* Featured Products */}
-      <Section 
-        title="Project Showcase" 
-        description="Demonstrating our ability to deliver robust digital solutions across various domains."
-      >
-        {(() => {
-          const activeProjects = products.filter((p) => p.active !== false && p.isActive !== false);
-          const featured = activeProjects.filter((p) => p.featured || p.isFeatured);
-          const displayProjects = (featured.length > 0 ? featured : activeProjects)
-            .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
-            .slice(0, 3);
-
-          if (displayProjects.length === 0) {
-            return (
-              <div className="col-span-full py-12">
-                <EmptyState icon={ShoppingBag} title="Showcase Offline" description="Output entries are currently being prepared." />
-              </div>
-            );
-          }
-
-          return (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-8">
-              {displayProjects.map((p) => {
-                const title = p.title || p.name || 'Untitled Project';
-                const desc = p.shortDescription || p.description || '';
-                const img = p.displayPicture || p.imageUrl;
-                const link = `/products/${p.slug || p.id}`;
-                return (
-                  <GlassCard key={p.id} className="p-0 overflow-hidden group hover:border-accent/40 h-full flex flex-col">
-                    <div className="relative">
-                      <div className="aspect-[16/10] relative overflow-hidden bg-surface-1">
-                        {img ? (
-                          <img 
-                            src={img} 
-                            alt={title} 
-                            loading="lazy" 
-                            className="absolute inset-0 h-full w-full object-cover transition-transform duration-700" 
-                          />
-                        ) : (
-                          <div className="absolute inset-0 flex items-center justify-center bg-surface-3">
-                            <div className="w-12 h-12 rounded-xl bg-surface-2 flex items-center justify-center shadow-xs transition-transform duration-500 transform-gpu [backface-visibility:hidden]">
-                              {p.iconType === 'image' && p.iconImage ? (
-                                <img src={p.iconImage} alt="" className="w-6 h-6 object-contain" />
-                              ) : (
-                                <DynamicIcon name={p.icon} className="w-6 h-6 text-text-muted" fallback={ShoppingBag} />
-                              )}
-                            </div>
-                          </div>
-                        )}
-                        <div className="absolute inset-0 bg-gradient-to-t from-surface-2 via-transparent to-transparent opacity-60" />
-                      </div>
-                      <div className="absolute -bottom-6 right-6 z-20">
-                        <div className="w-12 h-12 rounded-2xl bg-accent-strong flex items-center justify-center transition-all duration-500 group-hover:scale-110 group-hover:-translate-y-1 transform-gpu will-change-transform [backface-visibility:hidden] [perspective:1000px]">
-                          {p.iconType === 'image' && p.iconImage ? (
-                            <img src={p.iconImage} alt="" className="w-6 h-6 object-contain" />
-                          ) : (
-                            <DynamicIcon name={p.icon} className="w-6 h-6 text-on-accent" fallback={ShoppingBag} />
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="p-8 pt-10 flex-grow flex flex-col">
-                      {p.category && (
-                        <div className="mb-2">
-                          <span className="text-[10px] font-mono uppercase tracking-wider text-primary bg-primary/10 px-2 py-0.5 rounded font-bold">
-                            {p.category}
-                          </span>
-                        </div>
-                      )}
-                      <Link to={link}>
-                        <h3 className="text-2xl font-display font-bold mb-3 group-hover:text-accent transition-colors cursor-pointer text-text-primary">
-                          {title}
-                        </h3>
-                      </Link>
-                      <p className="text-sm text-text-secondary line-clamp-2 leading-relaxed mb-8">{desc}</p>
-                      
-                      <Link to={link} className="mt-auto">
-                        <Button variant="ghost" className="justify-start px-0 hover:bg-transparent hover:text-primary gap-2 transition-all group/btn text-xs uppercase tracking-widest font-bold cursor-pointer">
-                          Project Insight
-                          <ArrowRight className="w-4 h-4 transition-transform group-hover/btn:translate-x-1" />
-                        </Button>
-                      </Link>
-                    </div>
-                  </GlassCard>
-                );
-              })}
-            </div>
-          );
-        })()}
-        <div className="mt-12 text-center">
-          <Button variant="glass" size="sm" onClick={() => navigate('/products')}>Explore Full Registry</Button>
-        </div>
-      </Section>
-
-      {/* About Us Section */}
-      <section className="py-16 md:py-24 border-y border-border/50 bg-muted/20">
-        <div className="container mx-auto px-6">
-          <div className="max-w-4xl mx-auto text-center">
-            <h2 className="text-[11px] font-bold text-primary uppercase tracking-[0.4em] mb-8 inline-flex items-center px-4 py-1.5 bg-primary/5 dark:bg-primary/10 border border-primary/20 rounded-full">Our Mission</h2>
-            <p className="text-2xl md:text-4xl font-bold leading-tight tracking-tight mb-12">
-              Wise Byte Concepts delivers practical, scalable, and visually strong digital solutions.
-            </p>
-            <p className="text-lg text-muted-foreground leading-relaxed">
-              We combine development expertise with design precision to help businesses establish and grow their digital presence efficiently. Our approach focuses on technical excellence and meaningful user experiences.
-            </p>
+                  <h3 className="text-xl font-display font-bold text-text-primary mb-3">
+                    {item.title}
+                  </h3>
+                  <p className="text-sm text-text-secondary leading-relaxed">
+                    {item.desc}
+                  </p>
+                </div>
+              </motion.div>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* Tech Stack Section */}
-      <Section 
-        title="Engineering Tech Stack" 
-        description="Our specialized technical arsenal is composed of industry-leading technologies optimized for performance, scalability, and long-term maintainability."
-      >
-        <div className="relative group">
-          <div 
-            ref={skillsScrollRef}
-            style={{
-              maskImage: `linear-gradient(to right, ${showLeftFade ? 'transparent' : 'black'} 0%, black ${showLeftFade ? '100px' : '0%'}, black ${showRightFade ? 'calc(100% - 100px)' : '100%'}, ${showRightFade ? 'transparent' : 'black'} 100%)`,
-              WebkitMaskImage: `linear-gradient(to right, ${showLeftFade ? 'transparent' : 'black'} 0%, black ${showLeftFade ? '100px' : '0%'}, black ${showRightFade ? 'calc(100% - 100px)' : '100%'}, ${showRightFade ? 'transparent' : 'black'} 100%)`,
-            }}
-            className="flex gap-6 py-4 overflow-x-auto px-4 -mx-4 hide-scrollbar snap-x snap-mandatory scroll-smooth transition-all duration-300"
-          >
-            {([...skills].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)) || []).map((skill) => (
-              <div
-                key={skill.id}
-                className="shrink-0 w-44 snap-center select-none"
+      {/* 4. Key Features Section */}
+      <section className={cn('py-16 md:py-24', featuresBg)}>
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="max-w-3xl mb-12 md:mb-16">
+            <motion.div
+              initial={shouldReduceMotion ? false : { opacity: 0, y: 8 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-40px' }}
+              transition={{ duration: 0.4 }}
+              className="mb-4"
+            >
+              <SectionCaption text="CAPABILITIES" />
+            </motion.div>
+            <motion.h2
+              initial={shouldReduceMotion ? false : { opacity: 0, y: 12 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-40px' }}
+              transition={{ duration: 0.5, delay: shouldReduceMotion ? 0 : 0.06 }}
+              className="text-3xl sm:text-4xl lg:text-5xl font-display font-bold tracking-tight text-text-primary mb-4"
+            >
+              Key Features
+            </motion.h2>
+            <motion.p
+              initial={shouldReduceMotion ? false : { opacity: 0, y: 12 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-40px' }}
+              transition={{ duration: 0.5, delay: shouldReduceMotion ? 0 : 0.12 }}
+              className="text-text-secondary text-base sm:text-lg md:text-xl leading-relaxed"
+            >
+              The architectural and engineering standards we uphold in every project we undertake.
+            </motion.p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+            {[
+              { title: 'Responsive Design', desc: 'Flawless experiences across all devices, viewports, and screen sizes.', icon: Monitor },
+              { title: 'Fast Performance', desc: 'Optimized load times and fluid, high-frame-rate interactions.', icon: Zap },
+              { title: 'SEO-Friendly Structure', desc: 'Built for search engine visibility and rich metadata discovery.', icon: Search },
+              { title: 'Secure Systems', desc: 'Hardened security protocols and strict data isolation.', icon: Shield },
+              { title: 'Cross-Platform Compatibility', desc: 'Consistent performance and appearance across modern browsers.', icon: Globe },
+              { title: 'User-Centric Design', desc: 'Intuitive interfaces engineered around real user workflows.', icon: Sparkles },
+            ].map((feature, index) => (
+              <motion.div
+                key={feature.title}
+                initial={shouldReduceMotion ? false : { opacity: 0, y: 16 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: '-40px' }}
+                transition={{
+                  duration: 0.45,
+                  delay: shouldReduceMotion ? 0 : index * 0.06,
+                  ease: [0.21, 0.47, 0.32, 0.98],
+                }}
+                className="h-full flex flex-col"
               >
-                <GlassCard className="p-6 flex flex-col items-center text-center group/skill hover:border-primary/50 transition-all duration-500 relative h-full">
-                  <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover/skill:opacity-100 transition-opacity duration-500" />
-                  <div className="w-14 h-14 rounded-2xl bg-muted/50 flex items-center justify-center mb-4 group-hover/skill:scale-110 group-hover/skill:bg-primary/20 group-hover/skill:shadow-glow-sm transition-all duration-500 relative z-10 transform-gpu [backface-visibility:hidden]">
-                    <TechStackIcon stack={skill} className="w-7 h-7 text-primary" fallback={Layers} />
+                <div className="feature-hover-card p-6 rounded-2xl bg-surface-2 border border-border/70 shadow-card group flex items-start gap-4 h-full">
+                  <div className="feature-hover-card-icon w-10 h-10 shrink-0 rounded-xl bg-accent-soft text-accent-strong flex items-center justify-center mt-0.5">
+                    <feature.icon className="w-5 h-5" />
                   </div>
-                  <h4 className="font-bold text-sm mb-1 relative z-10">{skill.name}</h4>
-                  <div className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider relative z-10">
-                    {skill.classification || 'General'}
+                  <div>
+                    <h4 className="font-display font-bold text-text-primary text-base mb-1.5">
+                      {feature.title}
+                    </h4>
+                    <p className="text-xs sm:text-sm text-text-secondary leading-relaxed">
+                      {feature.desc}
+                    </p>
                   </div>
-                </GlassCard>
-              </div>
+                </div>
+              </motion.div>
             ))}
-            {useAppStore().skills.length === 0 && (
-              <div className="w-full flex justify-center py-12">
-                <EmptyState icon={Layers} title="No Tech Stacks Cataloged" description="The engineering tech stack matrix is currently empty." />
-              </div>
-            )}
           </div>
         </div>
-      </Section>
+      </section>
 
-      {/* CTA Section */}
-      <Section className="pb-32">
-        <div className="relative rounded-[2.5rem] overflow-hidden border border-border/50 bg-muted/30">
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-primary/5" />
-          <div className="absolute -top-24 -right-24 w-96 h-96 bg-primary/20 rounded-full blur-[120px]" />
-          <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-primary/10 rounded-full blur-[120px]" />
-          
-          <div className="relative z-10 px-8 py-20 text-center max-w-4xl mx-auto space-y-8">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: true }}
-              className="space-y-6"
-            >
-              <h2 className="text-4xl md:text-6xl font-display font-bold tracking-tight leading-tight">
-                Ready to engineer your <span className="text-primary">digital edge?</span>
-              </h2>
-              <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
-                Join our network of precision-built applications. We transform complex technical requirements into high-performance experiences.
-              </p>
-            </motion.div>
-            
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-6 pt-4">
-              <Button 
-                size="lg" 
-                className="w-full sm:w-auto px-10 rounded-full hover:shadow-glow transition-all duration-300"
-                onClick={() => navigate('/contact')}
+      {/* 5. Project Showcase (Hidden if 0 projects) */}
+      {displayProjects.length > 0 && (
+        <section className={cn('py-16 md:py-24', projectsBg)}>
+          <div className="max-w-6xl mx-auto px-6">
+            <div className="max-w-3xl mb-12 md:mb-16">
+              <motion.div
+                initial={shouldReduceMotion ? false : { opacity: 0, y: 8 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: '-40px' }}
+                transition={{ duration: 0.4 }}
+                className="mb-4"
               >
-                Start Project Inquiry
-              </Button>
+                <SectionCaption text="PORTFOLIO" />
+              </motion.div>
+              <motion.h2
+                initial={shouldReduceMotion ? false : { opacity: 0, y: 12 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: '-40px' }}
+                transition={{ duration: 0.5, delay: shouldReduceMotion ? 0 : 0.06 }}
+                className="text-3xl sm:text-4xl lg:text-5xl font-display font-bold tracking-tight text-text-primary mb-4"
+              >
+                Project Showcase
+              </motion.h2>
+              <motion.p
+                initial={shouldReduceMotion ? false : { opacity: 0, y: 12 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: '-40px' }}
+                transition={{ duration: 0.5, delay: shouldReduceMotion ? 0 : 0.12 }}
+                className="text-text-secondary text-base sm:text-lg md:text-xl leading-relaxed"
+              >
+                Demonstrating our ability to deliver robust digital solutions across various domains.
+              </motion.p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {displayProjects.map((p, index) => (
+                <motion.div
+                  key={p.id}
+                  initial={shouldReduceMotion ? false : { opacity: 0, y: 24 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, margin: '-40px' }}
+                  transition={{
+                    duration: 0.5,
+                    delay: shouldReduceMotion ? 0 : index * 0.08,
+                    ease: [0.21, 0.47, 0.32, 0.98],
+                  }}
+                  className="h-full"
+                >
+                  <ProjectCard project={p} />
+                </motion.div>
+              ))}
+            </div>
+
+            <div className="mt-12 text-center">
               <Button 
                 variant="glass" 
-                size="lg" 
-                className="w-full sm:w-auto px-10 rounded-full"
-                onClick={() => navigate('/services')}
+                size="sm" 
+                className="rounded-full px-6 py-2.5 h-10 hover:-translate-y-0.5 transition-all duration-300 font-medium"
+                onClick={() => navigate('/products')}
               >
-                Explore Services
+                Explore Full Registry
               </Button>
             </div>
+          </div>
+        </section>
+      )}
 
-            <div className="pt-8 flex items-center justify-center gap-8 opacity-50 grayscale hover:grayscale-0 transition-all duration-700">
-               <LucideIcons.CheckCircle2 className="w-5 h-5" />
-               <span className="text-[10px] uppercase font-bold tracking-widest font-sans">Industry Standards Verified</span>
-               <div className="w-1 h-1 rounded-full bg-border" />
-               <LucideIcons.ShieldAlert className="w-5 h-5" />
-               <span className="text-[10px] uppercase font-bold tracking-widest font-sans">Secure by Design</span>
+      {/* 6. Our Mission Section (Requirement 4: Redesigned Split Layout with 2x2 Values Grid) */}
+      <section className={cn('py-16 md:py-24 relative overflow-hidden', missionBg)}>
+        {/* Subtle decorative elements */}
+        <div className="absolute top-0 right-0 w-96 h-96 bg-accent/10 rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none bg-[radial-gradient(#3B82F6_1px,transparent_1px)] [background-size:20px_20px]" />
+
+        <div className="max-w-6xl mx-auto px-6 relative z-10">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-start">
+            {/* Left Column: Heading, caption pill, mission text */}
+            <motion.div
+              initial={shouldReduceMotion ? false : { opacity: 0, y: 16 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-40px' }}
+              transition={{ duration: 0.5 }}
+              className="lg:col-span-5 flex flex-col"
+            >
+              <div className="mb-4">
+                <SectionCaption text="OUR MISSION" />
+              </div>
+              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-display font-bold leading-tight tracking-tight text-text-primary mb-6">
+                Wise Byte Concepts delivers practical, scalable, and visually strong digital solutions.
+              </h2>
+              <p className="text-base sm:text-lg text-text-secondary leading-relaxed mb-6 font-normal">
+                We combine development expertise with design precision to help businesses establish and grow their digital presence efficiently. Our approach focuses on technical excellence, transparent workflows, and meaningful user experiences.
+              </p>
+              <div className="pt-2 flex items-center gap-3 text-xs font-mono text-text-muted">
+                <span className="w-2 h-2 rounded-full bg-accent shrink-0" />
+                <span>ENGINEERED FOR LONGEVITY & PERFORMANCE</span>
+              </div>
+            </motion.div>
+
+            {/* Right Column: 2x2 grid of value / principle cards */}
+            <div className="lg:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-5">
+              {[
+                {
+                  title: 'Technical Rigor',
+                  desc: 'Architected with modern industry standards, zero bloat, and resilient type safety for long-term maintainability.',
+                  icon: Cpu,
+                },
+                {
+                  title: 'Design Precision',
+                  desc: 'Deliberate typography hierarchy, WCAG contrast compliance, and responsive clarity across every viewport.',
+                  icon: Sparkles,
+                },
+                {
+                  title: 'Scalable Systems',
+                  desc: 'Systems engineered to expand effortlessly as user demand grows, avoiding premature technical debt.',
+                  icon: Layers,
+                },
+                {
+                  title: 'Reliable Execution',
+                  desc: 'Transparent milestones, clean deliverables, and surgical attention to code quality from concept to production.',
+                  icon: CheckCircle2,
+                },
+              ].map((val, index) => (
+                <motion.div
+                  key={val.title}
+                  initial={shouldReduceMotion ? false : { opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, margin: '-40px' }}
+                  transition={{
+                    duration: 0.45,
+                    delay: shouldReduceMotion ? 0 : index * 0.08,
+                    ease: [0.21, 0.47, 0.32, 0.98],
+                  }}
+                  className="p-6 rounded-2xl bg-surface-2 border border-border/70 hover:border-accent/40 shadow-card hover:shadow-card-hover transition-all duration-300 flex flex-col group [transform:translateZ(0)]"
+                >
+                  <div className="w-11 h-11 shrink-0 rounded-xl bg-accent-soft text-accent-strong flex items-center justify-center mb-4 group-hover:scale-105 transition-transform duration-300">
+                    <val.icon className="w-5 h-5" />
+                  </div>
+                  <h3 className="font-display font-bold text-base sm:text-lg text-text-primary mb-2">
+                    {val.title}
+                  </h3>
+                  <p className="text-xs sm:text-sm text-text-secondary leading-relaxed">
+                    {val.desc}
+                  </p>
+                </motion.div>
+              ))}
             </div>
           </div>
         </div>
-      </Section>
+      </section>
+
+      {/* 7. Tech Stack Section */}
+      <section className={cn('py-16 md:py-24', techBg)}>
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="max-w-3xl mb-12 md:mb-16">
+            <motion.div
+              initial={shouldReduceMotion ? false : { opacity: 0, y: 8 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-40px' }}
+              transition={{ duration: 0.4 }}
+              className="mb-4"
+            >
+              <SectionCaption text="TECHNOLOGIES" />
+            </motion.div>
+            <motion.h2
+              initial={shouldReduceMotion ? false : { opacity: 0, y: 12 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-40px' }}
+              transition={{ duration: 0.5, delay: shouldReduceMotion ? 0 : 0.06 }}
+              className="text-3xl sm:text-4xl lg:text-5xl font-display font-bold tracking-tight text-text-primary mb-4"
+            >
+              Engineering Tech Stack
+            </motion.h2>
+            <motion.p
+              initial={shouldReduceMotion ? false : { opacity: 0, y: 12 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-40px' }}
+              transition={{ duration: 0.5, delay: shouldReduceMotion ? 0 : 0.12 }}
+              className="text-text-secondary text-base sm:text-lg md:text-xl leading-relaxed"
+            >
+              Our specialized technical arsenal is composed of industry-leading technologies optimized for performance, scalability, and long-term maintainability.
+            </motion.p>
+          </div>
+
+          <div className="relative group">
+            <div 
+              ref={skillsScrollRef}
+              style={{
+                maskImage: `linear-gradient(to right, ${showLeftFade ? 'transparent' : 'black'} 0%, black ${showLeftFade ? '100px' : '0%'}, black ${showRightFade ? 'calc(100% - 100px)' : '100%'}, ${showRightFade ? 'transparent' : 'black'} 100%)`,
+                WebkitMaskImage: `linear-gradient(to right, ${showLeftFade ? 'transparent' : 'black'} 0%, black ${showLeftFade ? '100px' : '0%'}, black ${showRightFade ? 'calc(100% - 100px)' : '100%'}, ${showRightFade ? 'transparent' : 'black'} 100%)`,
+              }}
+              className="flex gap-6 py-4 overflow-x-auto px-4 -mx-4 hide-scrollbar snap-x snap-mandatory scroll-smooth"
+            >
+              {([...skills].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)) || []).map((skill, index) => (
+                <motion.div
+                  key={skill.id}
+                  initial={shouldReduceMotion ? false : { opacity: 0, y: 16 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, margin: '-40px' }}
+                  transition={{
+                    duration: 0.45,
+                    delay: shouldReduceMotion ? 0 : index * 0.04,
+                    ease: [0.21, 0.47, 0.32, 0.98],
+                  }}
+                  className="shrink-0 w-44 snap-center select-none h-full"
+                >
+                  <div className="feature-hover-card p-6 rounded-2xl bg-surface-2 border border-border/70 shadow-card flex flex-col items-center text-center group h-full relative overflow-hidden">
+                    <div className="feature-hover-card-icon tech-icon-bg w-14 h-14 shrink-0 rounded-xl bg-surface-3 flex items-center justify-center mb-4 relative z-10">
+                      <TechStackIcon stack={skill} className="w-7 h-7 text-accent" fallback={Layers} />
+                    </div>
+                    <h4 className="font-display font-bold text-sm text-text-primary mb-1 relative z-10">
+                      {skill.name}
+                    </h4>
+                    <div className="text-[10px] font-mono text-text-muted uppercase tracking-wider relative z-10">
+                      {skill.classification || 'General'}
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+              {skills.length === 0 && (
+                <div className="w-full flex justify-center py-12">
+                  <EmptyState icon={Layers} title="No Tech Stacks Cataloged" description="The engineering tech stack matrix is currently empty." />
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 8. CTA Section (Requirement 5: Attractive Full-width Rounded Banner with Gradient and Ambient Patterns) */}
+      <section className={cn('py-16 md:py-24', ctaBg)}>
+        <div className="max-w-6xl mx-auto px-6">
+          <motion.div
+            initial={shouldReduceMotion ? false : { opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-40px' }}
+            transition={{ duration: 0.55 }}
+            className="relative rounded-3xl overflow-hidden border border-border/80 bg-gradient-to-br from-surface-2 via-surface-1 to-surface-2 dark:from-surface-2 dark:via-surface-3/60 dark:to-surface-2 shadow-card p-8 sm:p-14 md:p-20 text-center"
+          >
+            {/* Soft decorative blurred shapes & pattern */}
+            <div className="absolute -top-32 -right-32 w-96 h-96 bg-accent/20 rounded-full blur-[120px] pointer-events-none" />
+            <div className="absolute -bottom-32 -left-32 w-96 h-96 bg-accent/15 rounded-full blur-[120px] pointer-events-none" />
+            <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.06] pointer-events-none bg-[radial-gradient(currentColor_1px,transparent_1px)] [background-size:24px_24px]" />
+
+            <div className="relative z-10 max-w-3xl mx-auto flex flex-col items-center">
+              <div className="mb-6">
+                <SectionCaption text="GET STARTED" />
+              </div>
+
+              <h2 className="text-3xl sm:text-5xl md:text-6xl font-display font-bold tracking-tight text-text-primary leading-[1.1] mb-6">
+                Ready to engineer your{' '}
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent via-blue-500 to-indigo-500 dark:from-accent dark:to-sky-400">
+                  digital edge?
+                </span>
+              </h2>
+
+              <p className="text-base sm:text-lg md:text-xl text-text-secondary max-w-xl mx-auto mb-10 leading-relaxed font-normal">
+                Join our network of precision-built applications. We transform complex technical requirements into high-performance digital experiences.
+              </p>
+
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full sm:w-auto">
+                <Button 
+                  size="lg" 
+                  className="w-full sm:w-auto rounded-full px-8 py-3.5 h-12 shadow-sm hover:shadow-card-hover hover:-translate-y-0.5 transition-all duration-300 font-semibold cursor-pointer inline-flex items-center justify-center gap-2 group/cta"
+                  onClick={() => navigate('/contact')}
+                >
+                  <span>Start Project Inquiry</span>
+                  <ArrowRight className="w-4 h-4 transition-transform group-hover/cta:translate-x-1 will-change-transform" />
+                </Button>
+                <Button 
+                  variant="glass" 
+                  size="lg" 
+                  className="w-full sm:w-auto rounded-full px-8 py-3.5 h-12 hover:-translate-y-0.5 transition-all duration-300 font-medium cursor-pointer"
+                  onClick={() => navigate('/services')}
+                >
+                  Explore Services
+                </Button>
+              </div>
+
+              <div className="mt-12 pt-8 border-t border-border/40 w-full flex flex-wrap items-center justify-center gap-6 text-text-muted text-xs font-medium">
+                <div className="inline-flex items-center gap-2">
+                  <LucideIcons.CheckCircle2 className="w-4 h-4 text-accent" />
+                  <span>Industry Standards Verified</span>
+                </div>
+                <div className="w-1 h-1 rounded-full bg-border hidden sm:block" />
+                <div className="inline-flex items-center gap-2">
+                  <LucideIcons.ShieldAlert className="w-4 h-4 text-accent" />
+                  <span>Secure by Design</span>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      </section>
     </div>
   );
 };
@@ -617,59 +835,9 @@ export const ServicesPage = () => {
         />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {services.map(s => {
-            const title = s.title || s.name;
-            const img = s.displayPicture || s.thumbnail;
-            return (
-              <GlassCard key={s.id} className="p-0 overflow-hidden group flex flex-col h-full hover:border-accent/40">
-                <div className="relative">
-                  <div className="aspect-video relative overflow-hidden bg-muted">
-                    {img ? (
-                      <img 
-                        src={img} 
-                        alt={title} 
-                        className="w-full h-full object-cover transition-transform duration-700" 
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/5 to-transparent">
-                        <DynamicIcon name={s.icon} className="w-12 h-12 text-primary/20" fallback={Briefcase} />
-                      </div>
-                    )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent opacity-60" />
-                  </div>
-                  <div className="absolute -bottom-6 right-6 z-20">
-                    <div className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center transition-all duration-500 group-hover:scale-110 group-hover:-translate-y-1 transform-gpu will-change-transform [backface-visibility:hidden] [perspective:1000px] overflow-hidden shadow-xs">
-                      {s.iconType === 'image' && s.iconImage ? (
-                        <img src={s.iconImage} alt={title} className="w-6 h-6 object-contain" />
-                      ) : (
-                        <DynamicIcon name={s.icon} className="w-6 h-6 text-white" fallback={Briefcase} />
-                      )}
-                    </div>
-                  </div>
-                </div>
-                <div className="p-8 pt-10 flex-grow flex flex-col">
-                  <Link to={`/services/${s.slug || s.id}`}>
-                    <h3 className="text-2xl font-display font-bold mb-3 group-hover:text-primary transition-colors cursor-pointer">{title}</h3>
-                  </Link>
-                  <p className="text-muted-foreground text-sm leading-relaxed mb-6 line-clamp-3">{s.shortDescription}</p>
-                  
-                  <div className="mt-auto pt-4 border-t border-border/40 flex items-center justify-between gap-2">
-                    {formatServicePrice(s) ? (
-                      <span className="text-xs font-mono font-bold text-foreground">
-                        {formatServicePrice(s)}
-                      </span>
-                    ) : <span />}
-                    <Link to={`/services/${s.slug || s.id}`}>
-                      <Button variant="ghost" className="justify-start px-0 hover:bg-transparent hover:text-primary gap-1.5 transition-all group/btn text-xs uppercase tracking-widest font-bold cursor-pointer">
-                        Engineering Details
-                        <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover/btn:translate-x-1" />
-                      </Button>
-                    </Link>
-                  </div>
-                </div>
-              </GlassCard>
-            );
-          })}
+          {services.map((s) => (
+            <ServiceCard key={s.id} service={s} />
+          ))}
         </div>
       )}
     </Section>
@@ -725,85 +893,15 @@ export const ProductsPage = () => {
         />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-8">
-          {filteredProducts.map(p => {
-            const title = p.title || p.name || 'Untitled Project';
-            const desc = p.shortDescription || p.description || '';
-            const img = p.displayPicture || p.imageUrl;
-            const link = `/products/${p.slug || p.id}`;
-            const parentSrv = services.find(s => s.id === (p.parentService || p.serviceId));
-
+          {filteredProducts.map((p) => {
+            const parentSrv = services.find((s) => s.id === (p.parentService || p.serviceId));
             return (
-              <GlassCard key={p.id} className="p-0 overflow-hidden group border-border hover:border-accent/40 h-full flex flex-col shadow-card">
-                <div className="relative">
-                  <div className="aspect-[16/10] relative overflow-hidden bg-surface-1">
-                    {img ? (
-                      <img 
-                        src={img} 
-                        alt={title} 
-                        loading="lazy"
-                        className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" 
-                      />
-                    ) : (
-                      <div className="absolute inset-0 flex items-center justify-center bg-surface-3">
-                        <div className="w-12 h-12 rounded-xl bg-surface-2 flex items-center justify-center shadow-xs">
-                          {p.iconType === 'image' && p.iconImage ? (
-                            <img src={p.iconImage} alt="" className="w-6 h-6 object-contain" />
-                          ) : (
-                            <DynamicIcon name={p.icon} className="w-6 h-6 text-text-muted" fallback={ShoppingBag} />
-                          )}
-                        </div>
-                      </div>
-                    )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-surface-2 via-transparent to-transparent opacity-60" />
-                  </div>
-                  <div className="absolute -bottom-6 right-6 z-20">
-                    <div className="w-12 h-12 rounded-2xl bg-accent-strong flex items-center justify-center transition-all duration-500 group-hover:scale-110 group-hover:-translate-y-1 transform-gpu shadow-md">
-                      {p.iconType === 'image' && p.iconImage ? (
-                        <img src={p.iconImage} alt="" className="w-6 h-6 object-contain" />
-                      ) : (
-                        <DynamicIcon name={p.icon} className="w-6 h-6 text-on-accent" fallback={ShoppingBag} />
-                      )}
-                    </div>
-                  </div>
-                </div>
-                <div className="p-8 pt-10 flex-grow flex flex-col">
-                  <div className="flex flex-wrap items-center gap-2 mb-2">
-                    {p.category && (
-                      <span className="text-[10px] font-mono uppercase tracking-wider text-primary bg-primary/10 px-2.5 py-0.5 rounded-md font-bold">
-                        {p.category}
-                      </span>
-                    )}
-                    {parentSrv && (
-                      <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground bg-surface-3 px-2 py-0.5 rounded-md">
-                        {parentSrv.title || parentSrv.name}
-                      </span>
-                    )}
-                  </div>
-                  <Link to={link}>
-                    <h3 className="text-2xl font-display font-bold mb-3 group-hover:text-accent transition-colors cursor-pointer text-text-primary">
-                      {title}
-                    </h3>
-                  </Link>
-                  <p className="text-sm text-text-secondary line-clamp-2 leading-relaxed mb-6">{desc}</p>
-                  
-                  {p.tags && p.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 mb-6">
-                      {p.tags.slice(0, 3).map((tag) => (
-                        <span key={tag} className="text-[10px] font-mono text-muted-foreground bg-surface-2 px-2 py-0.5 rounded">
-                          #{tag}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-
-                  <Link to={link} className="mt-auto">
-                    <Button variant="ghost" className="justify-start px-0 hover:bg-transparent hover:text-primary gap-2 transition-all group/btn text-xs uppercase tracking-widest font-bold cursor-pointer">
-                      Project Insight
-                      <ArrowRight className="w-4 h-4 transition-transform group-hover/btn:translate-x-1" />
-                    </Button>
-                  </Link>
-                </div>
-              </GlassCard>
+              <ProjectCard
+                key={p.id}
+                project={p}
+                parentServiceName={parentSrv ? (parentSrv.title || (parentSrv as any).name) : undefined}
+                showTags={true}
+              />
             );
           })}
         </div>

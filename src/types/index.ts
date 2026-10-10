@@ -278,18 +278,29 @@ export interface Query {
   name: string;
   email: string;
   phone: string;
+  whatsapp?: string;
+  countryCode?: string;
   message: string;
   services: QueryServiceItem[];
   projects: QueryProjectItem[];
   budget: string;
+  budgetTier?: 'tier_1' | 'tier_2' | 'tier_3' | 'tier_4';
+  budgetCurrency?: 'INR' | 'USD';
   timeline: string;
   contactMethod: 'email' | 'phone' | 'whatsapp';
   createdAt: string;
   status: QueryStatus;
   isRead: boolean;
+  referenceToken?: string;
   notes?: string;
   notified?: boolean; // Future push notification flag
   updatedAt?: string;
+  messageHistory?: Array<{
+    message: string;
+    replacedAt: string;
+    previousTimeline?: string;
+    previousBudget?: string;
+  }>;
 }
 
 export * from './media';

@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { 
-  Check, 
   CheckCircle2, 
   X, 
   Briefcase, 
@@ -14,6 +13,7 @@ import {
   Code2, 
   Clock, 
   DollarSign, 
+  IndianRupee,
   MessageSquare, 
   Send, 
   RotateCcw, 
@@ -21,6 +21,7 @@ import {
   ShieldCheck, 
   AlertCircle 
 } from 'lucide-react';
+import { CountryCode, parsePhoneNumber } from 'libphonenumber-js';
 import { useAppStore } from '@/store';
 import { useAuthStore } from '@/store/authStore';
 import { Service, Product, Query } from '@/types';
@@ -31,16 +32,11 @@ import { Input } from '@/components/ui/Input';
 import { GlassCard } from '@/components/GlassCard';
 import { EmptyState } from '@/components/EmptyState';
 import { Skeleton } from '@/components/Skeleton';
+import { CountryCodeSelector } from '@/components/CountryCodeSelector';
+import { SelectionCheckBadge } from '@/components/SelectionCheckBadge';
+import { BUDGET_CONFIG, CurrencyType, BudgetTier } from '@/config/budget';
 
 const DRAFT_STORAGE_KEY = 'wbc_contact_form_draft_v1';
-
-const BUDGET_OPTIONS = [
-  'Flexible / Scope TBD',
-  '< $5,000',
-  '$5,000 – $15,000',
-  '$15,000 – $30,000',
-  '$30,000+',
-];
 
 const TIMELINE_OPTIONS = [
   'Flexible / Exploration',
@@ -61,8 +57,13 @@ interface FormState {
   name: string;
   email: string;
   phone: string;
+  phoneCountry: CountryCode;
+  whatsapp: string;
+  whatsappCountry: CountryCode;
+  sameAsPhone: boolean;
   contactMethod: ContactMethod;
-  budget: string;
+  currency: CurrencyType;
+  budgetTierKey: BudgetTier['key'];
   timeline: string;
   message: string;
   honeypot: string;
@@ -74,8 +75,11 @@ interface SubmittedInquiry {
   name: string;
   email: string;
   phone: string;
+  whatsapp?: string;
   contactMethod: ContactMethod;
   budget: string;
+  budgetTier?: BudgetTier['key'];
+  budgetCurrency?: CurrencyType;
   timeline: string;
   message: string;
   services: Array<{ id: string; name: string; category?: string }>;
@@ -118,8 +122,13 @@ export const ContactPage: React.FC = () => {
     name: '',
     email: '',
     phone: '',
+    phoneCountry: 'IN',
+    whatsapp: '',
+    whatsappCountry: 'IN',
+    sameAsPhone: true,
     contactMethod: 'email',
-    budget: BUDGET_OPTIONS[0],
+    currency: 'INR',
+    budgetTierKey: 'tier_1',
     timeline: TIMELINE_OPTIONS[0],
     message: '',
     honeypot: '',
@@ -130,6 +139,52 @@ export const ContactPage: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submittedInquiry, setSubmittedInquiry] = useState<SubmittedInquiry | null>(null);
   const [mountedTime] = useState<number>(() => Date.now());
+
+  // ---------------------------------------------------------------------------
+  // Country Detection Hook (Server-side geo detection, no IP storage, non-blocking)
+  // ---------------------------------------------------------------------------
+  const hasDetectedCountryRef = useRef(false);
+
+  useEffect(() => {
+    if (hasDetectedCountryRef.current) return;
+    hasDetectedCountryRef.current = true;
+
+    // Detect visitor country non-blockingly
+    fetch('/api/geo/country')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data && data.country) {
+          const detectedCountry = data.country as CountryCode;
+          const detectedCurrency: CurrencyType = detectedCountry === 'IN' ? 'INR' : 'USD';
+          
+          setFormData((prev) => {
+            // Only update default country & currency if the user hasn't manually altered them from draft
+            const rawDraft = sessionStorage.getItem(DRAFT_STORAGE_KEY);
+            if (rawDraft) {
+              try {
+                const parsed = JSON.parse(rawDraft);
+                if (parsed.currency || parsed.phoneCountry) {
+                  return prev; // keep user choice
+                }
+              } catch {
+                // ignore
+              }
+            }
+            return {
+              ...prev,
+              phoneCountry: detectedCountry || 'US',
+              whatsappCountry: detectedCountry || 'US',
+              currency: detectedCurrency,
+              budgetTierKey: prev.budgetTierKey || 'tier_1',
+            };
+          });
+        }
+      })
+      .catch((err) => {
+        // Fail silently - defaults already initialized safely
+        console.warn('[ContactPage] Non-blocking country detection failed:', err);
+      });
+  }, []);
 
   // ---------------------------------------------------------------------------
   // 1. Initial State Restoration & Preselection from URL / Draft
@@ -171,8 +226,13 @@ export const ContactPage: React.FC = () => {
           name: parsed.name || '',
           email: parsed.email || '',
           phone: parsed.phone || '',
+          phoneCountry: parsed.phoneCountry || prev.phoneCountry,
+          whatsapp: parsed.whatsapp || '',
+          whatsappCountry: parsed.whatsappCountry || prev.whatsappCountry,
+          sameAsPhone: parsed.sameAsPhone !== undefined ? parsed.sameAsPhone : true,
           contactMethod: parsed.contactMethod || 'email',
-          budget: parsed.budget || BUDGET_OPTIONS[0],
+          currency: parsed.currency || prev.currency,
+          budgetTierKey: parsed.budgetTierKey || 'tier_1',
           timeline: parsed.timeline || TIMELINE_OPTIONS[0],
           message: parsed.message || '',
         }));
@@ -199,8 +259,6 @@ export const ContactPage: React.FC = () => {
     }
 
     // URL Query Params take precedence for preselection:
-    // (Requirement 3: From service details pass service ID -> auto-select service with none selected)
-    // (Requirement 3: From project details pass project ID -> auto-select parent service + auto-select project)
     if (paramService || paramProject) {
       const validServiceIds: string[] = [];
       const validProjectIds: string[] = [];
@@ -260,8 +318,13 @@ export const ContactPage: React.FC = () => {
         name: formData.name,
         email: formData.email,
         phone: formData.phone,
+        phoneCountry: formData.phoneCountry,
+        whatsapp: formData.whatsapp,
+        whatsappCountry: formData.whatsappCountry,
+        sameAsPhone: formData.sameAsPhone,
         contactMethod: formData.contactMethod,
-        budget: formData.budget,
+        currency: formData.currency,
+        budgetTierKey: formData.budgetTierKey,
         timeline: formData.timeline,
         message: formData.message,
         multiSelect,
@@ -432,8 +495,10 @@ export const ContactPage: React.FC = () => {
   // ---------------------------------------------------------------------------
   // 7. Validation & Submission Handler (Requirement 4 & 5)
   // ---------------------------------------------------------------------------
-  const validateForm = (): boolean => {
+  const validateForm = (): { isValid: boolean; formattedPhone: string; formattedWhatsApp: string } => {
     const newErrors: Partial<Record<keyof FormState, string>> = {};
+    let formattedPhone = '';
+    let formattedWhatsApp = '';
 
     if (!formData.name.trim() || formData.name.trim().length < 2) {
       newErrors.name = 'Please provide your full name (at least 2 characters).';
@@ -444,8 +509,42 @@ export const ContactPage: React.FC = () => {
       newErrors.email = 'Please provide a valid email address.';
     }
 
-    if ((formData.contactMethod === 'phone' || formData.contactMethod === 'whatsapp') && !formData.phone.trim()) {
-      newErrors.phone = `Phone number is required for ${formData.contactMethod === 'whatsapp' ? 'WhatsApp' : 'Phone'} contact.`;
+    // Phone validation using libphonenumber-js for selected country
+    const phoneInput = formData.phone.trim();
+    if (phoneInput) {
+      try {
+        const parsed = parsePhoneNumber(phoneInput, formData.phoneCountry);
+        if (!parsed || !parsed.isValid()) {
+          newErrors.phone = `Please enter a valid phone number for the selected country.`;
+        } else {
+          formattedPhone = parsed.number; // E.164 format, e.g. +919876543210
+        }
+      } catch {
+        newErrors.phone = `Please enter a valid phone number for the selected country.`;
+      }
+    } else if (formData.contactMethod === 'phone' || (formData.contactMethod === 'whatsapp' && formData.sameAsPhone)) {
+      newErrors.phone = 'Phone number is required for phone/WhatsApp contact.';
+    }
+
+    // WhatsApp validation
+    if (formData.sameAsPhone) {
+      formattedWhatsApp = formattedPhone;
+    } else {
+      const waInput = formData.whatsapp.trim();
+      if (waInput) {
+        try {
+          const parsed = parsePhoneNumber(waInput, formData.whatsappCountry);
+          if (!parsed || !parsed.isValid()) {
+            newErrors.whatsapp = `Please enter a valid WhatsApp number for the selected country.`;
+          } else {
+            formattedWhatsApp = parsed.number; // E.164 format
+          }
+        } catch {
+          newErrors.whatsapp = `Please enter a valid WhatsApp number for the selected country.`;
+        }
+      } else if (formData.contactMethod === 'whatsapp') {
+        newErrors.whatsapp = 'WhatsApp number is required when WhatsApp is chosen.';
+      }
     }
 
     if (!formData.message.trim() || formData.message.trim().length < 10) {
@@ -453,7 +552,11 @@ export const ContactPage: React.FC = () => {
     }
 
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    return {
+      isValid: Object.keys(newErrors).length === 0,
+      formattedPhone,
+      formattedWhatsApp,
+    };
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -464,14 +567,19 @@ export const ContactPage: React.FC = () => {
       setIsSubmitting(true);
       setTimeout(() => {
         setIsSubmitting(false);
+        const currentBudgetConfig = BUDGET_CONFIG[formData.currency] || BUDGET_CONFIG.USD;
+        const currentTier = currentBudgetConfig.tiers.find((t) => t.key === formData.budgetTierKey) || currentBudgetConfig.tiers[0];
         setSubmittedInquiry({
           id: `inq_hp_${Date.now()}`,
           timestamp: new Date().toISOString(),
           name: formData.name,
           email: formData.email,
           phone: formData.phone,
+          whatsapp: formData.sameAsPhone ? formData.phone : formData.whatsapp,
           contactMethod: formData.contactMethod,
-          budget: formData.budget,
+          budget: currentTier.label,
+          budgetTier: formData.budgetTierKey,
+          budgetCurrency: formData.currency,
           timeline: formData.timeline,
           message: formData.message,
           services: [],
@@ -486,7 +594,8 @@ export const ContactPage: React.FC = () => {
       return;
     }
 
-    if (!validateForm()) {
+    const { isValid, formattedPhone, formattedWhatsApp } = validateForm();
+    if (!isValid) {
       return;
     }
 
@@ -495,15 +604,22 @@ export const ContactPage: React.FC = () => {
     const generatedId = `query_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
     const nowIso = new Date().toISOString();
 
+    const currentBudgetConfig = BUDGET_CONFIG[formData.currency] || BUDGET_CONFIG.USD;
+    const currentTier = currentBudgetConfig.tiers.find((t) => t.key === formData.budgetTierKey) || currentBudgetConfig.tiers[0];
+    const budgetDisplayLabel = currentTier.label;
+
     // Prepare complete inquiry payload with selected service & project IDs and names (Requirement 4)
     const inquiryPayload: SubmittedInquiry = {
       id: generatedId,
       timestamp: nowIso,
       name: formData.name.trim(),
       email: formData.email.trim(),
-      phone: formData.phone.trim(),
+      phone: formattedPhone || formData.phone.trim(),
+      whatsapp: formattedWhatsApp || (formData.sameAsPhone ? formattedPhone : formData.whatsapp.trim()),
       contactMethod: formData.contactMethod,
-      budget: formData.budget,
+      budget: budgetDisplayLabel,
+      budgetTier: formData.budgetTierKey,
+      budgetCurrency: formData.currency,
       timeline: formData.timeline,
       message: formData.message.trim(),
       services: selectedServices.map((s) => ({
@@ -523,11 +639,15 @@ export const ContactPage: React.FC = () => {
       id: generatedId,
       name: formData.name.trim(),
       email: formData.email.trim(),
-      phone: formData.phone.trim(),
+      phone: formattedPhone || formData.phone.trim(),
+      whatsapp: formattedWhatsApp || (formData.sameAsPhone ? formattedPhone : formData.whatsapp.trim()),
+      countryCode: formData.phoneCountry,
       message: formData.message.trim(),
       services: inquiryPayload.services,
       projects: inquiryPayload.projects,
-      budget: formData.budget,
+      budget: budgetDisplayLabel,
+      budgetTier: formData.budgetTierKey,
+      budgetCurrency: formData.currency,
       timeline: formData.timeline,
       contactMethod: formData.contactMethod,
       createdAt: nowIso,
@@ -588,16 +708,21 @@ export const ContactPage: React.FC = () => {
 
   const handleResetInquiry = () => {
     setSubmittedInquiry(null);
-    setFormData({
+    setFormData((prev) => ({
       name: '',
       email: '',
       phone: '',
+      phoneCountry: prev.phoneCountry,
+      whatsapp: '',
+      whatsappCountry: prev.whatsappCountry,
+      sameAsPhone: true,
       contactMethod: 'email',
-      budget: BUDGET_OPTIONS[0],
+      currency: prev.currency,
+      budgetTierKey: 'tier_1',
       timeline: TIMELINE_OPTIONS[0],
       message: '',
       honeypot: '',
-    });
+    }));
     setSelectedServiceIds([]);
     setSelectedProjectIds([]);
     setErrors({});
@@ -616,15 +741,21 @@ export const ContactPage: React.FC = () => {
     return (
       <div className="flex flex-col min-h-screen bg-background">
         <section className="relative pt-32 pb-20 md:pt-40 md:pb-28 overflow-hidden border-b border-border/50">
-          <div className="max-w-4xl mx-auto px-6 text-center space-y-6">
+          <div className="max-w-4xl mx-auto px-6 text-center">
+            {/* Emerald Check Icon Circle */}
             <div className="w-20 h-20 mx-auto rounded-3xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center shadow-glow-sm animate-in zoom-in-90 duration-300">
               <CheckCircle2 className="w-10 h-10" />
             </div>
 
-            <div className="space-y-3">
-              <span className="px-3.5 py-1 rounded-full text-xs font-bold uppercase tracking-widest font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+            {/* Inquiry Successfully Dispatched Pill with balanced, even vertical margins */}
+            <div className="my-6">
+              <span className="inline-flex items-center px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shadow-xs">
                 Inquiry Successfully Dispatched
               </span>
+            </div>
+
+            {/* Heading and subtext */}
+            <div className="space-y-4">
               <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-foreground">
                 Thank You, <span className="text-primary">{submittedInquiry.name}</span>.
               </h1>
@@ -900,7 +1031,7 @@ export const ContactPage: React.FC = () => {
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-1 border-b border-border/40">
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="text-xs font-mono font-bold uppercase tracking-wider text-primary">01 / Services</span>
+                          <span className="text-xs font-mono font-bold uppercase tracking-wider text-primary">Services</span>
                           <h2 className="text-base sm:text-lg font-extrabold text-foreground">Select Target Services</h2>
                         </div>
                         <p className="text-xs text-muted-foreground mt-0.5">
@@ -910,11 +1041,11 @@ export const ContactPage: React.FC = () => {
                         </p>
                       </div>
 
-                      {/* Multi-Select Toggle Switch (Requirement 5) */}
+                      {/* Multi-Select Toggle Switch */}
                       <button
                         type="button"
                         onClick={handleToggleMultiSelect}
-                        className={`inline-flex items-center gap-2.5 px-3 py-1.5 rounded-full text-xs font-bold border transition-all cursor-pointer self-start sm:self-center shrink-0 ${
+                        className={`inline-flex items-center gap-2.5 px-3 py-1.5 rounded-full text-xs font-bold border transition-colors cursor-pointer self-start sm:self-center shrink-0 ${
                           multiSelect
                             ? 'bg-primary/15 text-primary border-primary/40 shadow-xs'
                             : 'bg-surface-2 text-muted-foreground border-border hover:text-foreground'
@@ -931,7 +1062,7 @@ export const ContactPage: React.FC = () => {
                       </button>
                     </div>
 
-                    {/* Loading Skeleton (Requirement 5) */}
+                    {/* Loading Skeleton */}
                     {!isLoaded && (
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-2">
                         {[1, 2, 3].map((n) => (
@@ -940,7 +1071,7 @@ export const ContactPage: React.FC = () => {
                       </div>
                     )}
 
-                    {/* Empty State (Requirement 5) */}
+                    {/* Empty State */}
                     {isLoaded && activeServices.length === 0 && (
                       <div className="py-6">
                         <EmptyState
@@ -951,7 +1082,7 @@ export const ContactPage: React.FC = () => {
                       </div>
                     )}
 
-                    {/* Service Cards Grid (Requirement 1) */}
+                    {/* Service Cards Grid (Requirement 7: No card wobble, constant border, inset box-shadow, absolute badge space) */}
                     {isLoaded && activeServices.length > 0 && (
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-1">
                         {activeServices.map((svc) => {
@@ -973,14 +1104,14 @@ export const ContactPage: React.FC = () => {
                                   handleToggleService(svc.id);
                                 }
                               }}
-                              className={`group relative p-3.5 sm:p-4 rounded-2xl text-left transition-all cursor-pointer flex flex-col justify-between space-y-2.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+                              className={`group relative box-border p-3.5 sm:p-4 rounded-2xl text-left cursor-pointer flex flex-col justify-between space-y-2.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent border-[1.5px] transition-[border-color,background-color] duration-200 ease-out ${
                                 isSelected
-                                  ? 'border-2 border-primary bg-primary/10 shadow-glow-sm ring-1 ring-primary/30'
-                                  : 'border border-border/80 bg-surface-1/90 hover:border-primary/50 hover:bg-surface-2/80'
+                                  ? 'border-accent bg-accent/10'
+                                  : 'border-border/70 bg-surface-1/90 hover:border-accent/40 hover:bg-surface-2/80'
                               }`}
                             >
-                              {/* Top Row: Icon/Image + Selection Check Badge */}
-                              <div className="flex items-start justify-between gap-2">
+                              {/* Top Row: Icon/Image + Selection Check Badge with reserved absolute placement */}
+                              <div className="flex items-start justify-between gap-2 w-full">
                                 <div className="w-10 h-10 rounded-xl bg-surface-2 border border-border/70 flex items-center justify-center shrink-0 overflow-hidden shadow-2xs">
                                   {svcImg ? (
                                     <img
@@ -997,18 +1128,12 @@ export const ContactPage: React.FC = () => {
                                   )}
                                 </div>
 
-                                <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 transition-all ${
-                                  isSelected 
-                                    ? 'bg-primary text-primary-foreground shadow-2xs' 
-                                    : 'border border-border/80 bg-surface-2/60 group-hover:border-primary/50'
-                                }`}>
-                                  {isSelected && <Check className="w-3.5 h-3.5 stroke-[3]" />}
-                                </div>
+                                <SelectionCheckBadge isSelected={isSelected} />
                               </div>
 
                               {/* Content: Title & Category */}
-                              <div className="min-w-0">
-                                <h3 className={`text-xs sm:text-sm font-bold truncate transition-colors ${
+                              <div className="min-w-0 w-full">
+                                <h3 className={`text-xs sm:text-sm font-bold truncate transition-colors duration-200 ${
                                   isSelected ? 'text-primary' : 'text-foreground'
                                 }`}>
                                   {svcTitle}
@@ -1034,14 +1159,14 @@ export const ContactPage: React.FC = () => {
                   </div>
 
                   {/* ============================================================ */}
-                  {/* 2. RELATED PROJECTS (Requirement 2 & 5)                      */}
+                  {/* 2. RELATED PROJECTS (Requirement 7: No card wobble)          */}
                   {/* ============================================================ */}
                   {/* Single-Select Mode: Projects related to the chosen service */}
                   {!multiSelect && singleServiceRelatedProjects.length > 0 && (
                     <div className="space-y-3 pt-2 border-t border-border/40 animate-in fade-in duration-300">
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="text-xs font-mono font-bold uppercase tracking-wider text-accent">02 / References</span>
+                          <span className="text-xs font-mono font-bold uppercase tracking-wider text-accent">References</span>
                           <h3 className="text-sm sm:text-base font-bold text-foreground">
                             Related Case Studies & Production Projects (Optional)
                           </h3>
@@ -1071,36 +1196,34 @@ export const ContactPage: React.FC = () => {
                                   handleToggleProject(prj.id);
                                 }
                               }}
-                              className={`p-3 rounded-2xl text-left transition-all cursor-pointer flex items-center gap-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
+                              className={`group box-border p-3 rounded-2xl text-left cursor-pointer flex items-center justify-between gap-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent border-[1.5px] transition-[border-color,background-color] duration-200 ease-out ${
                                 isSelected
-                                  ? 'border-2 border-accent bg-accent/10 shadow-glow-sm ring-1 ring-accent/30'
-                                  : 'border border-border/70 bg-surface-1/90 hover:border-accent/50 hover:bg-surface-2/80'
+                                  ? 'border-accent bg-accent/10'
+                                  : 'border-border/70 bg-surface-1/90 hover:border-accent/40 hover:bg-surface-2/80'
                               }`}
                             >
-                              <div className="w-10 h-10 rounded-xl bg-surface-2 border border-border/60 overflow-hidden shrink-0 flex items-center justify-center">
-                                {prjImg ? (
-                                  <img src={prjImg} alt={prjTitle} className="w-full h-full object-cover" />
-                                ) : (
-                                  <ShoppingBag className="w-4 h-4 text-muted-foreground" />
-                                )}
+                              <div className="flex items-center gap-3 min-w-0 flex-1">
+                                <div className="w-10 h-10 rounded-xl bg-surface-2 border border-border/60 overflow-hidden shrink-0 flex items-center justify-center">
+                                  {prjImg ? (
+                                    <img src={prjImg} alt={prjTitle} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                                  ) : (
+                                    <ShoppingBag className="w-4 h-4 text-muted-foreground" />
+                                  )}
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <h4 className={`text-xs font-bold truncate transition-colors duration-200 ${
+                                    isSelected ? 'text-accent' : 'text-foreground'
+                                  }`}>
+                                    {prjTitle}
+                                  </h4>
+                                  {prj.category && (
+                                    <span className="text-[10px] font-mono text-muted-foreground uppercase block truncate mt-0.5">
+                                      {prj.category}
+                                    </span>
+                                  )}
+                                </div>
                               </div>
-                              <div className="min-w-0 flex-1">
-                                <h4 className={`text-xs font-bold truncate ${
-                                  isSelected ? 'text-accent' : 'text-foreground'
-                                }`}>
-                                  {prjTitle}
-                                </h4>
-                                {prj.category && (
-                                  <span className="text-[10px] font-mono text-muted-foreground uppercase block truncate">
-                                    {prj.category}
-                                  </span>
-                                )}
-                              </div>
-                              <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${
-                                isSelected ? 'bg-accent text-accent-foreground' : 'border border-border/80'
-                              }`}>
-                                {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
-                              </div>
+                              <SelectionCheckBadge isSelected={isSelected} />
                             </button>
                           );
                         })}
@@ -1113,7 +1236,7 @@ export const ContactPage: React.FC = () => {
                     <div className="space-y-4 pt-2 border-t border-border/40 animate-in fade-in duration-300">
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="text-xs font-mono font-bold uppercase tracking-wider text-accent">02 / References</span>
+                          <span className="text-xs font-mono font-bold uppercase tracking-wider text-accent">References</span>
                           <h3 className="text-sm sm:text-base font-bold text-foreground">
                             Related Projects Grouped by Service (Optional)
                           </h3>
@@ -1145,27 +1268,27 @@ export const ContactPage: React.FC = () => {
                                     aria-pressed={isSelected}
                                     tabIndex={0}
                                     onClick={() => handleToggleProject(prj.id)}
-                                    className={`p-2.5 rounded-xl text-left transition-all cursor-pointer flex items-center gap-2.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
+                                    className={`group box-border p-2.5 rounded-xl text-left cursor-pointer flex items-center justify-between gap-2.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent border-[1.5px] transition-[border-color,background-color] duration-200 ease-out ${
                                       isSelected
-                                        ? 'border border-accent bg-accent/15 text-accent shadow-xs'
-                                        : 'border border-border/70 bg-surface-1 hover:border-accent/40'
+                                        ? 'border-accent bg-accent/10'
+                                        : 'border-border/70 bg-surface-1 hover:border-accent/40'
                                     }`}
                                   >
-                                    <div className="w-8 h-8 rounded-lg bg-surface-2 overflow-hidden shrink-0 flex items-center justify-center border border-border/40">
-                                      {prjImg ? (
-                                        <img src={prjImg} alt={prjTitle} className="w-full h-full object-cover" />
-                                      ) : (
-                                        <ShoppingBag className="w-3.5 h-3.5 text-muted-foreground" />
-                                      )}
+                                    <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                                      <div className="w-8 h-8 rounded-lg bg-surface-2 overflow-hidden shrink-0 flex items-center justify-center border border-border/40">
+                                        {prjImg ? (
+                                          <img src={prjImg} alt={prjTitle} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                                        ) : (
+                                          <ShoppingBag className="w-3.5 h-3.5 text-muted-foreground" />
+                                        )}
+                                      </div>
+                                      <div className="min-w-0 flex-1">
+                                        <h5 className={`text-xs font-bold truncate transition-colors duration-200 ${isSelected ? 'text-accent' : 'text-foreground'}`}>
+                                          {prjTitle}
+                                        </h5>
+                                      </div>
                                     </div>
-                                    <div className="min-w-0 flex-1">
-                                      <h5 className="text-xs font-bold truncate text-foreground">{prjTitle}</h5>
-                                    </div>
-                                    <div className={`w-3.5 h-3.5 rounded-full flex items-center justify-center shrink-0 ${
-                                      isSelected ? 'bg-accent text-accent-foreground' : 'border border-border/80'
-                                    }`}>
-                                      {isSelected && <Check className="w-2.5 h-2.5 stroke-[3]" />}
-                                    </div>
+                                    <SelectionCheckBadge isSelected={isSelected} />
                                   </button>
                                 );
                               })}
@@ -1177,7 +1300,7 @@ export const ContactPage: React.FC = () => {
                   )}
 
                   {/* ============================================================ */}
-                  {/* 3. SELECTION SUMMARY CHIP ROW WITH "x" (Requirement 5)       */}
+                  {/* 3. SELECTION SUMMARY CHIP ROW WITH "x"                       */}
                   {/* ============================================================ */}
                   {(selectedServices.length > 0 || selectedProjects.length > 0) && (
                     <div className="p-3.5 rounded-2xl bg-surface-2/70 border border-border/60 space-y-2 animate-in fade-in duration-200">
@@ -1243,56 +1366,70 @@ export const ContactPage: React.FC = () => {
                   )}
 
                   {/* ============================================================ */}
-                  {/* 4. OPTIONAL PARAMETERS: BUDGET, TIMELINE, METHOD (Req 5)     */}
+                  {/* 4. OPTIONAL PARAMETERS: BUDGET, TIMELINE, METHOD             */}
                   {/* ============================================================ */}
                   <div className="space-y-4 pt-2 border-t border-border/40">
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-mono font-bold uppercase tracking-wider text-primary">02 / Parameters</span>
+                      <span className="text-xs font-mono font-bold uppercase tracking-wider text-primary">Parameters</span>
                       <h3 className="text-sm sm:text-base font-bold text-foreground">Commercial & Delivery Preferences</h3>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {/* Budget Range Selection */}
+                      {/* Budget Range Selection (Currency switched automatically from server geo detection) */}
                       <div className="space-y-2">
-                        <label className="text-[11px] font-bold text-muted-foreground uppercase font-mono tracking-wider flex items-center gap-1.5">
-                          <DollarSign className="w-3.5 h-3.5 text-primary" /> Budget Parameter
-                        </label>
-                        <div className="flex flex-wrap gap-1.5">
-                          {BUDGET_OPTIONS.map((opt) => (
-                            <button
-                              key={opt}
-                              type="button"
-                              onClick={() => setFormData((prev) => ({ ...prev, budget: opt }))}
-                              className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
-                                formData.budget === opt
-                                  ? 'bg-primary/20 text-primary border-primary/50 shadow-2xs'
-                                  : 'bg-surface-2/60 text-muted-foreground border-border/60 hover:text-foreground hover:bg-surface-2'
-                              }`}
-                            >
-                              {opt}
-                            </button>
-                          ))}
+                        <div className="flex items-center justify-between">
+                          <label className="text-[11px] font-bold text-muted-foreground uppercase font-mono tracking-wider flex items-center gap-1.5">
+                            {formData.currency === 'INR' ? (
+                              <IndianRupee className="w-3.5 h-3.5 text-accent" />
+                            ) : (
+                              <DollarSign className="w-3.5 h-3.5 text-accent" />
+                            )}
+                            <span>Budget Parameter</span>
+                          </label>
+                        </div>
+
+                        {/* Budget Chips (Single select cards using BUDGET_CONFIG for active currency) */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          {(BUDGET_CONFIG[formData.currency] || BUDGET_CONFIG.USD).tiers.map((tier) => {
+                            const isSelected = formData.budgetTierKey === tier.key;
+                            return (
+                              <button
+                                key={tier.key}
+                                type="button"
+                                onClick={() => setFormData((prev) => ({ ...prev, budgetTierKey: tier.key }))}
+                                className={`group box-border p-2.5 rounded-xl text-xs font-semibold border-[1.5px] transition-[border-color,background-color] duration-200 cursor-pointer text-left flex items-center justify-between ${
+                                  isSelected
+                                    ? 'bg-accent/10 text-accent border-accent'
+                                    : 'bg-surface-2/60 text-muted-foreground border-border/60 hover:text-foreground hover:bg-surface-2'
+                                }`}
+                              >
+                                <span>{tier.label}</span>
+                                <SelectionCheckBadge isSelected={isSelected} size="sm" />
+                              </button>
+                            );
+                          })}
                         </div>
                       </div>
 
                       {/* Preferred Timeline Selection */}
                       <div className="space-y-2">
                         <label className="text-[11px] font-bold text-muted-foreground uppercase font-mono tracking-wider flex items-center gap-1.5">
-                          <Clock className="w-3.5 h-3.5 text-primary" /> Target Delivery Timeline
+                          <Clock className="w-3.5 h-3.5 text-accent" /> Target Delivery Timeline
                         </label>
-                        <div className="flex flex-wrap gap-1.5">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                           {TIMELINE_OPTIONS.map((opt) => (
                             <button
                               key={opt}
                               type="button"
                               onClick={() => setFormData((prev) => ({ ...prev, timeline: opt }))}
-                              className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
+                              className={`group box-border p-2.5 rounded-xl text-xs font-semibold border-[1.5px] transition-[border-color,background-color] duration-200 cursor-pointer text-left flex items-center justify-between ${
                                 formData.timeline === opt
-                                  ? 'bg-primary/20 text-primary border-primary/50 shadow-2xs'
+                                  ? 'bg-accent/10 text-accent border-accent'
                                   : 'bg-surface-2/60 text-muted-foreground border-border/60 hover:text-foreground hover:bg-surface-2'
                               }`}
                             >
-                              {opt}
+                              <span>{opt}</span>
+                              <SelectionCheckBadge isSelected={formData.timeline === opt} size="sm" />
                             </button>
                           ))}
                         </div>
@@ -1310,7 +1447,7 @@ export const ContactPage: React.FC = () => {
                             key={id}
                             type="button"
                             onClick={() => setFormData((prev) => ({ ...prev, contactMethod: id }))}
-                            className={`p-2.5 rounded-xl text-xs font-bold border transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                            className={`p-2.5 rounded-xl text-xs font-bold border transition-colors flex items-center justify-center gap-2 cursor-pointer ${
                               formData.contactMethod === id
                                 ? 'bg-primary text-primary-foreground border-primary shadow-xs'
                                 : 'bg-surface-2/70 text-muted-foreground border-border/70 hover:text-foreground'
@@ -1325,11 +1462,11 @@ export const ContactPage: React.FC = () => {
                   </div>
 
                   {/* ============================================================ */}
-                  {/* 5. CLIENT CONTACT INFORMATION (Requirement 5)               */}
+                  {/* 5. CLIENT CONTACT INFORMATION                                */}
                   {/* ============================================================ */}
                   <div className="space-y-4 pt-2 border-t border-border/40">
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-mono font-bold uppercase tracking-wider text-primary">03 / Client Info</span>
+                      <span className="text-xs font-mono font-bold uppercase tracking-wider text-primary">Client Info</span>
                       <h3 className="text-sm sm:text-base font-bold text-foreground">Your Contact Details</h3>
                     </div>
 
@@ -1380,26 +1517,38 @@ export const ContactPage: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* Phone / WhatsApp */}
+                    {/* Phone Number with Searchable Country Code Selector */}
                     <div className="space-y-1.5">
                       <label className="text-[11px] font-bold text-foreground font-mono uppercase tracking-wider block">
-                        Phone / WhatsApp Number{' '}
+                        Phone Number{' '}
                         {formData.contactMethod !== 'email' ? (
                           <span className="text-rose-500">*</span>
                         ) : (
                           <span className="text-muted-foreground font-normal">(Optional)</span>
                         )}
                       </label>
-                      <Input
-                        type="tel"
-                        value={formData.phone}
-                        onChange={(e) => {
-                          setFormData((prev) => ({ ...prev, phone: e.target.value }));
-                          if (errors.phone) setErrors((prev) => ({ ...prev, phone: undefined }));
-                        }}
-                        placeholder="e.g. +1 (555) 019-2834"
-                        className="bg-surface-2/70 border-border h-11 rounded-xl text-sm"
-                      />
+                      <div className="flex gap-2">
+                        <CountryCodeSelector
+                          value={formData.phoneCountry}
+                          onChange={(c) => {
+                            setFormData((prev) => ({
+                              ...prev,
+                              phoneCountry: c,
+                              ...(prev.sameAsPhone ? { whatsappCountry: c } : {}),
+                            }));
+                          }}
+                        />
+                        <Input
+                          type="tel"
+                          value={formData.phone}
+                          onChange={(e) => {
+                            setFormData((prev) => ({ ...prev, phone: e.target.value }));
+                            if (errors.phone) setErrors((prev) => ({ ...prev, phone: undefined }));
+                          }}
+                          placeholder="e.g. 98765 43210"
+                          className="bg-surface-2/70 border-border h-11 rounded-xl text-sm flex-1"
+                        />
+                      </div>
                       {errors.phone && (
                         <p className="text-xs text-rose-500 flex items-center gap-1 font-medium mt-1">
                           <AlertCircle className="w-3 h-3 shrink-0" />
@@ -1408,7 +1557,62 @@ export const ContactPage: React.FC = () => {
                       )}
                     </div>
 
-                    {/* Message Box with Dynamic Placeholder (Requirement 5) */}
+                    {/* WhatsApp Checkbox & Dedicated Field */}
+                    <div className="space-y-2 pt-1">
+                      <label className="inline-flex items-center gap-2 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={formData.sameAsPhone}
+                          onChange={(e) => {
+                            const checked = e.target.checked;
+                            setFormData((prev) => ({
+                              ...prev,
+                              sameAsPhone: checked,
+                              ...(checked ? { whatsapp: '', whatsappCountry: prev.phoneCountry } : {}),
+                            }));
+                          }}
+                          className="w-4 h-4 rounded border-border text-primary focus:ring-primary/40"
+                        />
+                        <span className="text-xs font-medium text-foreground">
+                          WhatsApp number is same as phone
+                        </span>
+                      </label>
+
+                      {/* Explicit WhatsApp Number Field when different */}
+                      {!formData.sameAsPhone && (
+                        <div className="space-y-1.5 pt-1 animate-in fade-in duration-150">
+                          <label className="text-[11px] font-bold text-foreground font-mono uppercase tracking-wider block">
+                            WhatsApp Number <span className="text-rose-500">*</span>
+                          </label>
+                          <div className="flex gap-2">
+                            <CountryCodeSelector
+                              value={formData.whatsappCountry}
+                              onChange={(c) => {
+                                setFormData((prev) => ({ ...prev, whatsappCountry: c }));
+                              }}
+                            />
+                            <Input
+                              type="tel"
+                              value={formData.whatsapp}
+                              onChange={(e) => {
+                                setFormData((prev) => ({ ...prev, whatsapp: e.target.value }));
+                                if (errors.whatsapp) setErrors((prev) => ({ ...prev, whatsapp: undefined }));
+                              }}
+                              placeholder="e.g. 98765 43210"
+                              className="bg-surface-2/70 border-border h-11 rounded-xl text-sm flex-1"
+                            />
+                          </div>
+                          {errors.whatsapp && (
+                            <p className="text-xs text-rose-500 flex items-center gap-1 font-medium mt-1">
+                              <AlertCircle className="w-3 h-3 shrink-0" />
+                              <span>{errors.whatsapp}</span>
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Message Box with Dynamic Placeholder */}
                     <div className="space-y-1.5 pt-1">
                       <label className="text-[11px] font-bold text-foreground font-mono uppercase tracking-wider block">
                         Technical Requirements Brief <span className="text-rose-500">*</span>
@@ -1433,10 +1637,10 @@ export const ContactPage: React.FC = () => {
                   </div>
 
                   {/* ============================================================ */}
-                  {/* 6. SUBMISSION SUMMARY & ACTION (Requirement 4)               */}
+                  {/* 6. SUBMISSION SUMMARY & ACTION                               */}
                   {/* ============================================================ */}
                   <div className="space-y-3 pt-3 border-t border-border/40">
-                    {/* Short Summary Near Submit Button (Requirement 4) */}
+                    {/* Short Summary Near Submit Button */}
                     <div className="p-4 rounded-2xl bg-surface-2/70 border border-border/70 text-xs space-y-2">
                       <div className="flex items-center justify-between text-muted-foreground font-mono uppercase text-[10px] tracking-wider">
                         <span>Inquiry Scope Summary</span>
@@ -1476,7 +1680,18 @@ export const ContactPage: React.FC = () => {
                       </div>
 
                       <div className="pt-1.5 border-t border-border/40 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-muted-foreground font-mono">
-                        <span>Budget: <strong className="text-foreground">{formData.budget}</strong></span>
+                        <span>
+                          Budget:{' '}
+                          <strong className="text-foreground">
+                            {
+                              (
+                                (BUDGET_CONFIG[formData.currency] || BUDGET_CONFIG.USD).tiers.find(
+                                  (t) => t.key === formData.budgetTierKey
+                                ) || (BUDGET_CONFIG[formData.currency] || BUDGET_CONFIG.USD).tiers[0]
+                              ).label
+                            }
+                          </strong>
+                        </span>
                         <span>Timeline: <strong className="text-foreground">{formData.timeline}</strong></span>
                         <span>Channel: <strong className="text-foreground capitalize">{formData.contactMethod}</strong></span>
                       </div>

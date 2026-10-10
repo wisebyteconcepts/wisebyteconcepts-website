@@ -26,6 +26,7 @@ import { Button } from '@/components/Button';
 import { EmptyState } from '@/components/EmptyState';
 import { Modal } from '@/components/Modal';
 import { cn } from '@/lib/utils';
+import { parsePhoneNumber } from 'libphonenumber-js';
 
 const ITEMS_PER_PAGE = 10;
 
@@ -828,34 +829,116 @@ export const AdminQueriesPage: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="p-3.5 rounded-xl bg-surface-2/60 border border-border/60">
-                    <span className="text-muted-foreground block text-[11px] mb-1">Phone Number</span>
-                    <div className="flex items-center justify-between gap-2">
-                      <strong className="text-foreground text-sm font-semibold truncate block">
-                        {selectedQuery.phone || '—'}
-                      </strong>
-                      {selectedQuery.phone && (
-                        <button
-                          type="button"
-                          onClick={() => handleCopy(selectedQuery.phone, 'Phone number')}
-                          className="shrink-0 inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-surface-3 hover:bg-surface-4 border border-border/80 text-xs font-medium text-muted-foreground hover:text-foreground transition-all cursor-pointer group"
-                          title="Copy phone number to clipboard"
-                        >
-                          {copiedField === 'Phone number' ? (
-                            <>
-                              <Check className="w-3.5 h-3.5 text-emerald-500" />
-                              <span className="text-emerald-500 font-semibold text-[11px]">Copied</span>
-                            </>
-                          ) : (
-                            <>
-                              <Copy className="w-3.5 h-3.5 group-hover:text-accent transition-colors" />
-                              <span className="text-[11px]">Copy</span>
-                            </>
-                          )}
-                        </button>
-                      )}
-                    </div>
-                  </div>
+                  {/* Phone & WhatsApp with actions */}
+                  {(() => {
+                    const formatNum = (raw?: string) => {
+                      if (!raw) return { formatted: '—', digits: '', raw: '' };
+                      try {
+                        const parsed = parsePhoneNumber(raw);
+                        if (parsed && parsed.isValid()) {
+                          return {
+                            formatted: parsed.formatInternational(),
+                            digits: parsed.number.replace(/\D/g, ''),
+                            raw,
+                          };
+                        }
+                      } catch {
+                        // fallback
+                      }
+                      return {
+                        formatted: raw,
+                        digits: raw.replace(/\D/g, ''),
+                        raw,
+                      };
+                    };
+
+                    const phoneData = formatNum(selectedQuery.phone);
+                    const waData = formatNum(selectedQuery.whatsapp || selectedQuery.phone);
+
+                    return (
+                      <>
+                        <div className="p-3.5 rounded-xl bg-surface-2/60 border border-border/60">
+                          <span className="text-muted-foreground block text-[11px] mb-1">Phone Number</span>
+                          <div className="flex items-center justify-between gap-2">
+                            <strong className="text-foreground text-sm font-semibold truncate block">
+                              {phoneData.formatted}
+                            </strong>
+                            {selectedQuery.phone && (
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                <a
+                                  href={`tel:${selectedQuery.phone}`}
+                                  className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-500 border border-emerald-500/30 text-xs font-semibold transition-colors"
+                                  title={`Call ${selectedQuery.phone}`}
+                                >
+                                  <Phone className="w-3 h-3" />
+                                  <span>Call</span>
+                                </a>
+                                <button
+                                  type="button"
+                                  onClick={() => handleCopy(selectedQuery.phone, 'Phone number')}
+                                  className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-surface-3 hover:bg-surface-4 border border-border/80 text-xs font-medium text-muted-foreground hover:text-foreground transition-all cursor-pointer group"
+                                  title="Copy phone number to clipboard"
+                                >
+                                  {copiedField === 'Phone number' ? (
+                                    <>
+                                      <Check className="w-3.5 h-3.5 text-emerald-500" />
+                                      <span className="text-emerald-500 font-semibold text-[11px]">Copied</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Copy className="w-3.5 h-3.5 group-hover:text-accent transition-colors" />
+                                      <span className="text-[11px]">Copy</span>
+                                    </>
+                                  )}
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="p-3.5 rounded-xl bg-surface-2/60 border border-border/60">
+                          <span className="text-muted-foreground block text-[11px] mb-1">WhatsApp Number</span>
+                          <div className="flex items-center justify-between gap-2">
+                            <strong className="text-foreground text-sm font-semibold truncate block">
+                              {waData.formatted}
+                            </strong>
+                            {waData.digits && (
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                <a
+                                  href={`https://wa.me/${waData.digits}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 text-xs font-semibold transition-colors shadow-xs"
+                                  title={`Open WhatsApp chat with ${waData.formatted}`}
+                                >
+                                  <MessageCircle className="w-3 h-3" />
+                                  <span>WhatsApp</span>
+                                </a>
+                                <button
+                                  type="button"
+                                  onClick={() => handleCopy(selectedQuery.whatsapp || selectedQuery.phone, 'WhatsApp number')}
+                                  className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-surface-3 hover:bg-surface-4 border border-border/80 text-xs font-medium text-muted-foreground hover:text-foreground transition-all cursor-pointer group"
+                                  title="Copy WhatsApp number"
+                                >
+                                  {copiedField === 'WhatsApp number' ? (
+                                    <>
+                                      <Check className="w-3.5 h-3.5 text-emerald-500" />
+                                      <span className="text-emerald-500 font-semibold text-[11px]">Copied</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Copy className="w-3.5 h-3.5 group-hover:text-accent transition-colors" />
+                                      <span className="text-[11px]">Copy</span>
+                                    </>
+                                  )}
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </>
+                    );
+                  })()}
 
                   <div className="p-3.5 rounded-xl bg-surface-2/60 border border-border/60">
                     <span className="text-muted-foreground block text-[11px] mb-0.5">Preferred Contact Method</span>
