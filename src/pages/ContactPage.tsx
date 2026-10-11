@@ -267,13 +267,20 @@ export const ContactPage: React.FC = () => {
   };
 
   const EMAIL_PARTS = ["wisebyte", "concepts", "@", "gmail.com"];
-const EMAIL_SUBJECT = "Business Inquiry via Your Website";
+  const EMAIL_SUBJECT = "Business Inquiry via Your Website";
+  const EMAIL_BODY = "Hi, I came across your website and would like to discuss a project.";
 
-const getEmail = () => EMAIL_PARTS.join("");
+  const getEmail = () => EMAIL_PARTS.join("");
 
-const handleMailClick = () => {
-  window.location.href = `mailto:${getEmail()}?subject=${encodeURIComponent(EMAIL_SUBJECT)}`;
-};
+  const handleMailClick = () => {
+    const params = new URLSearchParams({ subject: EMAIL_SUBJECT, body: EMAIL_BODY });
+    // URLSearchParams encodes spaces as "+", which some mail apps show literally, so convert to %20
+    const query = params.toString().replace(/\+/g, "%20");
+
+    const a = document.createElement("a");
+    a.href = `mailto:${getEmail()}?${query}`;
+    a.click();
+  };
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
