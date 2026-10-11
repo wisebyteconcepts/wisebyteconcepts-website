@@ -305,7 +305,30 @@ export async function sendTestMessage(): Promise<{ success: boolean; error?: str
 }
 
 /**
+ * Sends a single query notification directly without in-memory queue delays.
+ * Critical for serverless environments (e.g. Vercel) where background event loop timers freeze after HTTP responses.
+ */
+export async function sendSingleQueryNotification(
+  query: QueryPayload,
+  baseUrl: string
+): Promise<{ notified: boolean; skipped?: boolean }> {
+  if (query.isSpam || (query.honeypot && query.honeypot.trim().length > 0)) {
+    return { notified: false, skipped: true };
+  }
+
+  if (!isNotificationsEnabled() || !isTelegramConfigured()) {
+    return { notified: false, skipped: true };
+  }
+
+  const textToSend = formatSingleQueryMessage(query, baseUrl);
+  const success = await sendTelegramMessage(textToSend);
+  lastSendTime = Date.now();
+  return { notified: success };
+}
+
+/**
  * Enqueues a query notification with abuse rate limiting and burst batching.
+ * In serverless environments (Vercel, AWS Lambda), dispatches directly to prevent frozen background timers.
  * - Honeypot spam submissions are rejected immediately without notification.
  * - If multiple queries arrive within BURST_WINDOW_MS, they are batched.
  * - Enforces MIN_INTERVAL_MS between deliveries.
@@ -322,6 +345,19 @@ export function enqueueQueryNotification(
   // Requirement 4: Skip silently if notifications are disabled or env vars are missing
   if (!isNotificationsEnabled() || !isTelegramConfigured()) {
     return Promise.resolve({ notified: false, skipped: true });
+  }
+
+  // Serverless execution check (Vercel, AWS Lambda, Cloud Run serverless):
+  // Serverless functions freeze or terminate timers when the response returns.
+  // Immediate dispatch guarantees reliable delivery before function freeze.
+  const isServerless = Boolean(
+    process.env.VERCEL || 
+    process.env.NOW_REGION || 
+    process.env.AWS_LAMBDA_FUNCTION_NAME
+  );
+
+  if (isServerless) {
+    return sendSingleQueryNotification(query, baseUrl);
   }
 
   return new Promise((resolve) => {

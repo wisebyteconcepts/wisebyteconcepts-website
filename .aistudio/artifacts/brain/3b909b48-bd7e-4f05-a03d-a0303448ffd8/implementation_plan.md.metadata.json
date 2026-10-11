@@ -1,0 +1,6 @@
+{
+  "summary":  "Implementation plan to fix Telegram notifications on Vercel production deployment by introducing a Vercel Serverless Function entry point, updating vercel.json API rewrites, supporting direct serverless message dispatch, and sharing the Express app between local dev and Vercel.",
+  "updatedAt":  "2026-10-11T07:15:58.453961515Z",
+  "requestFeedback":  true,
+  "userFacing":  true
+}
