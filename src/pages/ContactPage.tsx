@@ -25,6 +25,9 @@ import { Textarea } from '@/components/ui/Textarea';
 import { Button } from '@/components/Button';
 import { SubPageHero } from '@/pages';
 import { generateReferenceToken, formatISTDate } from '@/utils/date';
+import { HugeiconsIcon } from "@hugeicons/react";
+import { WhatsappIcon, TelegramIcon, Call02Icon } from "@hugeicons/core-free-icons";
+
 
 interface ContactFormData {
   name: string;
@@ -239,6 +242,30 @@ export const ContactPage: React.FC = () => {
     setErrors({});
   };
 
+  const PHONE_PARTS = ["91", "70998", "16688"];
+  const TELEGRAM_PARTS = ["wisebyte", "concepts"];
+
+  const CONTACT_MESSAGE =
+    "Hi! I came across your website and I'd like to learn more about your services. Could you help me with the details?";
+
+  const getPhoneNumber = () => PHONE_PARTS.join("");
+  const getTelegramUsername = () => TELEGRAM_PARTS.join("");
+
+  const handlePhoneClick = () => {
+    window.location.href = `tel:+${getPhoneNumber()}`;
+  };
+
+  const handleWhatsAppClick = () => {
+    const url = `https://wa.me/${getPhoneNumber()}?text=${encodeURIComponent(CONTACT_MESSAGE)}`;
+    window.open(url, "_blank", "noopener,noreferrer");
+  };
+
+  const handleTelegramClick = () => {
+    // Fire-and-forget: don't await, so window.open still counts as a direct user action
+    navigator.clipboard?.writeText(CONTACT_MESSAGE).catch(() => {});
+    window.open(`https://t.me/${getTelegramUsername()}`, "_blank", "noopener,noreferrer");
+  };
+
   return (
     <div className="flex flex-col min-h-screen bg-background">
       {/* 1. Hero matching Services and Projects listing pages */}
@@ -313,15 +340,16 @@ export const ContactPage: React.FC = () => {
                       Direct Email
                     </span>
                     <strong className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors truncate block">
-                      contact@wisebyteconcepts.com
+                      wisebyteconcepts@gmail.com
                     </strong>
                   </div>
                 </a>
 
                 {/* Phone Card */}
-                <a
-                  href="tel:+918000000000"
-                  className="p-4 rounded-2xl bg-surface-1 hover:bg-surface-2/80 border border-border/70 hover:border-accent/40 transition-all flex items-center gap-4 group cursor-pointer block"
+                <button
+                  type="button"
+                  onClick={handlePhoneClick}
+                  className="w-full text-left p-4 rounded-2xl bg-surface-1 hover:bg-surface-2/80 border border-border/70 hover:border-accent/40 transition-all flex items-center gap-4 group cursor-pointer"
                 >
                   <div className="w-11 h-11 rounded-xl bg-accent/10 border border-accent/20 text-accent flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
                     <Phone className="w-5 h-5" />
@@ -331,31 +359,48 @@ export const ContactPage: React.FC = () => {
                       Phone Line
                     </span>
                     <strong className="text-sm font-semibold text-foreground group-hover:text-accent transition-colors block">
-                      +91 80000 00000
+                      Talk on Phone
                     </strong>
                   </div>
-                </a>
+                </button>
 
                 {/* WhatsApp Card */}
-                <a
-                  href="https://wa.me/918000000000"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="p-4 rounded-2xl bg-surface-1 hover:bg-surface-2/80 border border-border/70 hover:border-emerald-500/40 transition-all flex items-center gap-4 group cursor-pointer block"
-                >
-                  <div className="w-11 h-11 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                    <MessageSquare className="w-5 h-5" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground block">
-                      WhatsApp Dispatch
-                    </span>
-                    <strong className="text-sm font-semibold text-foreground group-hover:text-emerald-500 transition-colors block">
-                      Chat on WhatsApp
-                    </strong>
-                  </div>
-                </a>
+                  <button
+                    type="button"
+                    onClick={handleWhatsAppClick}
+                    className="w-full text-left p-4 rounded-2xl bg-surface-1 hover:bg-surface-2/80 border border-border/70 hover:border-emerald-500/40 transition-all flex items-center gap-4 group cursor-pointer"
+                  >
+                    <div className="w-11 h-11 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                      <HugeiconsIcon icon={WhatsappIcon} size={23} strokeWidth={1.8} />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground block">
+                        WhatsApp Dispatch
+                      </span>
+                      <strong className="text-sm font-semibold text-foreground group-hover:text-emerald-500 transition-colors block">
+                        Chat on WhatsApp
+                      </strong>
+                    </div>
+                  </button>
 
+                 {/* Telegram Card */}
+                  <button
+                    type="button"
+                    onClick={handleTelegramClick}
+                    className="w-full text-left p-4 rounded-2xl bg-surface-1 hover:bg-surface-2/80 border border-border/70 hover:border-[#26A5E4]/40 transition-all flex items-center gap-4 group cursor-pointer"
+                  >
+                    <div className="w-11 h-11 rounded-xl bg-[#26A5E4]/10 border border-[#26A5E4]/20 text-[#26A5E4] flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                        <HugeiconsIcon icon={TelegramIcon} size={23} strokeWidth={1.8} />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground block">
+                        Telegram Dispatch
+                      </span>
+                      <strong className="text-sm font-semibold text-foreground group-hover:text-[#26A5E4] transition-colors block">
+                        Chat on Telegram
+                      </strong>
+                    </div>
+                  </button>
                 {/* Location Card */}
                 <div className="p-4 rounded-2xl bg-surface-1 border border-border/70 flex items-center gap-4">
                   <div className="w-11 h-11 rounded-xl bg-surface-2 border border-border text-muted-foreground flex items-center justify-center shrink-0">
