@@ -266,6 +266,15 @@ export const ContactPage: React.FC = () => {
     window.open(`https://t.me/${getTelegramUsername()}`, "_blank", "noopener,noreferrer");
   };
 
+  const EMAIL_PARTS = ["wisebyte", "concepts", "@", "gmail.com"];
+const EMAIL_SUBJECT = "Business Inquiry via Your Website";
+
+const getEmail = () => EMAIL_PARTS.join("");
+
+const handleMailClick = () => {
+  window.location.href = `mailto:${getEmail()}?subject=${encodeURIComponent(EMAIL_SUBJECT)}`;
+};
+
   return (
     <div className="flex flex-col min-h-screen bg-background">
       {/* 1. Hero matching Services and Projects listing pages */}
@@ -328,22 +337,23 @@ export const ContactPage: React.FC = () => {
               {/* Contact Detail Icon Cards */}
               <div className="space-y-3">
                 {/* Email Card */}
-                <a
-                  href="mailto:contact@wisebyteconcepts.com"
-                  className="p-4 rounded-2xl bg-surface-1 hover:bg-surface-2/80 border border-border/70 hover:border-primary/40 transition-all flex items-center gap-4 group cursor-pointer block"
+                <button
+                  type="button"
+                  onClick={handleMailClick}
+                  className="w-full text-left p-4 rounded-2xl bg-surface-1 hover:bg-surface-2/80 border border-border/70 hover:border-accent/40 transition-all flex items-center gap-4 group cursor-pointer"
                 >
-                  <div className="w-11 h-11 rounded-xl bg-primary/10 border border-primary/20 text-primary flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                  <div className="w-11 h-11 rounded-xl bg-accent/10 border border-accent/20 text-accent flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
                     <Mail className="w-5 h-5" />
                   </div>
                   <div className="min-w-0 flex-1">
                     <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground block">
-                      Direct Email
+                      Direct Mail
                     </span>
-                    <strong className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors truncate block">
-                      wisebyteconcepts@gmail.com
+                    <strong className="text-sm font-semibold text-foreground group-hover:text-accent transition-colors block">
+                      Send an Email
                     </strong>
                   </div>
-                </a>
+                </button>
 
                 {/* Phone Card */}
                 <button
