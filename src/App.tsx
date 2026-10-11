@@ -27,6 +27,7 @@ const AdminMediaPage = lazy(() => import('./pages').then(m => ({ default: m.Admi
 const ServiceDetailPage = lazy(() => import('./pages').then(m => ({ default: m.ServiceDetailPage })));
 const ProductDetailPage = lazy(() => import('./pages').then(m => ({ default: m.ProductDetailPage })));
 const ContactPage = lazy(() => import('./pages').then(m => ({ default: m.ContactPage })));
+const QuotePage = lazy(() => import('./pages').then(m => ({ default: m.QuotePage })));
 const NotFoundPage = lazy(() => import('./pages').then(m => ({ default: m.NotFoundPage })));
 
 export default function App() {
@@ -70,6 +71,7 @@ export default function App() {
               <Route path="tech-stacks" element={<TechStacksPage />} />
               <Route path="skills" element={<Navigate to="/tech-stacks" replace />} />
               <Route path="contact" element={<ContactPage />} />
+              <Route path="quote" element={<QuotePage />} />
               <Route path="*" element={<NotFoundPage />} />
             </Route>
 

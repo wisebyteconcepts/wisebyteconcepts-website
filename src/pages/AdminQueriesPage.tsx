@@ -1,7 +1,6 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { 
-  Inbox, 
   Search, 
   Trash2, 
   Mail, 
@@ -17,18 +16,23 @@ import {
   ChevronLeft,
   Save,
   MessageCircle,
-  Copy
+  Copy,
+  History
 } from 'lucide-react';
 import { useAppStore } from '@/store';
 import { useToastStore } from '@/store/toastStore';
-import { QueryStatus } from '@/types';
+import { Query, QueryStatus } from '@/types';
 import { Button } from '@/components/Button';
 import { EmptyState } from '@/components/EmptyState';
 import { Modal } from '@/components/Modal';
+import { CopyTokenButton } from '@/components/CopyTokenButton';
+import { formatISTDate } from '@/utils/date';
 import { cn } from '@/lib/utils';
 import { parsePhoneNumber } from 'libphonenumber-js';
 
 const ITEMS_PER_PAGE = 10;
+
+type SubTab = 'quote' | 'contact';
 
 export const AdminQueriesPage: React.FC = () => {
   const queries = useAppStore((state) => state.queries || []);
@@ -40,27 +44,58 @@ export const AdminQueriesPage: React.FC = () => {
   const isLoaded = useAppStore((state) => state.isLoaded);
   const addToast = useToastStore((state) => state.addToast);
 
-  // Filter & Search states
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | QueryStatus>('all');
-  const [serviceFilter, setServiceFilter] = useState<'all' | string>('all');
-  const [readFilter, setReadFilter] = useState<'all' | 'unread' | 'read'>('all');
-  const [currentPage, setCurrentPage] = useState(1);
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Sub tab state synchronized with URL (default to Project Queries)
+  // URL: ?tab=queries&type=contact or ?type=contact
+  const activeSubTab: SubTab = useMemo(() => {
+    const typeParam = searchParams.get('type');
+    if (typeParam === 'contact' || typeParam === 'Contact message') {
+      return 'contact';
+    }
+    return 'quote';
+  }, [searchParams]);
+
+  const handleSubTabChange = (nextTab: SubTab) => {
+    const nextParams = new URLSearchParams(searchParams);
+    if (nextTab === 'contact') {
+      nextParams.set('type', 'contact');
+    } else {
+      nextParams.delete('type');
+    }
+    setSearchParams(nextParams, { replace: true });
+  };
+
+  // Sub tab 1 (Project Queries) independent filter & search states
+  const [quoteSearch, setQuoteSearch] = useState('');
+  const [quoteStatus, setQuoteStatus] = useState<'all' | QueryStatus>('all');
+  const [quoteService, setQuoteService] = useState<'all' | string>('all');
+  const [quoteRead, setQuoteRead] = useState<'all' | 'unread' | 'read'>('all');
+  const [quotePage, setQuotePage] = useState(1);
+
+  // Sub tab 2 (Contact Messages) independent filter & search states
+  const [contactSearch, setContactSearch] = useState('');
+  const [contactStatus, setContactStatus] = useState<'all' | QueryStatus>('all');
+  const [contactDate, setContactDate] = useState<'all' | 'today' | '7d' | '30d'>('all');
+  const [contactRead, setContactRead] = useState<'all' | 'unread' | 'read'>('all');
+  const [contactPage, setContactPage] = useState(1);
 
   // Selected Query for Detail Drawer
   const [selectedQueryId, setSelectedQueryId] = useState<string | null>(null);
   const [deleteConfirmationId, setDeleteConfirmationId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [notesDraft, setNotesDraft] = useState('');
   const [isSavingNotes, setIsSavingNotes] = useState(false);
   const [notesSavedNotice, setNotesSavedNotice] = useState(false);
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
-  // Telegram Notifications Admin Settings State (Requirement 6)
+  // Preserve container ref
+  const listContainerRef = useRef<HTMLDivElement | null>(null);
+
+  // Telegram Notifications Admin Settings State
   const [telegramStatus, setTelegramStatus] = useState<{ enabled: boolean; isConfigured: boolean } | null>(null);
   const [isTogglingTelegram, setIsTogglingTelegram] = useState(false);
   const [isSendingTestTelegram, setIsSendingTestTelegram] = useState(false);
-
-  const [searchParams] = useSearchParams();
 
   // Load Telegram notification status from server
   useEffect(() => {
@@ -74,7 +109,7 @@ export const AdminQueriesPage: React.FC = () => {
       });
   }, []);
 
-  // Requirement 3: Link to query opens detail view automatically
+  // Link to query opens detail view automatically
   useEffect(() => {
     const idParam = searchParams.get('id') || searchParams.get('query');
     if (idParam) {
@@ -168,6 +203,119 @@ export const AdminQueriesPage: React.FC = () => {
     }
   };
 
+  // Split datasets according to prompt requirements:
+  // "Use the existing type field to split the data, and treat older records without a type as Project Queries."
+  const isContactRecord = (q: Query) => q.type === 'Contact message';
+  const isQuoteRecord = (q: Query) => !q.type || q.type === 'Quote request';
+
+  // Counts (Sub tabs unread badges and total)
+  const totalUnreadCount = useMemo(() => queries.filter((q) => !q.isRead).length, [queries]);
+  const quoteUnreadCount = useMemo(
+    () => queries.filter((q) => isQuoteRecord(q) && !q.isRead).length,
+    [queries]
+  );
+  const contactUnreadCount = useMemo(
+    () => queries.filter((q) => isContactRecord(q) && !q.isRead).length,
+    [queries]
+  );
+
+  const totalQuoteCount = useMemo(() => queries.filter(isQuoteRecord).length, [queries]);
+  const totalContactCount = useMemo(() => queries.filter(isContactRecord).length, [queries]);
+
+  // Filtered Project Queries
+  const filteredQuoteQueries = useMemo(() => {
+    return queries
+      .filter((q) => {
+        if (!isQuoteRecord(q)) return false;
+
+        if (quoteStatus !== 'all' && q.status !== quoteStatus) return false;
+        if (quoteRead === 'unread' && q.isRead) return false;
+        if (quoteRead === 'read' && !q.isRead) return false;
+
+        if (quoteService !== 'all') {
+          const hasService = q.services?.some((s) => s.id === quoteService || s.name === quoteService);
+          if (!hasService) return false;
+        }
+
+        if (quoteSearch.trim()) {
+          const term = quoteSearch.toLowerCase().trim();
+          const matchesName = q.name?.toLowerCase().includes(term);
+          const matchesEmail = q.email?.toLowerCase().includes(term);
+          const matchesPhone = q.phone?.toLowerCase().includes(term);
+          const matchesMessage = q.message?.toLowerCase().includes(term);
+          const matchesService = q.services?.some((s) => s.name?.toLowerCase().includes(term));
+          const matchesProject = q.projects?.some((p) => p.name?.toLowerCase().includes(term));
+          const matchesToken = (q.referenceToken || q.id)?.toLowerCase().includes(term);
+          if (!matchesName && !matchesEmail && !matchesPhone && !matchesMessage && !matchesService && !matchesProject && !matchesToken) {
+            return false;
+          }
+        }
+
+        return true;
+      })
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }, [queries, quoteStatus, quoteService, quoteRead, quoteSearch]);
+
+  // Filtered Contact Messages (filters: status, date, read, search; no service/budget filters)
+  const filteredContactQueries = useMemo(() => {
+    const now = Date.now();
+    return queries
+      .filter((q) => {
+        if (!isContactRecord(q)) return false;
+
+        if (contactStatus !== 'all' && q.status !== contactStatus) return false;
+        if (contactRead === 'unread' && q.isRead) return false;
+        if (contactRead === 'read' && !q.isRead) return false;
+
+        // Date filter
+        if (contactDate !== 'all') {
+          const createdTime = new Date(q.createdAt).getTime();
+          if (isNaN(createdTime)) return true;
+          const diffMs = now - createdTime;
+          if (contactDate === 'today' && diffMs > 24 * 60 * 60 * 1000) return false;
+          if (contactDate === '7d' && diffMs > 7 * 24 * 60 * 60 * 1000) return false;
+          if (contactDate === '30d' && diffMs > 30 * 24 * 60 * 60 * 1000) return false;
+        }
+
+        if (contactSearch.trim()) {
+          const term = contactSearch.toLowerCase().trim();
+          const matchesName = q.name?.toLowerCase().includes(term);
+          const matchesEmail = q.email?.toLowerCase().includes(term);
+          const matchesPhone = q.phone?.toLowerCase().includes(term);
+          const matchesMessage = q.message?.toLowerCase().includes(term);
+          const matchesToken = (q.referenceToken || q.id)?.toLowerCase().includes(term);
+          if (!matchesName && !matchesEmail && !matchesPhone && !matchesMessage && !matchesToken) {
+            return false;
+          }
+        }
+
+        return true;
+      })
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }, [queries, contactStatus, contactDate, contactRead, contactSearch]);
+
+  // Active sub tab pagination
+  const quoteTotalPages = Math.max(1, Math.ceil(filteredQuoteQueries.length / ITEMS_PER_PAGE));
+  const paginatedQuoteQueries = useMemo(() => {
+    const start = (quotePage - 1) * ITEMS_PER_PAGE;
+    return filteredQuoteQueries.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredQuoteQueries, quotePage]);
+
+  const contactTotalPages = Math.max(1, Math.ceil(filteredContactQueries.length / ITEMS_PER_PAGE));
+  const paginatedContactQueries = useMemo(() => {
+    const start = (contactPage - 1) * ITEMS_PER_PAGE;
+    return filteredContactQueries.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredContactQueries, contactPage]);
+
+  // Reset pagination on filter changes
+  useEffect(() => {
+    setQuotePage(1);
+  }, [quoteSearch, quoteStatus, quoteService, quoteRead]);
+
+  useEffect(() => {
+    setContactPage(1);
+  }, [contactSearch, contactStatus, contactDate, contactRead]);
+
   // Active Query instance
   const selectedQuery = useMemo(() => {
     return queries.find((q) => q.id === selectedQueryId) || null;
@@ -179,7 +327,7 @@ export const AdminQueriesPage: React.FC = () => {
       setNotesDraft(selectedQuery.notes || '');
       setNotesSavedNotice(false);
 
-      // Requirement 3: Opening a query marks it as read automatically
+      // Auto-mark as read when opened
       if (!selectedQuery.isRead) {
         markQueryRead(selectedQuery.id, true).catch((err) => {
           console.error('[AdminQueriesPage] Auto-mark read failed', err);
@@ -187,54 +335,6 @@ export const AdminQueriesPage: React.FC = () => {
       }
     }
   }, [selectedQuery?.id]);
-
-  // Filtered queries list (newest first)
-  const filteredQueries = useMemo(() => {
-    return queries
-      .filter((q) => {
-        // Status filter
-        if (statusFilter !== 'all' && q.status !== statusFilter) return false;
-
-        // Read filter
-        if (readFilter === 'unread' && q.isRead) return false;
-        if (readFilter === 'read' && !q.isRead) return false;
-
-        // Service filter
-        if (serviceFilter !== 'all') {
-          const hasService = q.services?.some((s) => s.id === serviceFilter || s.name === serviceFilter);
-          if (!hasService) return false;
-        }
-
-        // Search term (name, email, phone, message)
-        if (searchTerm.trim()) {
-          const term = searchTerm.toLowerCase().trim();
-          const matchesName = q.name?.toLowerCase().includes(term);
-          const matchesEmail = q.email?.toLowerCase().includes(term);
-          const matchesPhone = q.phone?.toLowerCase().includes(term);
-          const matchesMessage = q.message?.toLowerCase().includes(term);
-          const matchesService = q.services?.some((s) => s.name?.toLowerCase().includes(term));
-          const matchesProject = q.projects?.some((p) => p.name?.toLowerCase().includes(term));
-          if (!matchesName && !matchesEmail && !matchesPhone && !matchesMessage && !matchesService && !matchesProject) {
-            return false;
-          }
-        }
-
-        return true;
-      })
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  }, [queries, statusFilter, serviceFilter, readFilter, searchTerm]);
-
-  // Pagination calculation
-  const totalPages = Math.max(1, Math.ceil(filteredQueries.length / ITEMS_PER_PAGE));
-  const paginatedQueries = useMemo(() => {
-    const start = (currentPage - 1) * ITEMS_PER_PAGE;
-    return filteredQueries.slice(start, start + ITEMS_PER_PAGE);
-  }, [filteredQueries, currentPage]);
-
-  // Reset to page 1 on filter changes
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm, statusFilter, serviceFilter, readFilter]);
 
   // Status badge styling helper
   const renderStatusBadge = (status: QueryStatus) => {
@@ -287,9 +387,16 @@ export const AdminQueriesPage: React.FC = () => {
     }
   };
 
+  // Resolve query being deleted
+  const queryToDelete = useMemo(() => {
+    if (!deleteConfirmationId) return null;
+    return queries.find((q) => q.id === deleteConfirmationId) || null;
+  }, [queries, deleteConfirmationId]);
+
   // Delete query
   const handleConfirmDelete = async () => {
-    if (!deleteConfirmationId) return;
+    if (!deleteConfirmationId || isDeleting) return;
+    setIsDeleting(true);
     try {
       await deleteQuery(deleteConfirmationId);
       addToast('Query deleted successfully', 'success');
@@ -299,6 +406,8 @@ export const AdminQueriesPage: React.FC = () => {
       setDeleteConfirmationId(null);
     } catch {
       addToast('Failed to delete query', 'error');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -318,23 +427,8 @@ export const AdminQueriesPage: React.FC = () => {
     }
   };
 
-  // Format date helper
-  const formatDate = (dateStr: string) => {
-    try {
-      const d = new Date(dateStr);
-      return new Intl.DateTimeFormat('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-        hour: 'numeric',
-        minute: '2-digit',
-      }).format(d);
-    } catch {
-      return dateStr;
-    }
-  };
-
-  const unreadCount = queries.filter((q) => !q.isRead).length;
+  // Format date helper in Indian Standard Time (IST)
+  const formatDate = (dateStr: string) => formatISTDate(dateStr);
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -349,9 +443,9 @@ export const AdminQueriesPage: React.FC = () => {
               <span className="px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-surface-2 border border-border text-foreground">
                 {queries.length} Total
               </span>
-              {unreadCount > 0 && (
+              {totalUnreadCount > 0 && (
                 <span className="px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-accent text-on-accent animate-pulse">
-                  {unreadCount} Unread
+                  {totalUnreadCount} Unread
                 </span>
               )}
             </div>
@@ -361,7 +455,7 @@ export const AdminQueriesPage: React.FC = () => {
           </p>
         </div>
 
-        {/* Telegram Admin Notifications Control (Requirement 6) */}
+        {/* Telegram Admin Notifications Control */}
         {telegramStatus && (
           <div className="flex flex-wrap items-center gap-2.5 p-2 px-3 rounded-xl bg-surface-2/70 border border-border text-xs">
             <div className="flex items-center gap-2 pr-2 border-r border-border/60">
@@ -412,268 +506,624 @@ export const AdminQueriesPage: React.FC = () => {
         )}
       </div>
 
-      {/* Search and Filters Toolbar */}
-      <div className="p-4 rounded-2xl bg-surface-1 border border-border space-y-3">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3">
-          {/* Search Box */}
-          <div className="lg:col-span-5 relative">
-            <Search className="w-4 h-4 text-muted-foreground absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search sender, email, phone, or message..."
-              className="w-full h-10 pl-10 pr-9 text-xs sm:text-sm rounded-xl bg-surface-2 border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary placeholder:text-muted-foreground"
-            />
-            {searchTerm && (
-              <button
-                type="button"
-                onClick={() => setSearchTerm('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground cursor-pointer"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
+      {/* ============================================================ */}
+      {/* SUB TABS NAVIGATION (Services/Projects content tabs style)    */}
+      {/* ============================================================ */}
+      <div className="w-full overflow-x-auto py-0.5 hide-scrollbar">
+        <div
+          role="tablist"
+          aria-label="Queries Sub Tabs"
+          className="bg-surface-2 p-1 rounded-2xl border border-border inline-flex h-auto max-h-none gap-1 shrink-0"
+        >
+          {/* Sub Tab 1: Project Queries */}
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeSubTab === 'quote'}
+            onClick={() => handleSubTabChange('quote')}
+            className={cn(
+              "relative inline-flex h-9 items-center justify-center gap-2 whitespace-nowrap rounded-xl px-3.5 text-xs font-semibold border transition-all duration-150 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/50 focus-visible:border-primary disabled:pointer-events-none disabled:opacity-50 select-none shrink-0 cursor-pointer min-h-[36px]",
+              activeSubTab === 'quote'
+                ? "bg-surface-1 text-foreground shadow-xs border-border/80 font-bold"
+                : "bg-transparent text-muted-foreground hover:bg-[var(--hover-overlay)] hover:text-foreground border-transparent"
             )}
-          </div>
-
-          {/* Status Filter */}
-          <div className="lg:col-span-3">
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as any)}
-              className="w-full h-10 px-3.5 text-xs sm:text-sm rounded-xl bg-surface-2 border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary cursor-pointer"
-            >
-              <option value="all">All Statuses</option>
-              <option value="New">Status: New</option>
-              <option value="In progress">Status: In progress</option>
-              <option value="Resolved">Status: Resolved</option>
-            </select>
-          </div>
-
-          {/* Service Filter */}
-          <div className="lg:col-span-2">
-            <select
-              value={serviceFilter}
-              onChange={(e) => setServiceFilter(e.target.value)}
-              className="w-full h-10 px-3 text-xs sm:text-sm rounded-xl bg-surface-2 border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary cursor-pointer truncate"
-            >
-              <option value="all">All Services</option>
-              {services.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.title || s.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Read / Unread Filter */}
-          <div className="lg:col-span-2">
-            <select
-              value={readFilter}
-              onChange={(e) => setReadFilter(e.target.value as any)}
-              className="w-full h-10 px-3 text-xs sm:text-sm rounded-xl bg-surface-2 border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary cursor-pointer"
-            >
-              <option value="all">All Read States</option>
-              <option value="unread">Unread Only</option>
-              <option value="read">Read Only</option>
-            </select>
-          </div>
-        </div>
-
-        {/* Filter Chips / Active Counts */}
-        {(searchTerm || statusFilter !== 'all' || serviceFilter !== 'all' || readFilter !== 'all') && (
-          <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-border/40 text-xs text-muted-foreground">
-            <div className="flex flex-wrap items-center gap-1.5">
-              <span>Filtered:</span>
-              <strong className="text-foreground">{filteredQueries.length} of {queries.length} queries</strong>
-            </div>
-            <button
-              type="button"
-              onClick={() => {
-                setSearchTerm('');
-                setStatusFilter('all');
-                setServiceFilter('all');
-                setReadFilter('all');
-              }}
-              className="text-primary hover:underline text-xs font-semibold cursor-pointer"
-            >
-              Reset all filters
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* Query List Card / Table Container */}
-      <div className="rounded-2xl border border-border/60 bg-surface-1 overflow-hidden shadow-xs">
-        {!isLoaded ? (
-          /* Loading Skeletons */
-          <div className="p-6 space-y-4">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="flex items-center justify-between p-4 rounded-xl bg-surface-2/40 animate-pulse gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-3 h-3 rounded-full bg-surface-3" />
-                  <div className="w-32 h-4 bg-surface-3 rounded" />
-                </div>
-                <div className="w-48 h-4 bg-surface-3 rounded hidden sm:block" />
-                <div className="w-20 h-6 bg-surface-3 rounded-full" />
-              </div>
-            ))}
-          </div>
-        ) : filteredQueries.length === 0 ? (
-          /* Empty State */
-          <div className="p-12 text-center">
-            <EmptyState
-              icon={Inbox}
-              title={queries.length === 0 ? 'No Queries Yet' : 'No Matching Queries'}
-              description={
-                queries.length === 0
-                  ? 'Incoming client inquiries submitted from the public contact page will appear here.'
-                  : 'Try adjusting your search keywords, read state, or filter selections.'
-              }
-            />
-          </div>
-        ) : (
-          <div>
-            {/* Desktop Table Header (hidden on mobile) */}
-            <div className="hidden md:grid md:grid-cols-12 gap-4 px-6 py-3.5 bg-surface-2/60 border-b border-border/60 text-xs font-mono uppercase tracking-wider text-muted-foreground font-semibold">
-              <div className="col-span-3">Sender & Status</div>
-              <div className="col-span-4">Message Preview</div>
-              <div className="col-span-3">Selected Capabilities</div>
-              <div className="col-span-2 text-right">Date & Action</div>
-            </div>
-
-            {/* List Rows / Mobile Cards */}
-            <div className="divide-y divide-border/50">
-              {paginatedQueries.map((query) => {
-                const isSelected = selectedQueryId === query.id;
-                const isUnread = !query.isRead;
-
-                return (
-                  <div
-                    key={query.id}
-                    onClick={() => setSelectedQueryId(query.id)}
-                    className={cn(
-                      'p-4 sm:px-6 sm:py-4 transition-all duration-150 cursor-pointer flex flex-col md:grid md:grid-cols-12 gap-3 md:gap-4 items-start md:items-center text-left hover:bg-surface-2/70',
-                      isSelected ? 'bg-primary/5 ring-1 ring-inset ring-primary/30' : '',
-                      isUnread ? 'bg-surface-2/30 font-medium' : 'text-muted-foreground'
-                    )}
-                  >
-                    {/* Column 1: Sender Name & Unread Dot & Status (col-span-3) */}
-                    <div className="w-full md:col-span-3 flex items-start gap-3">
-                      <div className="pt-1 md:pt-0 shrink-0">
-                        {isUnread ? (
-                          <div 
-                            className="w-2.5 h-2.5 rounded-full bg-primary ring-4 ring-primary/20 animate-pulse" 
-                            title="Unread Query"
-                          />
-                        ) : (
-                          <div className="w-2.5 h-2.5 rounded-full bg-border" />
-                        )}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className={cn('text-sm truncate', isUnread ? 'font-bold text-foreground' : 'text-foreground/90')}>
-                            {query.name || 'Anonymous Inquiry'}
-                          </span>
-                        </div>
-                        <div className="text-xs text-muted-foreground truncate mt-0.5">
-                          {query.email}
-                        </div>
-                        <div className="mt-1.5 flex items-center gap-2">
-                          {renderStatusBadge(query.status)}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Column 2: Message Preview (col-span-4) */}
-                    <div className="w-full md:col-span-4 min-w-0">
-                      <p className={cn('text-xs line-clamp-2 leading-relaxed', isUnread ? 'text-foreground/90 font-normal' : 'text-muted-foreground')}>
-                        {query.message}
-                      </p>
-                    </div>
-
-                    {/* Column 3: Selected Service & Project Chips (col-span-3) */}
-                    <div className="w-full md:col-span-3 flex flex-wrap gap-1.5 items-center">
-                      {query.services?.map((svc) => (
-                        <span
-                          key={svc.id}
-                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-mono bg-surface-3/80 text-foreground border border-border/50 truncate max-w-[150px]"
-                        >
-                          <Briefcase className="w-3 h-3 text-primary shrink-0" />
-                          <span className="truncate">{svc.name}</span>
-                        </span>
-                      ))}
-
-                      {query.projects?.map((proj) => (
-                        <span
-                          key={proj.id}
-                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-mono bg-surface-3/80 text-foreground border border-border/50 truncate max-w-[150px]"
-                        >
-                          <ShoppingBag className="w-3 h-3 text-accent shrink-0" />
-                          <span className="truncate">{proj.name}</span>
-                        </span>
-                      ))}
-
-                      {(!query.services || query.services.length === 0) && (!query.projects || query.projects.length === 0) && (
-                        <span className="text-[11px] font-mono text-muted-foreground/60 italic">
-                          General Consultation
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Column 4: Date & Quick Actions (col-span-2) */}
-                    <div className="w-full md:col-span-2 flex items-center justify-between md:justify-end gap-3 shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-border/40">
-                      <div className="text-right">
-                        <span className="text-[11px] font-mono text-muted-foreground block">
-                          {formatDate(query.createdAt)}
-                        </span>
-                      </div>
-                      <ChevronRight className="w-4 h-4 text-muted-foreground/60 shrink-0" />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* Pagination Bar */}
-        {filteredQueries.length > ITEMS_PER_PAGE && (
-          <div className="p-4 border-t border-border/60 flex items-center justify-between text-xs text-muted-foreground bg-surface-2/30">
-            <div>
-              Showing <strong className="text-foreground">{(currentPage - 1) * ITEMS_PER_PAGE + 1}</strong> to{' '}
-              <strong className="text-foreground">{Math.min(currentPage * ITEMS_PER_PAGE, filteredQueries.length)}</strong> of{' '}
-              <strong className="text-foreground">{filteredQueries.length}</strong> queries
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="glass"
-                size="sm"
-                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                disabled={currentPage <= 1}
-                className="rounded-lg h-8 px-2.5"
-              >
-                <ChevronLeft className="w-3.5 h-3.5 mr-1" /> Prev
-              </Button>
-              <span className="font-mono px-2">
-                {currentPage} / {totalPages}
+          >
+            <Briefcase className={cn("w-4 h-4 shrink-0", activeSubTab === 'quote' ? "text-primary" : "text-muted-foreground")} />
+            <span>Project Queries</span>
+            {quoteUnreadCount > 0 && (
+              <span className="px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-accent text-on-accent shrink-0 shadow-xs leading-none">
+                {quoteUnreadCount}
               </span>
-              <Button
-                variant="glass"
-                size="sm"
-                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                disabled={currentPage >= totalPages}
-                className="rounded-lg h-8 px-2.5"
-              >
-                Next <ChevronRight className="w-3.5 h-3.5 ml-1" />
-              </Button>
-            </div>
-          </div>
-        )}
+            )}
+          </button>
+
+          {/* Sub Tab 2: Contact Messages */}
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeSubTab === 'contact'}
+            onClick={() => handleSubTabChange('contact')}
+            className={cn(
+              "relative inline-flex h-9 items-center justify-center gap-2 whitespace-nowrap rounded-xl px-3.5 text-xs font-semibold border transition-all duration-150 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/50 focus-visible:border-primary disabled:pointer-events-none disabled:opacity-50 select-none shrink-0 cursor-pointer min-h-[36px]",
+              activeSubTab === 'contact'
+                ? "bg-surface-1 text-foreground shadow-xs border-border/80 font-bold"
+                : "bg-transparent text-muted-foreground hover:bg-[var(--hover-overlay)] hover:text-foreground border-transparent"
+            )}
+          >
+            <Mail className={cn("w-4 h-4 shrink-0", activeSubTab === 'contact' ? "text-emerald-500" : "text-muted-foreground")} />
+            <span>Contact Messages</span>
+            {contactUnreadCount > 0 && (
+              <span className="px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-accent text-on-accent shrink-0 shadow-xs leading-none">
+                {contactUnreadCount}
+              </span>
+            )}
+          </button>
+        </div>
       </div>
 
       {/* ============================================================ */}
-      {/* DETAIL VIEW DRAWER / SLIDE-OVER (Requirement 3)              */}
+      {/* SUB TAB 1: PROJECT QUERIES VIEW                             */}
+      {/* ============================================================ */}
+      {activeSubTab === 'quote' && (
+        <div className="space-y-4 animate-in fade-in duration-200">
+          {/* Project Queries Search & Filters Toolbar */}
+          <div className="p-4 rounded-2xl bg-surface-1 border border-border space-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3">
+              {/* Search Box */}
+              <div className="lg:col-span-5 relative">
+                <Search className="w-4 h-4 text-muted-foreground absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <input
+                  type="text"
+                  value={quoteSearch}
+                  onChange={(e) => setQuoteSearch(e.target.value)}
+                  placeholder="Search sender, email, token, or brief..."
+                  className="w-full h-10 pl-10 pr-9 text-xs sm:text-sm rounded-xl bg-surface-2 border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary placeholder:text-muted-foreground"
+                />
+                {quoteSearch && (
+                  <button
+                    type="button"
+                    onClick={() => setQuoteSearch('')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground cursor-pointer"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+
+              {/* Status Filter */}
+              <div className="lg:col-span-2">
+                <select
+                  value={quoteStatus}
+                  onChange={(e) => setQuoteStatus(e.target.value as any)}
+                  className="w-full h-10 px-3 text-xs sm:text-sm rounded-xl bg-surface-2 border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary cursor-pointer"
+                >
+                  <option value="all">All Statuses</option>
+                  <option value="New">Status: New</option>
+                  <option value="In progress">Status: In progress</option>
+                  <option value="Resolved">Status: Resolved</option>
+                </select>
+              </div>
+
+              {/* Service Filter */}
+              <div className="lg:col-span-3">
+                <select
+                  value={quoteService}
+                  onChange={(e) => setQuoteService(e.target.value)}
+                  className="w-full h-10 px-3 text-xs sm:text-sm rounded-xl bg-surface-2 border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary cursor-pointer truncate"
+                >
+                  <option value="all">All Services</option>
+                  {services.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.title || s.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Read / Unread Filter */}
+              <div className="lg:col-span-2">
+                <select
+                  value={quoteRead}
+                  onChange={(e) => setQuoteRead(e.target.value as any)}
+                  className="w-full h-10 px-3 text-xs sm:text-sm rounded-xl bg-surface-2 border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary cursor-pointer"
+                >
+                  <option value="all">All Read States</option>
+                  <option value="unread">Unread Only</option>
+                  <option value="read">Read Only</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Filter Chips / Active Counts */}
+            {(quoteSearch || quoteStatus !== 'all' || quoteService !== 'all' || quoteRead !== 'all') && (
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-border/40 text-xs text-muted-foreground">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span>Filtered:</span>
+                  <strong className="text-foreground">{filteredQuoteQueries.length} of {totalQuoteCount} project queries</strong>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setQuoteSearch('');
+                    setQuoteStatus('all');
+                    setQuoteService('all');
+                    setQuoteRead('all');
+                  }}
+                  className="text-primary hover:underline text-xs font-semibold cursor-pointer"
+                >
+                  Reset filters
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Project Queries List Container */}
+          <div ref={listContainerRef} className="rounded-2xl border border-border/60 bg-surface-1 overflow-hidden shadow-xs">
+            {!isLoaded ? (
+              <div className="p-6 space-y-4">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <div key={i} className="flex items-center justify-between p-4 rounded-xl bg-surface-2/40 animate-pulse gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-3 h-3 rounded-full bg-surface-3" />
+                      <div className="w-32 h-4 bg-surface-3 rounded" />
+                    </div>
+                    <div className="w-48 h-4 bg-surface-3 rounded hidden sm:block" />
+                    <div className="w-20 h-6 bg-surface-3 rounded-full" />
+                  </div>
+                ))}
+              </div>
+            ) : filteredQuoteQueries.length === 0 ? (
+              <div className="p-12 text-center">
+                <EmptyState
+                  icon={Briefcase}
+                  title="No project queries yet"
+                  description={
+                    totalQuoteCount === 0
+                      ? 'Quote requests submitted from the /quote page will appear here with service and budget selections.'
+                      : 'Try adjusting your search keywords, service filter, or read state.'
+                  }
+                />
+              </div>
+            ) : (
+              <div>
+                {/* Desktop Table Header */}
+                <div className="hidden md:grid md:grid-cols-12 gap-4 px-6 py-3.5 bg-surface-2/60 border-b border-border/60 text-xs font-mono uppercase tracking-wider text-muted-foreground font-semibold">
+                  <div className="col-span-3">Sender & Status</div>
+                  <div className="col-span-4">Requirement Brief</div>
+                  <div className="col-span-3">Service & Project Scope</div>
+                  <div className="col-span-2 text-right">Date & Action</div>
+                </div>
+
+                {/* List Rows */}
+                <div className="divide-y divide-border/50">
+                  {paginatedQuoteQueries.map((query) => {
+                    const isSelected = selectedQueryId === query.id;
+                    const isUnread = !query.isRead;
+
+                    return (
+                      <div
+                        key={query.id}
+                        onClick={() => setSelectedQueryId(query.id)}
+                        className={cn(
+                          'p-4 sm:px-6 sm:py-4 transition-all duration-150 cursor-pointer flex flex-col md:grid md:grid-cols-12 gap-3 md:gap-4 items-start md:items-center text-left hover:bg-surface-2/70',
+                          isSelected ? 'bg-primary/5 ring-1 ring-inset ring-primary/30' : '',
+                          isUnread ? 'bg-surface-2/30 font-medium' : 'text-muted-foreground'
+                        )}
+                      >
+                        {/* Column 1: Sender Name & Unread Dot & Status */}
+                        <div className="w-full md:col-span-3 flex items-start gap-3">
+                          <div className="pt-1 md:pt-0 shrink-0">
+                            {isUnread ? (
+                              <div 
+                                className="w-2.5 h-2.5 rounded-full bg-primary ring-4 ring-primary/20 animate-pulse" 
+                                title="Unread Query"
+                              />
+                            ) : (
+                              <div className="w-2.5 h-2.5 rounded-full bg-border" />
+                            )}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className={cn('text-sm truncate', isUnread ? 'font-bold text-foreground' : 'text-foreground/90')}>
+                                {query.name || 'Anonymous Client'}
+                              </span>
+                            </div>
+                            <div className="text-xs text-muted-foreground truncate mt-0.5">
+                              {query.email}
+                            </div>
+                            <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                              {renderStatusBadge(query.status)}
+                              {query.budget && (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-mono bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 font-semibold truncate max-w-[140px]">
+                                  <DollarSign className="w-2.5 h-2.5 shrink-0" />
+                                  <span className="truncate">{query.budget}</span>
+                                </span>
+                              )}
+                            </div>
+                            <div className="mt-1.5 flex items-center gap-1.5">
+                              <span className="text-[10px] font-mono font-bold text-muted-foreground uppercase">
+                                {(query.referenceToken || query.id).toUpperCase()}
+                              </span>
+                              <CopyTokenButton token={(query.referenceToken || query.id).toUpperCase()} />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Column 2: Requirement Brief Preview */}
+                        <div className="w-full md:col-span-4 min-w-0">
+                          <p className={cn('text-xs line-clamp-2 leading-relaxed', isUnread ? 'text-foreground/90 font-normal' : 'text-muted-foreground')}>
+                            {query.message}
+                          </p>
+                        </div>
+
+                        {/* Column 3: Service/Project Chips */}
+                        <div className="w-full md:col-span-3 flex flex-wrap gap-1.5 items-center">
+                          {query.services?.map((svc) => (
+                            <span
+                              key={svc.id}
+                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-mono bg-surface-3/80 text-foreground border border-border/50 truncate max-w-[150px]"
+                            >
+                              <Briefcase className="w-3 h-3 text-primary shrink-0" />
+                              <span className="truncate">{svc.name}</span>
+                            </span>
+                          ))}
+
+                          {query.projects?.map((proj) => (
+                            <span
+                              key={proj.id}
+                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-mono bg-surface-3/80 text-foreground border border-border/50 truncate max-w-[150px]"
+                            >
+                              <ShoppingBag className="w-3 h-3 text-accent shrink-0" />
+                              <span className="truncate">{proj.name}</span>
+                            </span>
+                          ))}
+
+                          {(!query.services || query.services.length === 0) && (!query.projects || query.projects.length === 0) && (
+                            <span className="text-[11px] font-mono text-muted-foreground/60 italic">
+                              General Consultation
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Column 4: Date & Action */}
+                        <div className="w-full md:col-span-2 flex items-center justify-between md:justify-end gap-2 shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-border/40">
+                          <div className="text-right">
+                            <span className="text-[11px] font-mono text-muted-foreground block">
+                              {formatDate(query.createdAt)}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDeleteConfirmationId(query.id);
+                              }}
+                              className="p-2 sm:p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center group"
+                              aria-label="Delete query"
+                              title="Delete query"
+                            >
+                              <Trash2 className="w-4 h-4 transition-transform group-hover:scale-110" />
+                            </button>
+                            <ChevronRight className="w-4 h-4 text-muted-foreground/60 shrink-0 hidden sm:block" />
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Pagination Bar */}
+            {filteredQuoteQueries.length > ITEMS_PER_PAGE && (
+              <div className="p-4 border-t border-border/60 flex items-center justify-between text-xs text-muted-foreground bg-surface-2/30">
+                <div>
+                  Showing <strong className="text-foreground">{(quotePage - 1) * ITEMS_PER_PAGE + 1}</strong> to{' '}
+                  <strong className="text-foreground">{Math.min(quotePage * ITEMS_PER_PAGE, filteredQuoteQueries.length)}</strong> of{' '}
+                  <strong className="text-foreground">{filteredQuoteQueries.length}</strong> project queries
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="glass"
+                    size="sm"
+                    onClick={() => setQuotePage((p) => Math.max(1, p - 1))}
+                    disabled={quotePage <= 1}
+                    className="rounded-lg h-8 px-2.5"
+                  >
+                    <ChevronLeft className="w-3.5 h-3.5 mr-1" /> Prev
+                  </Button>
+                  <span className="font-mono px-2">
+                    {quotePage} / {quoteTotalPages}
+                  </span>
+                  <Button
+                    variant="glass"
+                    size="sm"
+                    onClick={() => setQuotePage((p) => Math.min(quoteTotalPages, p + 1))}
+                    disabled={quotePage >= quoteTotalPages}
+                    className="rounded-lg h-8 px-2.5"
+                  >
+                    Next <ChevronRight className="w-3.5 h-3.5 ml-1" />
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================ */}
+      {/* SUB TAB 2: CONTACT MESSAGES VIEW (Requirement 3)             */}
+      {/* ============================================================ */}
+      {activeSubTab === 'contact' && (
+        <div className="space-y-4 animate-in fade-in duration-200">
+          {/* Contact Messages Search & Filters Toolbar */}
+          <div className="p-4 rounded-2xl bg-surface-1 border border-border space-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3">
+              {/* Search Box */}
+              <div className="lg:col-span-6 relative">
+                <Search className="w-4 h-4 text-muted-foreground absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <input
+                  type="text"
+                  value={contactSearch}
+                  onChange={(e) => setContactSearch(e.target.value)}
+                  placeholder="Search name, email, phone, token, or message..."
+                  className="w-full h-10 pl-10 pr-9 text-xs sm:text-sm rounded-xl bg-surface-2 border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary placeholder:text-muted-foreground"
+                />
+                {contactSearch && (
+                  <button
+                    type="button"
+                    onClick={() => setContactSearch('')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground cursor-pointer"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+
+              {/* Status Filter */}
+              <div className="lg:col-span-2">
+                <select
+                  value={contactStatus}
+                  onChange={(e) => setContactStatus(e.target.value as any)}
+                  className="w-full h-10 px-3 text-xs sm:text-sm rounded-xl bg-surface-2 border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary cursor-pointer"
+                >
+                  <option value="all">All Statuses</option>
+                  <option value="New">Status: New</option>
+                  <option value="In progress">Status: In progress</option>
+                  <option value="Resolved">Status: Resolved</option>
+                </select>
+              </div>
+
+              {/* Date Filter (Requirement 3: Filters are status and date) */}
+              <div className="lg:col-span-2">
+                <select
+                  value={contactDate}
+                  onChange={(e) => setContactDate(e.target.value as any)}
+                  className="w-full h-10 px-3 text-xs sm:text-sm rounded-xl bg-surface-2 border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary cursor-pointer"
+                >
+                  <option value="all">All Dates</option>
+                  <option value="today">Today (24h)</option>
+                  <option value="7d">Last 7 Days</option>
+                  <option value="30d">Last 30 Days</option>
+                </select>
+              </div>
+
+              {/* Read / Unread Filter */}
+              <div className="lg:col-span-2">
+                <select
+                  value={contactRead}
+                  onChange={(e) => setContactRead(e.target.value as any)}
+                  className="w-full h-10 px-3 text-xs sm:text-sm rounded-xl bg-surface-2 border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary cursor-pointer"
+                >
+                  <option value="all">All Read States</option>
+                  <option value="unread">Unread Only</option>
+                  <option value="read">Read Only</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Filter Chips / Active Counts */}
+            {(contactSearch || contactStatus !== 'all' || contactDate !== 'all' || contactRead !== 'all') && (
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-border/40 text-xs text-muted-foreground">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span>Filtered:</span>
+                  <strong className="text-foreground">{filteredContactQueries.length} of {totalContactCount} contact messages</strong>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setContactSearch('');
+                    setContactStatus('all');
+                    setContactDate('all');
+                    setContactRead('all');
+                  }}
+                  className="text-primary hover:underline text-xs font-semibold cursor-pointer"
+                >
+                  Reset filters
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Contact Messages List Container */}
+          <div ref={listContainerRef} className="rounded-2xl border border-border/60 bg-surface-1 overflow-hidden shadow-xs">
+            {!isLoaded ? (
+              <div className="p-6 space-y-4">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <div key={i} className="flex items-center justify-between p-4 rounded-xl bg-surface-2/40 animate-pulse gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-3 h-3 rounded-full bg-surface-3" />
+                      <div className="w-32 h-4 bg-surface-3 rounded" />
+                    </div>
+                    <div className="w-48 h-4 bg-surface-3 rounded hidden sm:block" />
+                    <div className="w-20 h-6 bg-surface-3 rounded-full" />
+                  </div>
+                ))}
+              </div>
+            ) : filteredContactQueries.length === 0 ? (
+              <div className="p-12 text-center">
+                <EmptyState
+                  icon={Mail}
+                  title="No contact messages yet"
+                  description={
+                    totalContactCount === 0
+                      ? 'Messages submitted from the /contact form will appear here.'
+                      : 'Try adjusting your search keywords, date range, or status filter.'
+                  }
+                />
+              </div>
+            ) : (
+              <div>
+                {/* Desktop Table Header */}
+                <div className="hidden md:grid md:grid-cols-12 gap-4 px-6 py-3.5 bg-surface-2/60 border-b border-border/60 text-xs font-mono uppercase tracking-wider text-muted-foreground font-semibold">
+                  <div className="col-span-3">Sender & Status</div>
+                  <div className="col-span-4">Message Preview</div>
+                  <div className="col-span-3">Contact Details</div>
+                  <div className="col-span-2 text-right">Date & Action</div>
+                </div>
+
+                {/* List Rows */}
+                <div className="divide-y divide-border/50">
+                  {paginatedContactQueries.map((query) => {
+                    const isSelected = selectedQueryId === query.id;
+                    const isUnread = !query.isRead;
+
+                    return (
+                      <div
+                        key={query.id}
+                        onClick={() => setSelectedQueryId(query.id)}
+                        className={cn(
+                          'p-4 sm:px-6 sm:py-4 transition-all duration-150 cursor-pointer flex flex-col md:grid md:grid-cols-12 gap-3 md:gap-4 items-start md:items-center text-left hover:bg-surface-2/70',
+                          isSelected ? 'bg-primary/5 ring-1 ring-inset ring-primary/30' : '',
+                          isUnread ? 'bg-surface-2/30 font-medium' : 'text-muted-foreground'
+                        )}
+                      >
+                        {/* Column 1: Sender Name & Unread Dot & Status */}
+                        <div className="w-full md:col-span-3 flex items-start gap-3">
+                          <div className="pt-1 md:pt-0 shrink-0">
+                            {isUnread ? (
+                              <div 
+                                className="w-2.5 h-2.5 rounded-full bg-emerald-500 ring-4 ring-emerald-500/20 animate-pulse" 
+                                title="Unread Message"
+                              />
+                            ) : (
+                              <div className="w-2.5 h-2.5 rounded-full bg-border" />
+                            )}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className={cn('text-sm truncate', isUnread ? 'font-bold text-foreground' : 'text-foreground/90')}>
+                                {query.name || 'Anonymous Message'}
+                              </span>
+                            </div>
+                            <div className="text-xs text-muted-foreground truncate mt-0.5">
+                              {query.email}
+                            </div>
+                            <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                              {renderStatusBadge(query.status)}
+                            </div>
+                            <div className="mt-1.5 flex items-center gap-1.5">
+                              <span className="text-[10px] font-mono font-bold text-muted-foreground uppercase">
+                                {(query.referenceToken || query.id).toUpperCase()}
+                              </span>
+                              <CopyTokenButton token={(query.referenceToken || query.id).toUpperCase()} />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Column 2: Message Preview */}
+                        <div className="w-full md:col-span-4 min-w-0">
+                          <p className={cn('text-xs line-clamp-2 leading-relaxed', isUnread ? 'text-foreground/90 font-normal' : 'text-muted-foreground')}>
+                            {query.message}
+                          </p>
+                        </div>
+
+                        {/* Column 3: Email and Phone details */}
+                        <div className="w-full md:col-span-3 space-y-1 text-xs">
+                          {query.email && (
+                            <div className="flex items-center gap-1.5 text-muted-foreground truncate">
+                              <Mail className="w-3.5 h-3.5 text-primary shrink-0" />
+                              <span className="truncate">{query.email}</span>
+                            </div>
+                          )}
+                          {query.phone && (
+                            <div className="flex items-center gap-1.5 text-muted-foreground truncate font-mono">
+                              <Phone className="w-3.5 h-3.5 text-accent shrink-0" />
+                              <span className="truncate">{query.phone}</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Column 4: Date & Action */}
+                        <div className="w-full md:col-span-2 flex items-center justify-between md:justify-end gap-2 shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-border/40">
+                          <div className="text-right">
+                            <span className="text-[11px] font-mono text-muted-foreground block">
+                              {formatDate(query.createdAt)}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDeleteConfirmationId(query.id);
+                              }}
+                              className="p-2 sm:p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center group"
+                              aria-label="Delete message"
+                              title="Delete message"
+                            >
+                              <Trash2 className="w-4 h-4 transition-transform group-hover:scale-110" />
+                            </button>
+                            <ChevronRight className="w-4 h-4 text-muted-foreground/60 shrink-0 hidden sm:block" />
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Pagination Bar */}
+            {filteredContactQueries.length > ITEMS_PER_PAGE && (
+              <div className="p-4 border-t border-border/60 flex items-center justify-between text-xs text-muted-foreground bg-surface-2/30">
+                <div>
+                  Showing <strong className="text-foreground">{(contactPage - 1) * ITEMS_PER_PAGE + 1}</strong> to{' '}
+                  <strong className="text-foreground">{Math.min(contactPage * ITEMS_PER_PAGE, filteredContactQueries.length)}</strong> of{' '}
+                  <strong className="text-foreground">{filteredContactQueries.length}</strong> contact messages
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="glass"
+                    size="sm"
+                    onClick={() => setContactPage((p) => Math.max(1, p - 1))}
+                    disabled={contactPage <= 1}
+                    className="rounded-lg h-8 px-2.5"
+                  >
+                    <ChevronLeft className="w-3.5 h-3.5 mr-1" /> Prev
+                  </Button>
+                  <span className="font-mono px-2">
+                    {contactPage} / {contactTotalPages}
+                  </span>
+                  <Button
+                    variant="glass"
+                    size="sm"
+                    onClick={() => setContactPage((p) => Math.min(contactTotalPages, p + 1))}
+                    disabled={contactPage >= contactTotalPages}
+                    className="rounded-lg h-8 px-2.5"
+                  >
+                    Next <ChevronRight className="w-3.5 h-3.5 ml-1" />
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================ */}
+      {/* DETAIL VIEW DRAWER / SLIDE-OVER (Requirement 4)              */}
       {/* ============================================================ */}
       {selectedQuery && (
         <div className="fixed inset-0 z-50 overflow-hidden bg-background/80 backdrop-blur-sm flex justify-end animate-in fade-in duration-200">
@@ -684,19 +1134,25 @@ export const AdminQueriesPage: React.FC = () => {
             {/* Drawer Header */}
             <div className="p-5 sm:p-6 border-b border-border/60 flex items-start justify-between gap-4 bg-surface-2/40">
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2.5 mb-1.5">
+                <div className="flex flex-wrap items-center gap-2 mb-2">
                   {renderStatusBadge(selectedQuery.status)}
-                  <span className="text-xs font-mono text-muted-foreground">
-                    ID: {selectedQuery.id}
-                  </span>
+                  <CopyTokenButton token={(selectedQuery.referenceToken || selectedQuery.id).toUpperCase()} variant="badge" />
                 </div>
                 <h2 className="text-xl sm:text-2xl font-bold text-foreground truncate">
                   {selectedQuery.name}
                 </h2>
-                <p className="text-xs text-muted-foreground flex items-center gap-1.5 mt-1 font-mono">
-                  <Clock className="w-3.5 h-3.5" />
-                  Received {formatDate(selectedQuery.createdAt)}
-                </p>
+                <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground mt-1.5 font-mono">
+                  <span className="flex items-center gap-1.5">
+                    <Clock className="w-3.5 h-3.5" />
+                    Received {formatDate(selectedQuery.createdAt)}
+                  </span>
+                  {selectedQuery.updatedAt && (
+                    <span className="flex items-center gap-1.5 text-accent font-semibold">
+                      <History className="w-3.5 h-3.5" />
+                      Updated {formatDate(selectedQuery.updatedAt)}
+                    </span>
+                  )}
+                </div>
               </div>
 
               {/* Close Button */}
@@ -949,103 +1405,107 @@ export const AdminQueriesPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Scope & Logistics Specifications */}
-              <div className="space-y-3">
-                <h3 className="text-xs font-mono uppercase tracking-wider font-bold text-muted-foreground">
-                  Project Scope & Budget
-                </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                  <div className="p-3.5 rounded-xl bg-surface-2/60 border border-border/60">
-                    <span className="text-muted-foreground block text-[11px] mb-0.5 flex items-center gap-1">
-                      <DollarSign className="w-3 h-3 text-emerald-500" /> Target Budget Range
-                    </span>
-                    <strong className="text-foreground text-sm font-semibold">{selectedQuery.budget || 'Flexible / Scope TBD'}</strong>
-                  </div>
+              {/* Scope & Logistics Specifications (Only for Project Queries) */}
+              {selectedQuery.type !== 'Contact message' && (
+                <>
+                  <div className="space-y-3">
+                    <h3 className="text-xs font-mono uppercase tracking-wider font-bold text-muted-foreground">
+                      Project Scope & Budget
+                    </h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                      <div className="p-3.5 rounded-xl bg-surface-2/60 border border-border/60">
+                        <span className="text-muted-foreground block text-[11px] mb-0.5 flex items-center gap-1">
+                          <DollarSign className="w-3 h-3 text-emerald-500" /> Target Budget Range
+                        </span>
+                        <strong className="text-foreground text-sm font-semibold">{selectedQuery.budget || 'Flexible / Scope TBD'}</strong>
+                      </div>
 
-                  <div className="p-3.5 rounded-xl bg-surface-2/60 border border-border/60">
-                    <span className="text-muted-foreground block text-[11px] mb-0.5 flex items-center gap-1">
-                      <Clock className="w-3 h-3 text-primary" /> Target Implementation Timeline
-                    </span>
-                    <strong className="text-foreground text-sm font-semibold">{selectedQuery.timeline || 'Flexible / As needed'}</strong>
-                  </div>
-                </div>
-              </div>
-
-              {/* Linked Services & Projects with direct links to Detail Pages in new tab */}
-              <div className="space-y-3">
-                <h3 className="text-xs font-mono uppercase tracking-wider font-bold text-muted-foreground">
-                  Selected Services & Associated Projects
-                </h3>
-                <div className="space-y-2">
-                  {selectedQuery.services && selectedQuery.services.length > 0 && (
-                    <div className="p-4 rounded-xl bg-surface-2/60 border border-border/60 space-y-2">
-                      <span className="text-[11px] font-mono uppercase text-primary font-bold block">
-                        Associated Services:
-                      </span>
-                      <div className="flex flex-wrap gap-2">
-                        {selectedQuery.services.map((svc) => {
-                          const matchedSvc = services.find((s) => s.id === svc.id || s.slug === svc.id);
-                          const serviceDetailUrl = `/services/${matchedSvc?.slug || svc.id}`;
-                          return (
-                            <a
-                              key={svc.id}
-                              href={serviceDetailUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-3 hover:bg-primary/10 border border-border hover:border-primary text-xs font-semibold text-foreground transition-colors group cursor-pointer"
-                              title={`Open ${svc.name} detail page in new tab`}
-                            >
-                              <Briefcase className="w-3.5 h-3.5 text-primary" />
-                              <span>{svc.name}</span>
-                              <ExternalLink className="w-3 h-3 opacity-60 group-hover:opacity-100" />
-                            </a>
-                          );
-                        })}
+                      <div className="p-3.5 rounded-xl bg-surface-2/60 border border-border/60">
+                        <span className="text-muted-foreground block text-[11px] mb-0.5 flex items-center gap-1">
+                          <Clock className="w-3 h-3 text-primary" /> Target Implementation Timeline
+                        </span>
+                        <strong className="text-foreground text-sm font-semibold">{selectedQuery.timeline || 'Flexible / As needed'}</strong>
                       </div>
                     </div>
-                  )}
+                  </div>
 
-                  {selectedQuery.projects && selectedQuery.projects.length > 0 && (
-                    <div className="p-4 rounded-xl bg-surface-2/60 border border-border/60 space-y-2">
-                      <span className="text-[11px] font-mono uppercase text-accent font-bold block">
-                        Selected Projects:
-                      </span>
-                      <div className="flex flex-wrap gap-2">
-                        {selectedQuery.projects.map((proj) => {
-                          const matchedProj = products.find((p) => p.id === proj.id || p.slug === proj.id);
-                          const projectDetailUrl = `/products/${matchedProj?.slug || proj.id}`;
-                          return (
-                            <a
-                              key={proj.id}
-                              href={projectDetailUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-3 hover:bg-accent/10 border border-border hover:border-accent text-xs font-semibold text-foreground transition-colors group cursor-pointer"
-                              title={`Open ${proj.name} detail page in new tab`}
-                            >
-                              <ShoppingBag className="w-3.5 h-3.5 text-accent" />
-                              <span>{proj.name}</span>
-                              <ExternalLink className="w-3 h-3 opacity-60 group-hover:opacity-100" />
-                            </a>
-                          );
-                        })}
-                      </div>
+                  {/* Linked Services & Projects with direct links to Detail Pages in new tab */}
+                  <div className="space-y-3">
+                    <h3 className="text-xs font-mono uppercase tracking-wider font-bold text-muted-foreground">
+                      Selected Services & Associated Projects
+                    </h3>
+                    <div className="space-y-2">
+                      {selectedQuery.services && selectedQuery.services.length > 0 && (
+                        <div className="p-4 rounded-xl bg-surface-2/60 border border-border/60 space-y-2">
+                          <span className="text-[11px] font-mono uppercase text-primary font-bold block">
+                            Associated Services:
+                          </span>
+                          <div className="flex flex-wrap gap-2">
+                            {selectedQuery.services.map((svc) => {
+                              const matchedSvc = services.find((s) => s.id === svc.id || s.slug === svc.id);
+                              const serviceDetailUrl = `/services/${matchedSvc?.slug || svc.id}`;
+                              return (
+                                <a
+                                  key={svc.id}
+                                  href={serviceDetailUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-3 hover:bg-primary/10 border border-border hover:border-primary text-xs font-semibold text-foreground transition-colors group cursor-pointer"
+                                  title={`Open ${svc.name} detail page in new tab`}
+                                >
+                                  <Briefcase className="w-3.5 h-3.5 text-primary" />
+                                  <span>{svc.name}</span>
+                                  <ExternalLink className="w-3 h-3 opacity-60 group-hover:opacity-100" />
+                                </a>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      {selectedQuery.projects && selectedQuery.projects.length > 0 && (
+                        <div className="p-4 rounded-xl bg-surface-2/60 border border-border/60 space-y-2">
+                          <span className="text-[11px] font-mono uppercase text-accent font-bold block">
+                            Selected Projects:
+                          </span>
+                          <div className="flex flex-wrap gap-2">
+                            {selectedQuery.projects.map((proj) => {
+                              const matchedProj = products.find((p) => p.id === proj.id || p.slug === proj.id);
+                              const projectDetailUrl = `/products/${matchedProj?.slug || proj.id}`;
+                              return (
+                                <a
+                                  key={proj.id}
+                                  href={projectDetailUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-3 hover:bg-accent/10 border border-border hover:border-accent text-xs font-semibold text-foreground transition-colors group cursor-pointer"
+                                  title={`Open ${proj.name} detail page in new tab`}
+                                >
+                                  <ShoppingBag className="w-3.5 h-3.5 text-accent" />
+                                  <span>{proj.name}</span>
+                                  <ExternalLink className="w-3 h-3 opacity-60 group-hover:opacity-100" />
+                                </a>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      {(!selectedQuery.services || selectedQuery.services.length === 0) &&
+                        (!selectedQuery.projects || selectedQuery.projects.length === 0) && (
+                          <div className="p-3.5 rounded-xl bg-surface-2/40 border border-border/40 text-xs text-muted-foreground italic">
+                            No specific service or project was pre-selected during submission.
+                          </div>
+                        )}
                     </div>
-                  )}
-
-                  {(!selectedQuery.services || selectedQuery.services.length === 0) &&
-                    (!selectedQuery.projects || selectedQuery.projects.length === 0) && (
-                      <div className="p-3.5 rounded-xl bg-surface-2/40 border border-border/40 text-xs text-muted-foreground italic">
-                        No specific service or project was pre-selected during submission.
-                      </div>
-                    )}
-                </div>
-              </div>
+                  </div>
+                </>
+              )}
 
               {/* Full Submitted Message */}
               <div className="space-y-3">
                 <h3 className="text-xs font-mono uppercase tracking-wider font-bold text-muted-foreground">
-                  Inquiry Message / Project Brief
+                  {selectedQuery.type === 'Contact message' ? 'Submitted Contact Message' : 'Inquiry Message / Requirement Brief'}
                 </h3>
                 <div className="p-5 rounded-xl bg-surface-2/70 border border-border/80">
                   <p className="text-xs sm:text-sm text-foreground whitespace-pre-wrap leading-relaxed font-sans">
@@ -1054,7 +1514,30 @@ export const AdminQueriesPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Internal Notes Section (Requirement 3: saved with the query) */}
+              {/* Previous Requirement Brief Revisions History (from duplicate update replacement) */}
+              {selectedQuery.type !== 'Contact message' && selectedQuery.messageHistory && selectedQuery.messageHistory.length > 0 && (
+                <div className="space-y-3 pt-2 border-t border-border/60">
+                  <h3 className="text-xs font-mono uppercase tracking-wider font-bold text-muted-foreground flex items-center gap-1.5">
+                    <History className="w-3.5 h-3.5 text-accent" />
+                    Previous Requirement Briefs ({selectedQuery.messageHistory.length})
+                  </h3>
+                  <div className="space-y-2.5">
+                    {selectedQuery.messageHistory.map((hist, idx) => (
+                      <div key={idx} className="p-4 rounded-xl bg-surface-2/50 border border-border/60 text-xs space-y-1.5">
+                        <div className="flex justify-between items-center text-[11px] text-muted-foreground font-mono">
+                          <span className="font-semibold text-foreground">Revision #{idx + 1}</span>
+                          <span>Replaced {formatDate(hist.replacedAt)}</span>
+                        </div>
+                        <p className="text-foreground/80 whitespace-pre-wrap leading-relaxed">
+                          {hist.message}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Internal Notes Section */}
               <div className="space-y-3 pt-2 border-t border-border/60">
                 <div className="flex items-center justify-between">
                   <h3 className="text-xs font-mono uppercase tracking-wider font-bold text-muted-foreground flex items-center gap-1.5">
@@ -1094,7 +1577,7 @@ export const AdminQueriesPage: React.FC = () => {
                 onClick={() => setDeleteConfirmationId(selectedQuery.id)}
                 className="rounded-xl px-4 text-xs gap-1.5"
               >
-                <Trash2 className="w-3.5 h-3.5" /> Delete Query
+                <Trash2 className="w-3.5 h-3.5" /> Delete {selectedQuery.type === 'Contact message' ? 'Message' : 'Query'}
               </Button>
 
               <Button
@@ -1110,20 +1593,49 @@ export const AdminQueriesPage: React.FC = () => {
         </div>
       )}
 
-      {/* Delete Confirmation Modal (Requirement 3 & 6) */}
+      {/* Delete Confirmation Modal */}
       <Modal
         isOpen={Boolean(deleteConfirmationId)}
-        onClose={() => setDeleteConfirmationId(null)}
-        title="Delete Contact Inquiry?"
+        onClose={() => {
+          if (!isDeleting) setDeleteConfirmationId(null);
+        }}
+        title="Delete this query?"
       >
         <div className="space-y-4">
           <p className="text-sm text-muted-foreground leading-relaxed">
-            Are you sure you want to permanently remove this inquiry from both the admin dashboard list and the persistent database? This action is terminal and cannot be reversed.
+            This can't be undone.
           </p>
-          <div className="flex items-center justify-end gap-3 pt-3">
+
+          {queryToDelete && (
+            <div className="p-3.5 rounded-xl bg-surface-2/70 border border-border/80 space-y-1.5 text-xs">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-muted-foreground">Sender:</span>
+                <strong className="text-foreground font-semibold truncate max-w-[280px]">
+                  {queryToDelete.name || 'Anonymous Inquiry'}
+                </strong>
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-muted-foreground">Reference:</span>
+                <span className="font-mono font-bold text-foreground uppercase tracking-wider">
+                  {(queryToDelete.referenceToken || queryToDelete.id).toUpperCase()}
+                </span>
+              </div>
+              {queryToDelete.type && (
+                <div className="flex items-center justify-between gap-2 pt-1 border-t border-border/40">
+                  <span className="text-muted-foreground">Type:</span>
+                  <span className="text-foreground font-medium">
+                    {queryToDelete.type}
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="flex items-center justify-end gap-3 pt-2">
             <Button
               variant="ghost"
               size="sm"
+              disabled={isDeleting}
               onClick={() => setDeleteConfirmationId(null)}
               className="rounded-xl"
             >
@@ -1132,10 +1644,12 @@ export const AdminQueriesPage: React.FC = () => {
             <Button
               variant="destructive"
               size="sm"
+              isLoading={isDeleting}
+              disabled={isDeleting}
               onClick={handleConfirmDelete}
               className="rounded-xl px-5"
             >
-              Yes, Delete Permanently
+              Delete
             </Button>
           </div>
         </div>

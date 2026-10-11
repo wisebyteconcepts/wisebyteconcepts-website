@@ -280,6 +280,7 @@ export interface Query {
   phone: string;
   whatsapp?: string;
   countryCode?: string;
+  type?: 'Contact message' | 'Quote request';
   message: string;
   services: QueryServiceItem[];
   projects: QueryProjectItem[];

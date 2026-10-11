@@ -12,6 +12,8 @@
  * - Test message support
  */
 
+import { parsePhoneNumber } from 'libphonenumber-js';
+
 export interface QueryServiceEntry {
   id: string;
   name: string;
@@ -39,6 +41,7 @@ export interface QueryPayload {
   contactMethod?: string;
   createdAt?: string;
   updatedAt?: string;
+  type?: 'Contact message' | 'Quote request' | string;
   isUpdate?: boolean;
   honeypot?: string;
   isSpam?: boolean;
@@ -128,99 +131,305 @@ function formatISTDate(dateInput: string | number | Date | null | undefined): st
 }
 
 /**
- * Formats a single query into a concise Telegram notification message.
- * Strict requirement: short, no full message body.
+ * Truncates text at maxLen characters with '...' if exceeded.
  */
-export function formatSingleQueryMessage(query: QueryPayload, baseUrl: string): string {
-  const cleanBaseUrl = baseUrl.replace(/\/$/, '');
-  const adminLink = `${cleanBaseUrl}/admin/queries?id=${encodeURIComponent(query.id)}`;
+function truncate(text: string | null | undefined, maxLen = 60): string {
+  if (!text) return '';
+  const trimmed = text.trim();
+  if (trimmed.length <= maxLen) return trimmed;
+  return trimmed.slice(0, maxLen - 3) + '...';
+}
 
-  const servicesList = query.services && query.services.length > 0
-    ? query.services.map((s) => escapeHtml(s.name)).join(', ')
-    : 'None';
+/**
+ * Formats a phone number into international display and clean tel: link.
+ */
+function formatPhone(raw?: string): { display: string; tel: string } | null {
+  if (!raw || !raw.trim()) return null;
+  const trimmed = raw.trim();
+  try {
+    const parsed = parsePhoneNumber(trimmed);
+    if (parsed && parsed.isValid()) {
+      return {
+        display: parsed.formatInternational(),
+        tel: parsed.number,
+      };
+    }
+  } catch {
+    // fallback
+  }
+  const cleanDigits = trimmed.replace(/\D/g, '');
+  if (!cleanDigits) return null;
+  const withPlus = trimmed.startsWith('+') ? trimmed : `+${trimmed}`;
+  return {
+    display: withPlus,
+    tel: withPlus.replace(/\s+/g, ''),
+  };
+}
 
-  const projectsList = query.projects && query.projects.length > 0
-    ? query.projects.map((p) => escapeHtml(p.name)).join(', ')
-    : 'None';
-
-  const budgetText = query.budget ? escapeHtml(query.budget) : 'Flexible / TBD';
-  const timelineText = query.timeline ? escapeHtml(query.timeline) : 'Flexible';
-  
+/**
+ * Formats a single query into the exact requested Telegram layout.
+ * HTML parse mode with blank lines between groups and no admin links.
+ */
+export function formatSingleQueryMessage(query: QueryPayload, _baseUrl?: string): string {
+  const token = (query.referenceToken || query.id || 'WBC-QUERY').toUpperCase();
   const targetDate = query.isUpdate && query.updatedAt ? query.updatedAt : (query.createdAt || Date.now());
   const formattedDateIST = formatISTDate(targetDate);
-  const token = query.referenceToken ? query.referenceToken.toUpperCase() : (query.id ? query.id.toUpperCase() : 'WBC-QUERY');
 
-  const titleHeader = query.isUpdate 
-    ? `🔄 <b>Query updated</b>`
-    : `📬 <b>New query received</b>`;
+  // -------------------------------------------------------------
+  // Updated Query Layout (Instruction 5)
+  // -------------------------------------------------------------
+  if (query.isUpdate) {
+    const groups: string[] = [];
 
-  const lines: string[] = [
-    titleHeader,
-    ``,
-    `🏷 <b>Reference:</b> <code>${escapeHtml(token)}</code>`,
-    `👤 <b>Sender:</b> ${escapeHtml(query.name)}`,
-  ];
+    // Header & Ref
+    groups.push([
+      `♻️ <b>Query Updated</b>`,
+      `Ref: <code>${escapeHtml(token)}</code>`,
+    ].join('\n'));
 
-  // Email tappable link (mailto:)
-  if (query.email && query.email.trim()) {
-    const cleanEmail = query.email.trim();
-    lines.push(`✉️ <b>Email:</b> <a href="mailto:${escapeHtml(cleanEmail)}">${escapeHtml(cleanEmail)}</a>`);
+    // Sender
+    if (query.name && query.name.trim()) {
+      groups.push(`👤 <b>${escapeHtml(truncate(query.name, 60))}</b>`);
+    }
+
+    // Service & Project
+    const serviceProjectBlocks: string[] = [];
+    if (query.services && query.services.length > 0) {
+      const serviceNames = query.services
+        .map((s) => s.name?.trim())
+        .filter((n): n is string => Boolean(n));
+      if (serviceNames.length > 0) {
+        serviceProjectBlocks.push([
+          `🛠 <b>Service</b>`,
+          ...serviceNames.map((n) => escapeHtml(truncate(n, 60))),
+        ].join('\n'));
+      }
+    }
+
+    if (query.projects && query.projects.length > 0) {
+      const projectNames = query.projects
+        .map((p) => p.name?.trim())
+        .filter((n): n is string => Boolean(n));
+      if (projectNames.length > 0) {
+        serviceProjectBlocks.push([
+          `📁 <b>Project</b>`,
+          ...projectNames.map((p) => escapeHtml(truncate(p, 60))),
+        ].join('\n'));
+      }
+    }
+
+    if (serviceProjectBlocks.length > 0) {
+      groups.push(serviceProjectBlocks.join('\n\n'));
+    }
+
+    // Short note for replaced brief
+    groups.push(`📝 The requirement brief was replaced.`);
+
+    // Footer IST Time
+    groups.push(`🕒 ${escapeHtml(formattedDateIST)}`);
+
+    let msg = groups.filter(Boolean).join('\n\n');
+    if (msg.length > 4000) {
+      msg = msg.slice(0, 3990) + '...';
+    }
+    return msg;
   }
 
-  // Phone tappable link (tel:)
-  if (query.phone && query.phone.trim()) {
-    const cleanPhone = query.phone.trim();
-    lines.push(`📞 <b>Phone:</b> <a href="tel:${escapeHtml(cleanPhone)}">${escapeHtml(cleanPhone)}</a>`);
+  // -------------------------------------------------------------
+  // Contact Message Layout (Requirement 6)
+  // -------------------------------------------------------------
+  if (query.type === 'Contact message') {
+    const groups: string[] = [];
+
+    // Header & Ref
+    groups.push([
+      `🔔 <b>Contact Message</b>`,
+      `Ref: <code>${escapeHtml(token)}</code>`,
+    ].join('\n'));
+
+    // Sender
+    if (query.name && query.name.trim()) {
+      groups.push(`👤 <b>${escapeHtml(truncate(query.name, 60))}</b>`);
+    }
+
+    // Contact block
+    const contactLines: string[] = [];
+    if (query.email && query.email.trim()) {
+      const cleanEmail = query.email.trim();
+      contactLines.push(`✉️ <a href="mailto:${escapeHtml(cleanEmail)}">${escapeHtml(cleanEmail)}</a>`);
+    }
+
+    if (query.phone && query.phone.trim()) {
+      const phoneData = formatPhone(query.phone);
+      if (phoneData) {
+        contactLines.push(`📱 <a href="tel:${escapeHtml(phoneData.tel)}">${escapeHtml(phoneData.display)}</a>`);
+      }
+    }
+
+    if (query.whatsapp && query.whatsapp.trim()) {
+      const waDigits = query.whatsapp.replace(/\D/g, '');
+      if (waDigits) {
+        contactLines.push(`💬 <a href="https://wa.me/${waDigits}">WhatsApp</a>`);
+      }
+    }
+
+    if (contactLines.length > 0) {
+      groups.push([
+        `📞 <b>Contact</b>`,
+        ...contactLines,
+      ].join('\n'));
+    }
+
+    // Message
+    if (query.message && query.message.trim()) {
+      groups.push([
+        `💬 <b>Message</b>`,
+        escapeHtml(truncate(query.message.trim(), 1000)),
+      ].join('\n'));
+    }
+
+    // Footer IST Time
+    groups.push(`🕒 ${escapeHtml(formattedDateIST)}`);
+
+    let msg = groups.filter(Boolean).join('\n\n');
+    if (msg.length > 4000) {
+      msg = msg.slice(0, 3990) + '...';
+    }
+    return msg;
   }
 
-  // WhatsApp tappable link (https://wa.me/<digits only>)
-  const waTarget = query.whatsapp && query.whatsapp.trim() ? query.whatsapp : query.phone;
-  if (waTarget && waTarget.trim()) {
-    const digitsOnly = waTarget.replace(/\D/g, '');
-    if (digitsOnly) {
-      lines.push(`💬 <b>WhatsApp:</b> <a href="https://wa.me/${digitsOnly}">+${digitsOnly}</a>`);
+  // -------------------------------------------------------------
+  // New Query Layout (Instruction 2, 3, 4, 7)
+  // -------------------------------------------------------------
+  const groups: string[] = [];
+
+  // Group 1: Header & Ref
+  groups.push([
+    `🔔 <b>New Query</b>`,
+    `Ref: <code>${escapeHtml(token)}</code>`,
+  ].join('\n'));
+
+  // Group 2: Sender
+  if (query.name && query.name.trim()) {
+    groups.push(`👤 <b>${escapeHtml(truncate(query.name, 60))}</b>`);
+  }
+
+  // Group 3: Service and Project
+  const serviceProjectBlocks: string[] = [];
+  if (query.services && query.services.length > 0) {
+    const serviceNames = query.services
+      .map((s) => s.name?.trim())
+      .filter((n): n is string => Boolean(n));
+    if (serviceNames.length > 0) {
+      serviceProjectBlocks.push([
+        `🛠 <b>Service</b>`,
+        ...serviceNames.map((n) => escapeHtml(truncate(n, 60))),
+      ].join('\n'));
     }
   }
 
-  lines.push(`🛠 <b>Service:</b> ${servicesList}`);
-  lines.push(`📦 <b>Project:</b> ${projectsList}`);
-  lines.push(`💰 <b>Budget:</b> ${budgetText}`);
-  lines.push(`⏱ <b>Timeline:</b> ${timelineText}`);
-  lines.push(`📅 <b>Time:</b> ${escapeHtml(formattedDateIST)}`);
-  lines.push(``);
-  lines.push(`🔗 <a href="${adminLink}">View Query in Admin Panel</a>`);
+  if (query.projects && query.projects.length > 0) {
+    const projectNames = query.projects
+      .map((p) => p.name?.trim())
+      .filter((n): n is string => Boolean(n));
+    if (projectNames.length > 0) {
+      serviceProjectBlocks.push([
+        `📁 <b>Project</b>`,
+        ...projectNames.map((p) => escapeHtml(truncate(p, 60))),
+      ].join('\n'));
+    }
+  }
 
-  return lines.join('\n');
+  if (serviceProjectBlocks.length > 0) {
+    groups.push(serviceProjectBlocks.join('\n\n'));
+  }
+
+  // Group 4: Budget and Timeline (one per line, skipped if empty)
+  const commercialLines: string[] = [];
+  if (query.budget && query.budget.trim()) {
+    commercialLines.push(`💰 Budget: ${escapeHtml(truncate(query.budget.trim(), 60))}`);
+  }
+  if (query.timeline && query.timeline.trim()) {
+    commercialLines.push(`⏱ Timeline: ${escapeHtml(truncate(query.timeline.trim(), 60))}`);
+  }
+  if (commercialLines.length > 0) {
+    groups.push(commercialLines.join('\n'));
+  }
+
+  // Group 5: Contact block (skipped if all contact fields are empty)
+  const contactLines: string[] = [];
+  if (query.email && query.email.trim()) {
+    const cleanEmail = query.email.trim();
+    contactLines.push(`✉️ <a href="mailto:${escapeHtml(cleanEmail)}">${escapeHtml(cleanEmail)}</a>`);
+  }
+
+  if (query.phone && query.phone.trim()) {
+    const phoneData = formatPhone(query.phone);
+    if (phoneData) {
+      contactLines.push(`📱 <a href="tel:${escapeHtml(phoneData.tel)}">${escapeHtml(phoneData.display)}</a>`);
+    }
+  }
+
+  if (query.whatsapp && query.whatsapp.trim()) {
+    const waDigits = query.whatsapp.replace(/\D/g, '');
+    if (waDigits) {
+      contactLines.push(`💬 <a href="https://wa.me/${waDigits}">WhatsApp</a>`);
+    }
+  }
+
+  if (contactLines.length > 0) {
+    groups.push([
+      `📞 <b>Contact</b>`,
+      ...contactLines,
+    ].join('\n'));
+  }
+
+  // Group 6: Footer IST Time
+  groups.push(`🕒 ${escapeHtml(formattedDateIST)}`);
+
+  let msg = groups.filter(Boolean).join('\n\n');
+  if (msg.length > 4000) {
+    msg = msg.slice(0, 3990) + '...';
+  }
+  return msg;
 }
 
 /**
  * Formats a burst batch of multiple queries into a single message.
+ * Header: 🔔 <b>X New Queries</b>, one compact line per query ("Name · Service · Ref"), footer IST time.
  */
-export function formatBatchQueryMessage(queries: QueryPayload[], baseUrl: string): string {
-  const cleanBaseUrl = baseUrl.replace(/\/$/, '');
-  const adminLink = `${cleanBaseUrl}/admin/queries`;
+export function formatBatchQueryMessage(queries: QueryPayload[], _baseUrl?: string): string {
+  const count = queries.length;
+  const targetDate = queries[0]?.createdAt || Date.now();
+  const formattedDateIST = formatISTDate(targetDate);
 
-  const lines = [
-    `🚨 <b>${queries.length} New queries received</b>`,
-    ``,
-  ];
+  const header = `🔔 <b>${count} New Queries</b>`;
 
-  queries.slice(0, 8).forEach((q, idx) => {
-    const svcs = q.services && q.services.length > 0 ? q.services.map((s) => s.name).join(', ') : 'Inquiry';
-    const bud = q.budget ? ` (${q.budget})` : '';
-    lines.push(
-      `${idx + 1}. <b>${escapeHtml(q.name)}</b> – ${escapeHtml(svcs)}${escapeHtml(bud)}`
-    );
-  });
+  const queryLines: string[] = [];
+  const maxItems = Math.min(queries.length, 25);
 
-  if (queries.length > 8) {
-    lines.push(`<i>...and ${queries.length - 8} more</i>`);
+  for (let i = 0; i < maxItems; i++) {
+    const q = queries[i];
+    const name = escapeHtml(truncate(q.name || 'Anonymous', 60));
+    const svc = q.services && q.services.length > 0 && q.services[0].name
+      ? escapeHtml(truncate(q.services[0].name, 60))
+      : 'General Consultation';
+    const token = escapeHtml((q.referenceToken || q.id || 'WBC').toUpperCase());
+
+    queryLines.push(`${name} · ${svc} · <code>${token}</code>`);
   }
 
-  lines.push('');
-  lines.push(`🔗 <a href="${adminLink}">Open Admin Queries</a>`);
+  if (queries.length > maxItems) {
+    queryLines.push(`<i>...and ${queries.length - maxItems} more</i>`);
+  }
 
-  return lines.join('\n');
+  const footer = `🕒 ${escapeHtml(formattedDateIST)}`;
+
+  let msg = [header, queryLines.join('\n'), footer].filter(Boolean).join('\n\n');
+  if (msg.length > 4000) {
+    msg = msg.slice(0, 3990) + '...';
+  }
+  return msg;
 }
 
 /**
@@ -288,10 +497,12 @@ export async function sendTestMessage(): Promise<{ success: boolean; error?: str
   }
 
   const testContent = [
-    `🧪 <b>Telegram Notification Test</b>`,
+    `🔔 <b>Telegram Notification Test</b>`,
+    `Ref: <code>TEST-PING</code>`,
     ``,
     `Wise Byte Concepts admin notification integration is active!`,
-    `When visitors submit inquiries on the Contact page, notifications will be delivered here automatically.`,
+    ``,
+    `🕒 ${formatISTDate(Date.now())}`,
   ].join('\n');
 
   const success = await sendTelegramMessage(testContent);

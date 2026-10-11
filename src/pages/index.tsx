@@ -250,7 +250,7 @@ export const HomePage = () => {
             <Button 
               size="lg" 
               className="w-full sm:w-auto rounded-full px-8 py-3 h-12 shadow-sm hover:shadow-card-hover hover:-translate-y-0.5 transition-all duration-300 font-semibold cursor-pointer" 
-              onClick={() => navigate('/contact')}
+              onClick={() => navigate('/quote')}
             >
               Get Started
             </Button>
@@ -740,7 +740,7 @@ export const HomePage = () => {
                 <Button 
                   size="lg" 
                   className="w-full sm:w-auto rounded-full px-8 py-3.5 h-12 shadow-sm hover:shadow-card-hover hover:-translate-y-0.5 transition-all duration-300 font-semibold cursor-pointer inline-flex items-center justify-center gap-2 group/cta"
-                  onClick={() => navigate('/contact')}
+                  onClick={() => navigate('/quote')}
                 >
                   <span>Start Project Inquiry</span>
                   <ArrowRight className="w-4 h-4 transition-transform group-hover/cta:translate-x-1 will-change-transform" />
@@ -774,7 +774,7 @@ export const HomePage = () => {
   );
 };
 
-const SubPageHero = ({ title, subtitle, badge }: { title: React.ReactNode; subtitle?: string; badge?: string }) => (
+export const SubPageHero = ({ title, subtitle, badge }: { title: React.ReactNode; subtitle?: string; badge?: string }) => (
   <section className="relative pt-48 pb-20 overflow-hidden border-b border-border/10">
     <div className="absolute inset-x-0 top-0 bottom-0 pointer-events-none">
       <div className="absolute top-[-20%] right-[10%] w-[800px] h-[800px] bg-primary/10 rounded-full blur-[140px] animate-pulse" />
@@ -1700,8 +1700,8 @@ export const ProductDetailPage = () => {
     'Inquire About This Project'
   ).trim();
   const ctaContactUrl = parentServiceId
-    ? `/contact?service=${encodeURIComponent(parentServiceId)}&project=${encodeURIComponent(product?.id || '')}`
-    : `/contact?project=${encodeURIComponent(product?.id || '')}`;
+    ? `/quote?service=${encodeURIComponent(parentServiceId)}&project=${encodeURIComponent(product?.id || '')}`
+    : `/quote?project=${encodeURIComponent(product?.id || '')}`;
 
   const handleInquireClick = () => {
     navigate(ctaContactUrl);
@@ -2220,6 +2220,7 @@ export const ProductDetailPage = () => {
 };
 
 export { ContactPage } from './ContactPage';
+export { QuotePage } from './QuotePage';
 export { AdminQueriesPage } from './AdminQueriesPage';
 
 export * from './NotFoundPage';
