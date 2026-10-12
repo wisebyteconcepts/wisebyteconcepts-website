@@ -4,6 +4,7 @@ import { ArrowRight, Briefcase, Code } from 'lucide-react';
 import { Service } from '@/types';
 import { Icon } from '@/components/ui/Icon';
 import { CategoryBadge } from '@/components/CategoryBadge';
+import { formatCardHook } from '@/config/card';
 import { cn } from '@/lib/utils';
 
 export interface ServiceCardProps {
@@ -18,7 +19,8 @@ export const ServiceCard: React.FC<ServiceCardProps> = ({ service, className }) 
   const title = service.title || (service as any).name || 'Untitled Service';
   const img = service.displayPicture || (service as any).thumbnail;
   const link = `/services/${service.slug || service.id}`;
-  const desc = service.shortDescription || service.description || 'Specialized digital service engineered to achieve high impact and scalable results.';
+  const rawHook = service.caption?.trim() || service.shortDescription?.trim() || service.description?.trim() || '';
+  const hookText = formatCardHook(rawHook);
 
   useEffect(() => {
     if (!imgRef.current || !cardRef.current) return;
@@ -37,7 +39,7 @@ export const ServiceCard: React.FC<ServiceCardProps> = ({ service, className }) 
     <div
       ref={cardRef}
       className={cn(
-        "app-card relative rounded-2xl bg-surface-2 border border-border/70",
+        "card-elevate app-card relative rounded-2xl bg-surface-2 border border-border/70",
         "flex flex-col h-full overflow-visible origin-center [container-type:inline-size]",
         className
       )}
@@ -62,9 +64,9 @@ export const ServiceCard: React.FC<ServiceCardProps> = ({ service, className }) 
         <div className="absolute inset-0 bg-gradient-to-t from-surface-2 via-transparent to-transparent opacity-60 pointer-events-none z-10" />
       </div>
 
-      {/* 2. Floating Icon Badge: Direct child of card root, positioned absolutely at right: 24px (no border/ring/outline, solid background, soft colored shadow) */}
+      {/* 2. Floating Icon Badge: Direct child of card root, positioned absolutely at right: 24px */}
       <div
-        className="absolute z-20 right-6 w-12 h-12 shrink-0 rounded-xl bg-accent-strong flex items-center justify-center text-on-accent shadow-md shadow-accent/20 [transform:translateZ(0)] [backface-visibility:hidden] pointer-events-none"
+        className="absolute z-20 right-6 w-12 h-12 shrink-0 rounded-xl bg-accent-strong flex items-center justify-center text-on-accent [transform:translateZ(0)] [backface-visibility:hidden] pointer-events-none"
         style={{
           top: 'calc(var(--card-img-height, 62.5cqw) - 24px)',
         }}
@@ -77,7 +79,7 @@ export const ServiceCard: React.FC<ServiceCardProps> = ({ service, className }) 
       </div>
 
       {/* 3. Content Section: ample top padding and right padding to ensure title, category pill & description never collide */}
-      <div className="p-6 sm:p-8 pt-9 sm:pt-10 flex-1 flex flex-col rounded-b-2xl">
+      <div className="px-6 sm:px-8 pt-9 sm:pt-10 pb-[18px] flex-1 flex flex-col rounded-b-2xl">
         {service.category && (
           <div className="mb-2.5 max-w-[calc(100%-3.5rem)]">
             <CategoryBadge text={service.category} />
@@ -88,8 +90,8 @@ export const ServiceCard: React.FC<ServiceCardProps> = ({ service, className }) 
             {title}
           </h3>
         </Link>
-        <p className="text-sm text-text-secondary leading-relaxed mb-6 line-clamp-3">
-          {desc}
+        <p className="card-hook text-sm text-text-secondary leading-6 min-h-[4.5rem] mb-6">
+          {hookText}
         </p>
 
         {/* Card Footer: View Details link with smooth CSS hover arrow translation */}

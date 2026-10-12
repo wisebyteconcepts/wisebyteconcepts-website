@@ -22,6 +22,7 @@ import {
   SwitchBlock, 
   FormLabel 
 } from '@/components/forms/FormControls';
+import { CaptionInput } from '@/components/forms/CaptionInput';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/Tabs';
 import { Badge } from '@/components/ui/Badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/Dialog';
@@ -507,12 +508,10 @@ export const AdminProductEditPage: React.FC = () => {
             />
           </div>
 
-          <InputBlock
-            label="Caption (Short Sub-heading)"
+          <CaptionInput
             value={form.caption || ''}
-            onChange={(e) => update('caption', e.target.value)}
+            onChange={(val) => update('caption', val)}
             placeholder="e.g. Real-time telemetry pipeline built with Rust and WebSockets"
-            description="One-sentence impact tagline displayed beneath the project title."
           />
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">

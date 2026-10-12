@@ -144,6 +144,12 @@
     --active-overlay: rgba(15, 23, 42, 0.08);
     --focus-ring: 0 0 0 3px rgba(59, 130, 246, 0.35);
 
+    /* Elevation tokens for cards */
+    --elevation-0: 0 0 0 rgba(15, 23, 42, 0), 0 0 0 rgba(15, 23, 42, 0);
+    --elevation-1: 0 1px 2px rgba(15, 23, 42, 0.04), 0 12px 28px rgba(15, 23, 42, 0.10);
+    --card-border-hover: color-mix(in srgb, var(--accent) 35%, var(--border));
+    --card-border-active: color-mix(in srgb, var(--text-primary) 25%, var(--border));
+
     --shadow-card: 0 1px 3px 0 rgba(0, 0, 0, 0.06), 0 1px 2px -1px rgba(0, 0, 0, 0.06);
     --shadow-card-hover: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -2px rgba(0, 0, 0, 0.06);
     --shadow-card-raised: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
@@ -210,6 +216,12 @@
     --hover-overlay: rgba(255, 255, 255, 0.04);
     --active-overlay: rgba(255, 255, 255, 0.08);
     --focus-ring: 0 0 0 3px rgba(96, 165, 250, 0.35);
+
+    /* Elevation tokens for cards */
+    --elevation-0: 0 0 0 rgba(0, 0, 0, 0), 0 0 0 rgba(0, 0, 0, 0);
+    --elevation-1: 0 1px 2px rgba(0, 0, 0, 0.20), 0 12px 28px rgba(0, 0, 0, 0.45);
+    --card-border-hover: color-mix(in srgb, var(--accent) 45%, var(--border));
+    --card-border-active: color-mix(in srgb, var(--text-primary) 35%, var(--border));
 
     --shadow-card: 0 1px 3px 0 rgba(0, 0, 0, 0.3);
     --shadow-card-hover: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
@@ -615,13 +627,26 @@
     border: 1px solid var(--border);
   }
 
-  /* Card Hover System: Pure CSS, flicker-free, with unified layer composition */
+  /* Card Hook: height reservation without truncation */
+  .card-hook {
+    font-size: 0.875rem;
+    line-height: 1.5rem;
+    min-height: 4.5rem;
+  }
+
+  /* ==========================================================================
+     Homepage Card Elevation System
+     ========================================================================== */
+
+  .card-elevate,
   .app-card {
     will-change: transform;
     backface-visibility: hidden;
     transform: translateZ(0);
-    transition: transform 500ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 500ms cubic-bezier(0.22, 1, 0.36, 1), border-color 300ms ease;
-    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.06), 0 1px 2px -1px rgba(0, 0, 0, 0.06);
+    box-shadow: var(--elevation-0);
+    transition: transform 500ms cubic-bezier(0.22, 1, 0.36, 1),
+                box-shadow 500ms cubic-bezier(0.22, 1, 0.36, 1),
+                border-color 300ms ease;
   }
 
   .app-card-image {
@@ -638,11 +663,13 @@
     transition: transform 300ms ease;
   }
 
+  /* Desktop pointers only: elevation and layered shadow on hover */
   @media (hover: hover) and (pointer: fine) {
+    .card-elevate:hover,
     .app-card:hover {
       transform: translateY(-4px) translateZ(0);
-      box-shadow: 0 12px 24px -4px rgba(0, 0, 0, 0.12), 0 4px 8px -2px rgba(0, 0, 0, 0.08);
-      border-color: var(--accent);
+      box-shadow: var(--elevation-1);
+      border-color: var(--card-border-hover);
     }
 
     .app-card:hover .app-card-image {
@@ -654,50 +681,183 @@
     }
   }
 
+  /* Keyboard focus (:focus-visible) of clickable cards */
+  .card-elevate:focus-visible,
+  .app-card:focus-visible {
+    outline: none;
+    transform: translateY(-4px) translateZ(0);
+    box-shadow: var(--elevation-1), var(--focus-ring);
+    border-color: var(--accent);
+  }
+
+  .card-elevate:has(a:focus-visible),
+  .card-elevate:has(button:focus-visible),
+  .app-card:has(a:focus-visible),
+  .app-card:has(button:focus-visible) {
+    transform: translateY(-4px) translateZ(0);
+    box-shadow: var(--elevation-1), var(--focus-ring);
+    border-color: var(--accent);
+  }
+
+  /* Touch devices: no lift on hover, brief pressed state (:active) with 1px inset darker border */
+  @media (hover: none), (pointer: coarse) {
+    .card-elevate:hover,
+    .app-card:hover {
+      transform: translateZ(0) !important;
+      box-shadow: var(--elevation-0) !important;
+      border-color: inherit;
+    }
+
+    .card-elevate:active,
+    .app-card:active {
+      transform: translateZ(0) !important;
+      box-shadow: inset 0 0 0 1px var(--card-border-active);
+      border-color: var(--card-border-active);
+    }
+  }
+
+  /* Accessibility: Prefers reduced motion */
   @media (prefers-reduced-motion: reduce) {
+    .card-elevate,
     .app-card,
     .app-card-image,
     .app-card-arrow {
       transition: none !important;
       transform: none !important;
     }
+
+    .card-elevate:hover,
+    .card-elevate:focus-visible,
+    .card-elevate:has(a:focus-visible),
+    .card-elevate:has(button:focus-visible),
+    .app-card:hover,
+    .app-card:focus-visible,
+    .app-card:has(a:focus-visible),
+    .app-card:has(button:focus-visible) {
+      transform: none !important;
+    }
   }
 
-  /* Section Feature & Tech Stack Cards Hover System: Pure CSS, jitter-free */
-  .feature-hover-card {
+  /* ==========================================================================
+     Homepage CTA Banner Buttons Elevation & Hover System
+     ========================================================================== */
+
+  .cta-btn-primary,
+  .cta-btn-ghost {
     will-change: transform;
-    backface-visibility: hidden;
     transform: translateZ(0);
-    transition: transform 300ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 300ms ease, border-color 300ms ease;
+    backface-visibility: hidden;
+    transition: transform 400ms cubic-bezier(0.22, 1, 0.36, 1),
+                box-shadow 400ms cubic-bezier(0.22, 1, 0.36, 1),
+                background-color 300ms ease,
+                border-color 300ms ease,
+                color 300ms ease;
   }
 
-  .feature-hover-card-icon {
+  .cta-btn-primary {
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12), 0 1px 3px rgba(0, 0, 0, 0.06);
+  }
+
+  .cta-btn-ghost {
+    box-shadow: 0 0 0 rgba(0, 0, 0, 0), 0 0 0 rgba(0, 0, 0, 0);
+  }
+
+  .cta-btn-arrow {
     will-change: transform;
-    backface-visibility: hidden;
     transform: translateZ(0);
-    transition: transform 300ms cubic-bezier(0.22, 1, 0.36, 1), background-color 300ms ease, color 300ms ease;
+    backface-visibility: hidden;
+    transition: transform 300ms cubic-bezier(0.22, 1, 0.36, 1);
   }
 
+  /* Desktop hover state */
   @media (hover: hover) and (pointer: fine) {
-    .feature-hover-card:hover {
-      transform: translateY(-2.5px) translateZ(0);
-      box-shadow: var(--shadow-card-hover);
-      border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+    .cta-btn-primary:hover {
+      transform: translateY(-2px) translateZ(0);
+      box-shadow: 0 8px 22px rgba(0, 0, 0, 0.20), 0 2px 6px rgba(0, 0, 0, 0.08);
     }
 
-    .feature-hover-card:hover .feature-hover-card-icon {
-      transform: scale(1.04) translateZ(0);
+    .cta-btn-ghost:hover {
+      transform: translateY(-2px) translateZ(0);
+      background-color: rgba(255, 255, 255, 0.18);
+      border-color: rgba(255, 255, 255, 0.40);
+      box-shadow: 0 8px 22px rgba(0, 0, 0, 0.14), 0 2px 6px rgba(0, 0, 0, 0.06);
     }
 
-    .feature-hover-card:hover .tech-icon-bg {
-      background-color: var(--accent-soft);
+    .cta-btn-primary:hover .cta-btn-arrow {
+      transform: translateX(4px) translateZ(0);
     }
   }
 
+  /* Keyboard focus-visible */
+  .cta-btn-primary:focus-visible,
+  .cta-btn-ghost:focus-visible {
+    transform: translateY(-2px) translateZ(0);
+  }
+
+  .cta-btn-primary:focus-visible .cta-btn-arrow {
+    transform: translateX(4px) translateZ(0);
+  }
+
+  /* Active (pressed) state: 150ms transition, translateY(0) */
+  .cta-btn-primary:active,
+  .cta-btn-ghost:active {
+    transform: translateY(0) translateZ(0);
+    transition: transform 150ms cubic-bezier(0.22, 1, 0.36, 1),
+                box-shadow 150ms cubic-bezier(0.22, 1, 0.36, 1),
+                background-color 150ms ease,
+                border-color 150ms ease,
+                color 150ms ease;
+  }
+
+  .cta-btn-primary:active {
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.06);
+  }
+
+  .cta-btn-ghost:active {
+    background-color: rgba(255, 255, 255, 0.14);
+    border-color: rgba(255, 255, 255, 0.30);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
+  }
+
+  /* Touch devices: no hover lift */
+  @media (hover: none), (pointer: coarse) {
+    .cta-btn-primary:hover,
+    .cta-btn-ghost:hover {
+      transform: translateZ(0) !important;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12), 0 1px 3px rgba(0, 0, 0, 0.06) !important;
+    }
+
+    .cta-btn-ghost:hover {
+      box-shadow: 0 0 0 rgba(0, 0, 0, 0), 0 0 0 rgba(0, 0, 0, 0) !important;
+    }
+
+    .cta-btn-primary:hover .cta-btn-arrow {
+      transform: translateZ(0) !important;
+    }
+  }
+
+  /* Reduced motion preference: keep color changes, remove movement */
   @media (prefers-reduced-motion: reduce) {
-    .feature-hover-card,
-    .feature-hover-card-icon {
-      transition: none !important;
+    .cta-btn-primary,
+    .cta-btn-ghost,
+    .cta-btn-arrow {
+      transition: background-color 300ms ease,
+                  border-color 300ms ease,
+                  color 300ms ease !important;
+      transform: none !important;
+    }
+
+    .cta-btn-primary:hover,
+    .cta-btn-ghost:hover,
+    .cta-btn-primary:focus-visible,
+    .cta-btn-ghost:focus-visible,
+    .cta-btn-primary:active,
+    .cta-btn-ghost:active {
+      transform: none !important;
+    }
+
+    .cta-btn-primary:hover .cta-btn-arrow,
+    .cta-btn-primary:focus-visible .cta-btn-arrow {
       transform: none !important;
     }
   }

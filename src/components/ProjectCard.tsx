@@ -4,6 +4,7 @@ import { ArrowRight, ShoppingBag } from 'lucide-react';
 import { Project } from '@/types';
 import { Icon } from '@/components/ui/Icon';
 import { CategoryBadge } from '@/components/CategoryBadge';
+import { formatCardHook } from '@/config/card';
 import { cn } from '@/lib/utils';
 
 export interface ProjectCardProps {
@@ -25,7 +26,8 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
   const title = project.title || (project as any).name || 'Untitled Project';
   const img = project.displayPicture || (project as any).imageUrl;
   const link = `/products/${project.slug || project.id}`;
-  const desc = project.shortDescription || project.description || '';
+  const rawHook = project.caption?.trim() || project.shortDescription?.trim() || project.description?.trim() || '';
+  const hookText = formatCardHook(rawHook);
 
   useEffect(() => {
     if (!imgRef.current || !cardRef.current) return;
@@ -44,7 +46,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
     <div
       ref={cardRef}
       className={cn(
-        "app-card relative rounded-2xl bg-surface-2 border border-border/70",
+        "card-elevate app-card relative rounded-2xl bg-surface-2 border border-border/70",
         "flex flex-col h-full overflow-visible origin-center [container-type:inline-size]",
         className
       )}
@@ -69,9 +71,9 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
         <div className="absolute inset-0 bg-gradient-to-t from-surface-2 via-transparent to-transparent opacity-60 pointer-events-none z-10" />
       </div>
 
-      {/* 2. Floating Icon Badge: Direct child of card root, positioned absolutely at right: 24px (no border/ring/outline, solid background, soft colored shadow) */}
+      {/* 2. Floating Icon Badge: Direct child of card root, positioned absolutely at right: 24px */}
       <div
-        className="absolute z-20 right-6 w-12 h-12 shrink-0 rounded-xl bg-accent-strong flex items-center justify-center text-on-accent shadow-md shadow-accent/20 [transform:translateZ(0)] [backface-visibility:hidden] pointer-events-none"
+        className="absolute z-20 right-6 w-12 h-12 shrink-0 rounded-xl bg-accent-strong flex items-center justify-center text-on-accent [transform:translateZ(0)] [backface-visibility:hidden] pointer-events-none"
         style={{
           top: 'calc(var(--card-img-height, 62.5cqw) - 24px)',
         }}
@@ -84,7 +86,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
       </div>
 
       {/* 3. Content Section: ample top padding and right margin protection to prevent collision */}
-      <div className="p-6 sm:p-8 pt-9 sm:pt-10 flex-1 flex flex-col rounded-b-2xl">
+      <div className="px-6 sm:px-8 pt-9 sm:pt-10 pb-[18px] flex-1 flex flex-col rounded-b-2xl">
         <div className="flex flex-wrap items-center gap-2 mb-2.5 max-w-[calc(100%-3.5rem)]">
           {project.category && (
             <CategoryBadge text={project.category} />
@@ -101,8 +103,8 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
             {title}
           </h3>
         </Link>
-        <p className="text-sm text-text-secondary leading-relaxed mb-6 line-clamp-2">
-          {desc}
+        <p className="card-hook text-sm text-text-secondary leading-6 min-h-[4.5rem] mb-6">
+          {hookText}
         </p>
 
         {showTags && project.tags && project.tags.length > 0 && (

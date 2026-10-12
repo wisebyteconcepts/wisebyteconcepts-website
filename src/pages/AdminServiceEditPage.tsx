@@ -22,6 +22,7 @@ import {
   SwitchBlock, 
   FormLabel 
 } from '@/components/forms/FormControls';
+import { CaptionInput } from '@/components/forms/CaptionInput';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/Tabs';
 import { Badge } from '@/components/ui/Badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/Dialog';
@@ -475,12 +476,10 @@ export const AdminServiceEditPage: React.FC = () => {
             />
           </div>
 
-          <InputBlock
-            label="Caption (Short Sub-heading)"
+          <CaptionInput
             value={form.caption || ""}
-            onChange={(e) => update("caption", e.target.value)}
+            onChange={(val) => update("caption", val)}
             placeholder="e.g. High-throughput distributed web systems with resilient architecture"
-            description="One-sentence impact tagline displayed beneath the title."
           />
 
           <TextareaBlock

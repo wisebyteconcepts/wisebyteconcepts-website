@@ -5,7 +5,6 @@ import {
   Phone, 
   MapPin, 
   Clock, 
-  MessageSquare, 
   Send, 
   ArrowRight, 
   Check, 
@@ -26,7 +25,7 @@ import { Button } from '@/components/Button';
 import { SubPageHero } from '@/pages';
 import { generateReferenceToken, formatISTDate } from '@/utils/date';
 import { HugeiconsIcon } from "@hugeicons/react";
-import { WhatsappIcon, TelegramIcon, Call02Icon } from "@hugeicons/core-free-icons";
+import { WhatsappIcon, TelegramIcon } from "@hugeicons/core-free-icons";
 
 
 interface ContactFormData {

@@ -38,9 +38,8 @@ import {
 import { CrudPageShell } from '@/components/admin/CrudPageShell';
 import { Icon } from '@/components/ui/Icon';
 import { SortableList, SortableRow } from '@/components/admin/SortableTable';
-import * as LucideIcons from 'lucide-react';
 import { 
-  Trash2, 
+  Trash2,
   Shield, 
   X,
   Lock, 
@@ -387,8 +386,8 @@ export const HomePage = () => {
                 }}
                 className="h-full flex flex-col"
               >
-                <div className="feature-hover-card p-8 rounded-2xl bg-surface-2 border border-border/70 shadow-card flex flex-col h-full group">
-                  <div className="feature-hover-card-icon w-12 h-12 shrink-0 rounded-xl bg-accent-soft text-accent-strong flex items-center justify-center mb-6">
+                <div className="card-elevate p-8 rounded-2xl bg-surface-2 border border-border/70 flex flex-col h-full group">
+                  <div className="w-12 h-12 shrink-0 rounded-xl bg-accent-soft text-accent-strong flex items-center justify-center mb-6">
                     <item.icon className="w-6 h-6" />
                   </div>
                   <h3 className="text-xl font-display font-bold text-text-primary mb-3">
@@ -458,8 +457,8 @@ export const HomePage = () => {
                 }}
                 className="h-full flex flex-col"
               >
-                <div className="feature-hover-card p-6 rounded-2xl bg-surface-2 border border-border/70 shadow-card group flex items-start gap-4 h-full">
-                  <div className="feature-hover-card-icon w-10 h-10 shrink-0 rounded-xl bg-accent-soft text-accent-strong flex items-center justify-center mt-0.5">
+                <div className="card-elevate p-6 rounded-2xl bg-surface-2 border border-border/70 group flex items-start gap-4 h-full">
+                  <div className="w-10 h-10 shrink-0 rounded-xl bg-accent-soft text-accent-strong flex items-center justify-center mt-0.5">
                     <feature.icon className="w-5 h-5" />
                   </div>
                   <div>
@@ -609,17 +608,19 @@ export const HomePage = () => {
                     delay: shouldReduceMotion ? 0 : index * 0.08,
                     ease: [0.21, 0.47, 0.32, 0.98],
                   }}
-                  className="p-6 rounded-2xl bg-surface-2 border border-border/70 hover:border-accent/40 shadow-card hover:shadow-card-hover transition-all duration-300 flex flex-col group [transform:translateZ(0)]"
+                  className="h-full flex flex-col"
                 >
-                  <div className="w-11 h-11 shrink-0 rounded-xl bg-accent-soft text-accent-strong flex items-center justify-center mb-4 group-hover:scale-105 transition-transform duration-300">
-                    <val.icon className="w-5 h-5" />
+                  <div className="card-elevate p-6 rounded-2xl bg-surface-2 border border-border/70 flex flex-col h-full group">
+                    <div className="w-11 h-11 shrink-0 rounded-xl bg-accent-soft text-accent-strong flex items-center justify-center mb-4">
+                      <val.icon className="w-5 h-5" />
+                    </div>
+                    <h3 className="font-display font-bold text-base sm:text-lg text-text-primary mb-2">
+                      {val.title}
+                    </h3>
+                    <p className="text-xs sm:text-sm text-text-secondary leading-relaxed">
+                      {val.desc}
+                    </p>
                   </div>
-                  <h3 className="font-display font-bold text-base sm:text-lg text-text-primary mb-2">
-                    {val.title}
-                  </h3>
-                  <p className="text-xs sm:text-sm text-text-secondary leading-relaxed">
-                    {val.desc}
-                  </p>
                 </motion.div>
               ))}
             </div>
@@ -667,7 +668,7 @@ export const HomePage = () => {
                 maskImage: `linear-gradient(to right, ${showLeftFade ? 'transparent' : 'black'} 0%, black ${showLeftFade ? '100px' : '0%'}, black ${showRightFade ? 'calc(100% - 100px)' : '100%'}, ${showRightFade ? 'transparent' : 'black'} 100%)`,
                 WebkitMaskImage: `linear-gradient(to right, ${showLeftFade ? 'transparent' : 'black'} 0%, black ${showLeftFade ? '100px' : '0%'}, black ${showRightFade ? 'calc(100% - 100px)' : '100%'}, ${showRightFade ? 'transparent' : 'black'} 100%)`,
               }}
-              className="flex gap-6 py-4 overflow-x-auto px-4 -mx-4 hide-scrollbar snap-x snap-mandatory scroll-smooth"
+              className="flex gap-6 pt-4 pb-8 overflow-x-auto px-4 -ml-4 -mr-8 hide-scrollbar snap-x snap-mandatory scroll-smooth"
             >
               {([...skills].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)) || []).map((skill, index) => (
                 <motion.div
@@ -682,8 +683,8 @@ export const HomePage = () => {
                   }}
                   className="shrink-0 w-44 snap-center select-none h-full"
                 >
-                  <div className="feature-hover-card p-6 rounded-2xl bg-surface-2 border border-border/70 shadow-card flex flex-col items-center text-center group h-full relative overflow-hidden">
-                    <div className="feature-hover-card-icon tech-icon-bg w-14 h-14 shrink-0 rounded-xl bg-surface-3 flex items-center justify-center mb-4 relative z-10">
+                  <div className="card-elevate p-6 rounded-2xl bg-surface-2 border border-border/70 flex flex-col items-center text-center group h-full relative overflow-hidden">
+                    <div className="tech-icon-bg w-14 h-14 shrink-0 rounded-xl bg-surface-3 flex items-center justify-center mb-4 relative z-10">
                       <TechStackIcon stack={skill} className="w-7 h-7 text-accent" fallback={Layers} />
                     </div>
                     <h4 className="font-display font-bold text-sm text-text-primary mb-1 relative z-10">
@@ -705,69 +706,150 @@ export const HomePage = () => {
         </div>
       </section>
 
-      {/* 8. CTA Section (Requirement 5: Attractive Full-width Rounded Banner with Gradient and Ambient Patterns) */}
+      {/* 8. CTA Section */}
       <section className={cn('py-16 md:py-24', ctaBg)}>
-        <div className="max-w-6xl mx-auto px-6">
-          <motion.div
-            initial={shouldReduceMotion ? false : { opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: '-40px' }}
-            transition={{ duration: 0.55 }}
-            className="relative rounded-3xl overflow-hidden border border-border/80 bg-gradient-to-br from-surface-2 via-surface-1 to-surface-2 dark:from-surface-2 dark:via-surface-3/60 dark:to-surface-2 shadow-card p-8 sm:p-14 md:p-20 text-center"
-          >
-            {/* Soft decorative blurred shapes & pattern */}
-            <div className="absolute -top-32 -right-32 w-96 h-96 bg-accent/20 rounded-full blur-[120px] pointer-events-none" />
-            <div className="absolute -bottom-32 -left-32 w-96 h-96 bg-accent/15 rounded-full blur-[120px] pointer-events-none" />
-            <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.06] pointer-events-none bg-[radial-gradient(currentColor_1px,transparent_1px)] [background-size:24px_24px]" />
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <div className="relative rounded-[28px] overflow-hidden p-6 sm:p-8 md:py-[36px] md:px-[32px] bg-gradient-to-br from-[#1e40af] via-[#2563eb] to-[#4f7df0] dark:from-[#0b132b] dark:via-[#172554] dark:to-[#1e40af] shadow-card border border-white/15 dark:border-white/10">
+            {/* Soft decorative blurred shapes & dotted pattern */}
+            <div className="absolute -top-12 -right-12 w-60 h-60 rounded-full bg-white/15 dark:bg-white/10 blur-[60px] pointer-events-none" />
+            <div className="absolute -bottom-12 -left-12 w-60 h-60 rounded-full bg-blue-300/20 dark:bg-blue-400/10 blur-[60px] pointer-events-none" />
+            <div className="absolute inset-0 pointer-events-none opacity-20 dark:opacity-15 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.9)_1.5px,transparent_1.5px)] [background-size:20px_20px] [mask-image:linear-gradient(to_right,rgba(0,0,0,1)_0%,rgba(0,0,0,0.45)_55%,transparent_100%)] [-webkit-mask-image:linear-gradient(to_right,rgba(0,0,0,1)_0%,rgba(0,0,0,0.45)_55%,transparent_100%)]" />
 
-            <div className="relative z-10 max-w-3xl mx-auto flex flex-col items-center">
-              <div className="mb-6">
-                <SectionCaption text="GET STARTED" />
-              </div>
-
-              <h2 className="text-3xl sm:text-5xl md:text-6xl font-display font-bold tracking-tight text-text-primary leading-[1.1] mb-6">
-                Ready to engineer your{' '}
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent via-blue-500 to-indigo-500 dark:from-accent dark:to-sky-400">
-                  digital edge?
-                </span>
-              </h2>
-
-              <p className="text-base sm:text-lg md:text-xl text-text-secondary max-w-xl mx-auto mb-10 leading-relaxed font-normal">
-                Join our network of precision-built applications. We transform complex technical requirements into high-performance digital experiences.
-              </p>
-
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full sm:w-auto">
-                <Button 
-                  size="lg" 
-                  className="w-full sm:w-auto rounded-full px-8 py-3.5 h-12 shadow-sm hover:shadow-card-hover hover:-translate-y-0.5 transition-all duration-300 font-semibold cursor-pointer inline-flex items-center justify-center gap-2 group/cta"
-                  onClick={() => navigate('/quote')}
-                >
-                  <span>Start Project Inquiry</span>
-                  <ArrowRight className="w-4 h-4 transition-transform group-hover/cta:translate-x-1 will-change-transform" />
-                </Button>
-                <Button 
-                  variant="glass" 
-                  size="lg" 
-                  className="w-full sm:w-auto rounded-full px-8 py-3.5 h-12 hover:-translate-y-0.5 transition-all duration-300 font-medium cursor-pointer"
-                  onClick={() => navigate('/services')}
-                >
-                  Explore Services
-                </Button>
-              </div>
-
-              <div className="mt-12 pt-8 border-t border-border/40 w-full flex flex-wrap items-center justify-center gap-6 text-text-muted text-xs font-medium">
-                <div className="inline-flex items-center gap-2">
-                  <LucideIcons.CheckCircle2 className="w-4 h-4 text-accent" />
-                  <span>Industry Standards Verified</span>
+            {/* Content Layout: 2 columns on desktop (text 55%, card 45%, gap 28px), stacked on tablet/mobile */}
+            <div className="grid grid-cols-1 lg:grid-cols-[1.22fr_1fr] gap-7 items-center relative z-10">
+              {/* Left Column: Text & Actions */}
+              <motion.div
+                initial={shouldReduceMotion ? false : { opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: '-40px' }}
+                transition={{
+                  duration: 0.55,
+                  ease: [0.22, 1, 0.36, 1],
+                }}
+                className="w-full flex flex-col items-center text-center lg:items-start lg:text-left"
+              >
+                {/* Pill caption in white tint */}
+                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/15 border border-white/30 text-white text-xs font-display font-semibold uppercase tracking-wider shadow-2xs backdrop-blur-xs">
+                  <span className="w-1.5 h-1.5 rounded-full bg-white shrink-0" />
+                  <span style={{ fontFamily: "'Space Grotesk', system-ui, sans-serif" }}>Get started</span>
                 </div>
-                <div className="w-1 h-1 rounded-full bg-border hidden sm:block" />
-                <div className="inline-flex items-center gap-2">
-                  <LucideIcons.ShieldAlert className="w-4 h-4 text-accent" />
-                  <span>Secure by Design</span>
+
+                {/* Heading */}
+                <h2 className="text-[28px] md:text-[34px] font-display font-bold tracking-tight text-white leading-[1.1] mt-4 mb-3">
+                  Ready to engineer your{' '}
+                  <span className="text-white/80">digital edge?</span>
+                </h2>
+
+                {/* Supporting text */}
+                <p className="text-[14.5px] text-white/85 leading-[1.7] max-w-[44ch] mb-6">
+                  Join our network of precision-built applications. We transform complex technical requirements into high-performance digital experiences.
+                </p>
+
+                {/* Buttons */}
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
+                  <button
+                    type="button"
+                    onClick={() => navigate('/quote')}
+                    className="cta-btn-primary w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-white text-[#1e40af] dark:text-[#1e3a8a] font-semibold text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#1e40af] cursor-pointer"
+                  >
+                    <span>Start project inquiry</span>
+                    <span className="w-4 h-4 shrink-0 flex items-center justify-center">
+                      <ArrowRight className="cta-btn-arrow w-4 h-4 text-[#1e40af] dark:text-[#1e3a8a]" />
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => navigate('/services')}
+                    className="cta-btn-ghost w-full sm:w-auto inline-flex items-center justify-center px-6 py-3 rounded-full bg-white/10 border border-white/25 text-white font-medium text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#1e40af] cursor-pointer"
+                  >
+                    <span>Explore services</span>
+                  </button>
                 </div>
-              </div>
+
+                {/* Trust row */}
+                <div className="mt-6 flex flex-wrap items-center justify-center lg:justify-start gap-x-5 gap-y-2 text-white/90 text-xs font-medium">
+                  <div className="inline-flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-white/90 shrink-0" />
+                    <span>Free quote</span>
+                  </div>
+                  <div className="inline-flex items-center gap-1.5">
+                    <Clock className="w-3.5 h-3.5 text-white/90 shrink-0" />
+                    <span>Reply within 24 hours</span>
+                  </div>
+                  <div className="inline-flex items-center gap-1.5">
+                    <Shield className="w-3.5 h-3.5 text-white/90 shrink-0" />
+                    <span>Secure by design</span>
+                  </div>
+                </div>
+              </motion.div>
+
+              {/* Right Column: 'What happens next' Card */}
+              <motion.div
+                initial={shouldReduceMotion ? false : { opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: '-40px' }}
+                transition={{
+                  duration: 0.55,
+                  delay: shouldReduceMotion ? 0 : 0.1,
+                  ease: [0.22, 1, 0.36, 1],
+                }}
+                className="w-full hidden min-[400px]:block"
+              >
+                <div className="bg-white/[0.96] dark:bg-surface-2/[0.96] rounded-[20px] p-5 sm:p-6 shadow-[0_12px_36px_-6px_rgba(0,0,0,0.16)] border border-white/20 dark:border-white/10 backdrop-blur-sm">
+                  <h3 className="font-display font-bold text-base sm:text-lg text-text-primary tracking-tight mb-4">
+                    What happens next
+                  </h3>
+
+                  <div className="space-y-3.5">
+                    {/* Step 1 */}
+                    <div className="flex items-start gap-3">
+                      <div className="w-[28px] h-[28px] rounded-lg bg-accent/10 dark:bg-accent/20 text-accent font-display font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">
+                        1
+                      </div>
+                      <div className="min-w-0">
+                        <div className="font-bold text-sm text-text-primary leading-tight">
+                          Share your requirements
+                        </div>
+                        <div className="text-xs text-text-muted mt-0.5 truncate leading-normal">
+                          Tell us about your project, timeline, and goals.
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Step 2 */}
+                    <div className="flex items-start gap-3">
+                      <div className="w-[28px] h-[28px] rounded-lg bg-accent/10 dark:bg-accent/20 text-accent font-display font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">
+                        2
+                      </div>
+                      <div className="min-w-0">
+                        <div className="font-bold text-sm text-text-primary leading-tight">
+                          We review and reply
+                        </div>
+                        <div className="text-xs text-text-muted mt-0.5 truncate leading-normal">
+                          Our technical team evaluates scope within 24 hours.
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Step 3 */}
+                    <div className="flex items-start gap-3">
+                      <div className="w-[28px] h-[28px] rounded-lg bg-accent/10 dark:bg-accent/20 text-accent font-display font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">
+                        3
+                      </div>
+                      <div className="min-w-0">
+                        <div className="font-bold text-sm text-text-primary leading-tight">
+                          Get a clear quote
+                        </div>
+                        <div className="text-xs text-text-muted mt-0.5 truncate leading-normal">
+                          Receive an actionable proposal, scope, and timeline.
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
             </div>
-          </motion.div>
+          </div>
         </div>
       </section>
     </div>
