@@ -13,7 +13,9 @@ import {
   Mail,
   Phone,
   ArrowLeft,
-  AlertTriangle
+  AlertTriangle,
+  Briefcase,
+  ShoppingBag
 } from 'lucide-react';
 import { CountryCode, parsePhoneNumber } from 'libphonenumber-js';
 import { useAppStore } from '@/store';
@@ -21,6 +23,7 @@ import { useAuthStore } from '@/store/authStore';
 import { Service, Product, Query } from '@/types';
 import { CountryCodeSelector } from '@/components/CountryCodeSelector';
 import { SelectionCheckBadge } from '@/components/SelectionCheckBadge';
+import { CardIconTile } from '@/components/CardIconTile';
 import { CopyTokenButton } from '@/components/CopyTokenButton';
 import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
@@ -1055,23 +1058,31 @@ export const QuotePage: React.FC = () => {
                         key={service.id}
                         type="button"
                         onClick={() => handleToggleService(service.id)}
-                        className={`group relative box-border p-3.5 sm:p-4 rounded-2xl text-left cursor-pointer flex flex-col justify-between space-y-2.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent border-[1.5px] transition-[border-color,background-color] duration-150 ${
+                        className={`group relative box-border p-3.5 sm:p-4 rounded-2xl text-left cursor-pointer flex items-start gap-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent border-[1.5px] transition-[border-color,background-color] duration-150 ${
                           isSelected
                             ? 'border-accent bg-accent/10 shadow-xs'
                             : 'border-border/70 bg-surface-2/60 hover:border-accent/40 hover:bg-surface-2'
                         }`}
                       >
-                        <div className="flex items-start justify-between gap-2">
-                          <span className={`text-xs sm:text-sm font-bold line-clamp-1 ${
-                            isSelected ? 'text-accent' : 'text-foreground'
-                          }`}>
-                            {service.title || service.name}
-                          </span>
-                          <SelectionCheckBadge isSelected={isSelected} size="md" />
+                        <CardIconTile
+                          icon={service.icon}
+                          fallback={Briefcase}
+                          isSelected={isSelected}
+                          size="md"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-2">
+                            <span className={`text-xs sm:text-sm font-bold truncate flex-1 min-w-0 block ${
+                              isSelected ? 'text-accent' : 'text-foreground'
+                            }`}>
+                              {service.title || service.name}
+                            </span>
+                            <SelectionCheckBadge isSelected={isSelected} size="md" className="shrink-0 -mt-0.5" />
+                          </div>
+                          <p className="text-[11px] text-muted-foreground line-clamp-2 leading-relaxed mt-1">
+                            {service.shortDescription || service.description || 'Specialized digital service.'}
+                          </p>
                         </div>
-                        <p className="text-[11px] text-muted-foreground line-clamp-2 leading-relaxed">
-                          {service.shortDescription || service.description || 'Specialized digital service.'}
-                        </p>
                       </button>
                     );
                   })}
@@ -1099,18 +1110,37 @@ export const QuotePage: React.FC = () => {
                             key={prj.id}
                             type="button"
                             onClick={() => handleToggleProject(prj.id)}
-                            className={`group box-border p-3 rounded-2xl text-left cursor-pointer flex items-center justify-between gap-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent border-[1.5px] transition-[border-color,background-color] duration-150 ${
+                            className={`group relative box-border p-3 rounded-2xl text-left cursor-pointer flex items-center justify-between gap-2.5 sm:gap-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent border-[1.5px] transition-[border-color,background-color] duration-150 min-h-[58px] ${
                               isSelected
                                 ? 'border-accent bg-accent/10 shadow-xs'
                                 : 'border-border/70 bg-surface-2/60 hover:border-accent/40 hover:bg-surface-2'
                             }`}
                           >
-                            <span className={`text-xs font-semibold truncate ${
-                              isSelected ? 'text-accent' : 'text-foreground'
-                            }`}>
-                              {prj.title || prj.name}
-                            </span>
-                            <SelectionCheckBadge isSelected={isSelected} size="sm" />
+                            <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
+                              <CardIconTile
+                                icon={prj.icon}
+                                fallback={ShoppingBag}
+                                isSelected={isSelected}
+                                size="sm"
+                              />
+                              <div className="flex-1 min-w-0 flex flex-col justify-center">
+                                <span className={`text-xs font-semibold truncate block ${
+                                  isSelected ? 'text-accent' : 'text-foreground'
+                                }`}>
+                                  {prj.title || prj.name}
+                                </span>
+                                {prj.category ? (
+                                  <span className="text-[11px] sm:text-xs font-medium text-slate-500 dark:text-slate-400 truncate block mt-0.5">
+                                    {prj.category}
+                                  </span>
+                                ) : (
+                                  <span className="text-[11px] sm:text-xs invisible select-none block mt-0.5" aria-hidden="true">
+                                    &nbsp;
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <SelectionCheckBadge isSelected={isSelected} size="sm" className="shrink-0 ml-1" />
                           </button>
                         );
                       })}
@@ -1131,18 +1161,37 @@ export const QuotePage: React.FC = () => {
                               key={prj.id}
                               type="button"
                               onClick={() => handleToggleProject(prj.id)}
-                              className={`group box-border p-3 rounded-2xl text-left cursor-pointer flex items-center justify-between gap-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent border-[1.5px] transition-[border-color,background-color] duration-150 ${
+                              className={`group relative box-border p-3 rounded-2xl text-left cursor-pointer flex items-center justify-between gap-2.5 sm:gap-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent border-[1.5px] transition-[border-color,background-color] duration-150 min-h-[58px] ${
                                 isSelected
                                   ? 'border-accent bg-accent/10 shadow-xs'
                                   : 'border-border/70 bg-surface-2/60 hover:border-accent/40 hover:bg-surface-2'
                               }`}
                             >
-                              <span className={`text-xs font-semibold truncate ${
-                                isSelected ? 'text-accent' : 'text-foreground'
-                              }`}>
-                                {prj.title || prj.name}
-                              </span>
-                              <SelectionCheckBadge isSelected={isSelected} size="sm" />
+                              <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
+                                <CardIconTile
+                                  icon={prj.icon}
+                                  fallback={ShoppingBag}
+                                  isSelected={isSelected}
+                                  size="sm"
+                                />
+                                <div className="flex-1 min-w-0 flex flex-col justify-center">
+                                  <span className={`text-xs font-semibold truncate block ${
+                                    isSelected ? 'text-accent' : 'text-foreground'
+                                  }`}>
+                                    {prj.title || prj.name}
+                                  </span>
+                                  {prj.category ? (
+                                    <span className="text-[11px] sm:text-xs font-medium text-slate-500 dark:text-slate-400 truncate block mt-0.5">
+                                      {prj.category}
+                                    </span>
+                                  ) : (
+                                    <span className="text-[11px] sm:text-xs invisible select-none block mt-0.5" aria-hidden="true">
+                                      &nbsp;
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                              <SelectionCheckBadge isSelected={isSelected} size="sm" className="shrink-0 ml-1" />
                             </button>
                           );
                         })}

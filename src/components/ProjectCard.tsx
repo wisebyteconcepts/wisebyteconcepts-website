@@ -11,14 +11,12 @@ export interface ProjectCardProps {
   project: Project;
   className?: string;
   parentServiceName?: string;
-  showTags?: boolean;
 }
 
 export const ProjectCard: React.FC<ProjectCardProps> = ({
   project,
   className,
   parentServiceName,
-  showTags = false,
 }) => {
   const cardRef = useRef<HTMLDivElement>(null);
   const imgRef = useRef<HTMLDivElement>(null);
@@ -106,16 +104,6 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
         <p className="card-hook text-sm text-text-secondary leading-6 min-h-[4.5rem] mb-6">
           {hookText}
         </p>
-
-        {showTags && project.tags && project.tags.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 mb-6">
-            {project.tags.slice(0, 3).map((tag) => (
-              <span key={tag} className="text-[10px] font-mono text-text-muted bg-surface-3 px-2 py-0.5 rounded-md">
-                #{tag}
-              </span>
-            ))}
-          </div>
-        )}
 
         {/* Card Footer: View Details link with smooth CSS hover arrow translation */}
         <div className="mt-auto pt-4 border-t border-border/50 flex items-center justify-end">

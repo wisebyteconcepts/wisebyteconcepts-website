@@ -982,7 +982,6 @@ export const ProductsPage = () => {
                 key={p.id}
                 project={p}
                 parentServiceName={parentSrv ? (parentSrv.title || (parentSrv as any).name) : undefined}
-                showTags={true}
               />
             );
           })}
